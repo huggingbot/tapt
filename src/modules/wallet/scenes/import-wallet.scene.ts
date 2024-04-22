@@ -22,7 +22,7 @@ export const createImportWalletScene = composeWizardScene(
     if (ctx.has(message('reply_to_message', 'text'))) {
       const wallets: ExtendedSession['prop'][ESessionProp.Wallets][ENetwork] = [];
 
-      const rawPrivateKeys = ctx.message.text;
+      const rawPrivateKeys = ctx.message.text.toLowerCase();
       const privateKeys = rawPrivateKeys.split(/,\s?/);
 
       try {

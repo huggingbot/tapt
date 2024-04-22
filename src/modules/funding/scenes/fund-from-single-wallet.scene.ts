@@ -38,7 +38,7 @@ EwR1iMRLoXEQR8qTn1AF8ydwujqdMZVs53giNbDCxicH,0.001`,
   },
   async (ctx, done) => {
     if (ctx.has(message('reply_to_message', 'text'))) {
-      const addressAmount = ctx.message.text;
+      const addressAmount = ctx.message.text.toLowerCase();
       const [address, amount] = addressAmount.split(/,\s?/);
 
       const { network } = ctx.session.prop[ESessionProp.Chain];

@@ -172,7 +172,7 @@ export const createBuyAndSellScene = composeWizardScene(
     if (ctx.has(message('reply_to_message', 'text'))) {
       const action = ctx.wizard.state[EWizardProp.Action] as string;
       const [swapMode] = action.split(/_(.+)/);
-      ctx.wizard.state[EWizardProp.Action] = `${swapMode}_${ctx.message.text}`;
+      ctx.wizard.state[EWizardProp.Action] = `${swapMode}_${ctx.message.text.toLowerCase()}`;
       done();
     } else {
       done();

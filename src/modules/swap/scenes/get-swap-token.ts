@@ -20,7 +20,7 @@ export const createGetSwapTokenScene = composeWizardScene(
   async (ctx, done) => {
     if (ctx.has(message('reply_to_message', 'text'))) {
       try {
-        const contractAddress = ctx.message.text;
+        const contractAddress = ctx.message.text.toLowerCase();
         const isValidAddress = isAddress(contractAddress);
 
         if (!isValidAddress) {
