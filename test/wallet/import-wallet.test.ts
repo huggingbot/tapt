@@ -7,6 +7,7 @@ import { Update, UserFromGetMe } from 'telegraf/types';
 import { Deunionize } from 'telegraf/typings/core/helpers/deunionize';
 
 import * as walletQueries from '@/database/queries/wallet';
+import { EScene } from '@/modules/bot/constants/bot-scene.constant';
 
 describe('Import wallet scene', function () {
   let scene: Scenes.WizardScene<IContext>;
@@ -92,5 +93,22 @@ describe('Import wallet scene', function () {
 
     expect(createWalletsSpy).not.toHaveBeenCalled();
     expect(replySpy.mock.calls[0][0]).toEqual('Invalid private key(s)');
+  });
+
+  it('should be able to handle the /start command during the wallet import process', async function () {
+    await scene.middleware()(ctx as IContext, jest.fn());
+
+    expect(replySpy).toHaveBeenCalledTimes(1);
+    replySpy.mockClear();
+
+    // Cancel wallet creation
+    const update = { message: { text: '/start' } };
+    const updatedCtx = _.merge(_.cloneDeep(ctx), { update });
+    await scene.middleware()(updatedCtx as IContext, jest.fn());
+
+    expect(createWalletsSpy).not.toHaveBeenCalled();
+    expect(replySpy).not.toHaveBeenCalled();
+    expect(sceneCtx.leave).toHaveBeenCalledTimes(1);
+    expect(sceneCtx.enter).toHaveBeenCalledWith(EScene.MainNav, { msg: undefined });
   });
 });

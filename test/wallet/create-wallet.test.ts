@@ -9,6 +9,7 @@ import { Deunionize } from 'telegraf/typings/core/helpers/deunionize';
 import { AppConfig } from '@/libs/config';
 
 import * as walletQueries from '@/database/queries/wallet';
+import { EScene } from '@/modules/bot/constants/bot-scene.constant';
 
 describe('Create wallet scene', function () {
   let scene: Scenes.WizardScene<IContext>;
@@ -17,6 +18,7 @@ describe('Create wallet scene', function () {
   let sceneCtx: Partial<IContext['scene']>;
 
   let replySpy: jest.SpyInstance;
+  let deleteMessageSpy: jest.SpyInstance;
   let createWalletsSpy: jest.SpyInstance;
 
   beforeEach(() => {
@@ -37,6 +39,7 @@ describe('Create wallet scene', function () {
     ctx.scene = sceneCtx as IContext['scene'];
 
     replySpy = jest.spyOn(ctx, 'reply').mockImplementation(jest.fn());
+    deleteMessageSpy = jest.spyOn(ctx, 'deleteMessage').mockImplementation(jest.fn());
     createWalletsSpy = jest.spyOn(walletQueries, 'createWallets').mockResolvedValue([]);
   });
 
@@ -79,5 +82,39 @@ describe('Create wallet scene', function () {
     ]);
     expect(replySpy.mock.calls[0][0]).toContain(`✅ **Wallets created!**\nDeposit ETH to these addresses:\n\`(0)`);
     expect(replySpy.mock.calls[1][0]).toContain(`Private keys:\n\`(0)`);
+  });
+
+  it('should be able to cancel the wallet creation process', async function () {
+    await scene.middleware()(ctx as IContext, jest.fn());
+
+    expect(replySpy).toHaveBeenCalledTimes(1);
+    replySpy.mockClear();
+
+    // Cancel wallet creation
+    const update = { message: { text: '' }, callback_query: { data: ENavAction.Cancel } };
+    const updatedCtx = _.merge(_.cloneDeep(ctx), { update });
+    await scene.middleware()(updatedCtx as IContext, jest.fn());
+
+    expect(deleteMessageSpy).toHaveBeenCalledTimes(1);
+    expect(createWalletsSpy).not.toHaveBeenCalled();
+    expect(replySpy).not.toHaveBeenCalled();
+  });
+
+  it('should be able to handle the /start command during the wallet creation process', async function () {
+    await scene.middleware()(ctx as IContext, jest.fn());
+
+    expect(replySpy).toHaveBeenCalledTimes(1);
+    replySpy.mockClear();
+
+    // Cancel wallet creation
+    const update = { message: { text: '/start' } };
+    const updatedCtx = _.merge(_.cloneDeep(ctx), { update });
+    await scene.middleware()(updatedCtx as IContext, jest.fn());
+
+    expect(deleteMessageSpy).not.toHaveBeenCalled();
+    expect(createWalletsSpy).not.toHaveBeenCalled();
+    expect(replySpy).not.toHaveBeenCalled();
+    expect(sceneCtx.leave).toHaveBeenCalledTimes(1);
+    expect(sceneCtx.enter).toHaveBeenCalledWith(EScene.MainNav, { msg: undefined });
   });
 });
