@@ -89,8 +89,6 @@ describe('Import wallet scene', function () {
     const updatedCtx = _.merge(_.cloneDeep(ctx), { update });
     await scene.middleware()(updatedCtx as IContext, jest.fn());
 
-    const chainId = AppConfig[sessionCtx.prop.chain.network].chainId;
-
     expect(createWalletsSpy).not.toHaveBeenCalled();
     expect(replySpy.mock.calls[0][0]).toEqual('Invalid private key(s)');
   });
