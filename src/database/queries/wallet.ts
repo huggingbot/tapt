@@ -27,6 +27,7 @@ export const createWallets = async (telegramId: string, params: ICreateWalletsPa
   });
 
   return (
+    // TODO: Query for wallets as onConflict will do nothing (no wallets returned) if wallets already exists
     db
       .insertInto('wallet')
       .values(wallets)

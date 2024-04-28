@@ -55,9 +55,11 @@ export const createCreateWalletScene = composeWizardScene(
 
         for (let i = 0; i < walletsToCreate; i++) {
           const { address, privateKey } = Wallet.createRandom();
-          addresses.push(`(${i}) ${address}`);
-          privateKeys.push(`(${i}) ${privateKey}`);
-          wallets.push({ encryptedPrivateKey: encryptPrivateKey(privateKey), address, chainId: AppConfig[network].chainId });
+          const lowerAddress = address.toLowerCase();
+          const lowerPrivate = privateKey.toLowerCase();
+          addresses.push(`(${i}) ${lowerAddress}`);
+          privateKeys.push(`(${i}) ${lowerPrivate}`);
+          wallets.push({ encryptedPrivateKey: encryptPrivateKey(lowerPrivate), address: lowerAddress, chainId: AppConfig[network].chainId });
         }
         await createWallets(String(ctx.session.user.id), wallets);
 

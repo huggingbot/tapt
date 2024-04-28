@@ -32,6 +32,7 @@ export const getUserWithWallets = async (telegramId: string, chainId: number) =>
 };
 
 export const createUser = async (telegramId: string, username: string) => {
+  // TODO: Query for user as onConflict will do nothing (no user returned) if user already exists
   return db
     .insertInto('user')
     .values({ telegramId, username })
