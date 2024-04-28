@@ -59,8 +59,43 @@ export const placeSwapOrder = async (basicWallet: IBasicWallet, params: IPlaceSw
   });
 };
 
-export const placeLimitOrder = async () => {
-  // TODO: Implement this function
+export const placeLimitOrder = async (params: {
+  tokenIn: ICreateTokenParams;
+  tokenOut: ICreateTokenParams;
+  wallet: IBasicWallet;
+  tradeParam: Pick<ICreateOrderParams, 'targetPrice' | 'expirationDate'>;
+}) => {
+  const { tokenIn, tokenOut, wallet, tradeParam } = params;
+
+  await db.transaction().execute(async (txn) => {
+    // wallet valiation
+    const w = await getWallet(wallet, txn);
+    if (!w) {
+      throw new Error('Wallet not found');
+    }
+
+    const tokens = await createTokens([tokenIn, tokenOut], txn);
+    if (tokens.length !== 2) {
+      throw new Error('Failed to create tokens');
+    }
+    const [inputToken, outputToken] = tokens;
+
+    const newOrder: ICreateOrderParams = {
+      orderType: 'LIMIT',
+      orderStatus: 'SUBMITTED',
+      walletId: w.id,
+      buyAmount: 0,
+      sellAmount: 0,
+      buyTokenId: inputToken.id,
+      sellTokenId: outputToken.id,
+      targetPrice: tradeParam.targetPrice,
+      expirationDate: tradeParam.expirationDate,
+    };
+    const order = await createOrder(newOrder);
+    if (!order) {
+      throw new Error('failed to create order');
+    }
+  });
 };
 
 export const placeDcaOrder = async () => {

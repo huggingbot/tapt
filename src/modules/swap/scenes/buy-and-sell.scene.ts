@@ -83,9 +83,7 @@ export const createBuyAndSellScene = composeWizardScene(
     ];
 
     // order type
-    console.log('state[EWizardProp.OrderType]', ctx.wizard.state[EWizardProp.OrderType]);
     const orderType = ctx.wizard.state[EWizardProp.OrderType] || EOrderType.SwapOrderType;
-    console.log('orderType', orderType);
 
     const keyboardData = [
       [
@@ -131,15 +129,11 @@ export const createBuyAndSellScene = composeWizardScene(
       done();
     } else if (ctx.has(callbackQuery('data'))) {
       const cbData = ctx.callbackQuery.data;
-      console.log('cbData', cbData);
       const isWalletAddress = isAddress(cbData);
-      console.log('isWalletAddress', isWalletAddress);
-      console.log('Object.values(ESwapAction)', Object.values(ESwapAction));
-      console.log('Object.values(EOrderType)', Object.values(EOrderType));
+
       if ((Object.values(ESwapAction) as string[]).includes(cbData)) {
         ctx.wizard.state[EWizardProp.Action] = cbData;
       } else if ((Object.values(EOrderType) as string[]).includes(cbData)) {
-        console.log('setting ORDER TYPE', cbData);
         ctx.wizard.state[EWizardProp.OrderType] = cbData;
       } else if (isWalletAddress) {
         ctx.wizard.state[EWizardProp.ActiveAddress] = cbData;
@@ -151,21 +145,17 @@ export const createBuyAndSellScene = composeWizardScene(
         isWalletAddress
       ) {
         const contract = state[EWizardProp.Contract] as IWizContractProp;
-        console.log('contract', contract);
         const msg = ctx.callbackQuery.message as Message.TextMessage;
-        console.log('msg', msg);
+
         const inlineKb = msg.reply_markup?.inline_keyboard as InlineKeyboardButton.CallbackButton[][];
-        console.log('inlinKb', inlineKb);
         const activeButtons = inlineKb.reduce((acc, row) => {
           const activeButton = row.find((col) => col.text.includes('❎'));
           return activeButton ? acc.concat(activeButton.callback_data) : acc;
         }, [] as string[]);
-        console.log('activeButtons', activeButtons);
+
         const isActiveButton = activeButtons.includes(cbData);
         const shouldDoNothing = isActiveButton || ([ESwapAction.Actions, ESwapAction.Wallets] as string[]).includes(cbData);
-        console.log('shouldDoNothing', shouldDoNothing);
-        console.log('state[EWizardProp.Action]', state[EWizardProp.Action]);
-        console.log('ctx.scene.current.id', ctx.scene.current?.id);
+
         if (ctx.scene.current) {
           ctx.scene.enter(ctx.scene.current.id, {
             [EWizardProp.Msg]: msg,
