@@ -6,11 +6,12 @@ import { Context, Scenes, Telegram } from 'telegraf';
 import { Update, UserFromGetMe } from 'telegraf/types';
 import { Deunionize } from 'telegraf/typings/core/helpers/deunionize';
 
+import { NATIVE_CURRENCY } from '@/libs/constants';
 import { ENavAction } from '@/modules/bot/constants/bot-action.constant';
 import { EScene } from '@/modules/bot/constants/bot-scene.constant';
 import { EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
 
-describe('Main nav scene', function () {
+describe('Funding nav scene', function () {
   let scene: Scenes.WizardScene<IContext>;
   let ctx: Partial<IContext>;
   let sessionCtx: ExtendedSession;
@@ -20,8 +21,8 @@ describe('Main nav scene', function () {
   let editMsgSpy: jest.SpyInstance;
 
   beforeEach(() => {
-    // Main nav scene
-    scene = navStage[0];
+    // Funding nav scene
+    scene = navStage[2];
 
     sessionCtx = {
       prop: {
@@ -39,6 +40,7 @@ describe('Main nav scene', function () {
     );
     ctx.session = sessionCtx as IContext['session'];
     ctx.scene = sceneCtx as IContext['scene'];
+    ctx.editMessageReplyMarkup = jest.fn();
 
     replySpy = jest.spyOn(ctx, 'reply').mockImplementation(jest.fn());
     editMsgSpy = jest.spyOn(ctx.telegram!, 'editMessageReplyMarkup');
@@ -48,47 +50,41 @@ describe('Main nav scene', function () {
     jest.restoreAllMocks();
   });
 
-  it('should show the module navigation', async function () {
-    const update = { message: { text: '/start' } };
-    const updatedCtx = _.merge(_.cloneDeep(ctx), { update });
-    await scene.middleware()(updatedCtx as IContext, jest.fn());
+  it('should show the funding navigation', async function () {
+    await scene.middleware()(ctx as IContext, jest.fn());
 
-    expect(replySpy).toHaveBeenCalledWith('Manage TAPT', {
+    const { network } = sessionCtx.prop.chain;
+
+    expect(replySpy).toHaveBeenCalledWith('Manage funding', {
       reply_markup: {
         inline_keyboard: [
-          [{ callback_data: ENavAction.Wallet, hide: false, text: ENavAction.Wallet }],
-          [{ callback_data: ENavAction.Funding, hide: false, text: ENavAction.Funding }],
-          [{ callback_data: ENavAction.Swap, hide: false, text: ENavAction.Swap }],
-          [{ callback_data: ENavAction.Chain, hide: false, text: ENavAction.Chain }],
+          [{ callback_data: ENavAction.FundFromSingleWallet, hide: false, text: `Fund ${NATIVE_CURRENCY[network]} from wallet` }],
+          [{ callback_data: ENavAction.Back, hide: false, text: ENavAction.Back }],
         ],
       },
     });
   });
 
   test.each`
-    moduleNav            | action
-    ${EScene.WalletNav}  | ${ENavAction.Wallet}
-    ${EScene.FundingNav} | ${ENavAction.Funding}
-    ${EScene.SwapNav}    | ${ENavAction.Swap}
-    ${EScene.ChainNav}   | ${ENavAction.Chain}
-  `('should navigate to the $moduleNav navigation', async ({ moduleNav, action }) => {
-    const update1 = { message: { text: '/start' } };
-    const updatedCtx1 = _.merge(_.cloneDeep(ctx), { update: update1 });
-    await scene.middleware()(updatedCtx1 as IContext, jest.fn());
+    sceneNav                       | action
+    ${EScene.FundFromSingleWallet} | ${ENavAction.FundFromSingleWallet}
+    ${EScene.MainNav}              | ${ENavAction.Back}
+  `('should navigate to the $sceneNav scene', async ({ sceneNav, action }) => {
+    await scene.middleware()(ctx as IContext, jest.fn());
 
     expect(replySpy).toHaveBeenCalledTimes(1);
     replySpy.mockClear();
 
-    const update2 = { message: { text: '' }, callback_query: { data: action } };
-    const updatedCtx2 = _.merge(_.cloneDeep(updatedCtx1), { update: update2 });
-    await scene.middleware()(updatedCtx2 as IContext, jest.fn());
+    const update = { message: { text: '' }, callback_query: { data: action } };
+    const updatedCtx = _.merge(_.cloneDeep(ctx), { update });
+    await scene.middleware()(updatedCtx as IContext, jest.fn());
 
     expect(replySpy).not.toHaveBeenCalled();
     expect(sceneCtx.leave).toHaveBeenCalledTimes(1);
-    expect(sceneCtx.enter).toHaveBeenCalledWith(moduleNav, { msg: undefined });
+    expect(sceneCtx.enter).toHaveBeenCalledWith(sceneNav, { msg: undefined });
   });
 
-  it('should edit inline keyboard to the main nav when there is a message state', async function () {
+  it('should edit inline keyboard to the funding nav when there is a message state', async function () {
     const message_id = 1;
     const chat = { id: 1 };
     sceneCtx.state = { [EWizardProp.Msg]: { chat, message_id, reply_markup: { inline_keyboard: [] } } };
@@ -97,15 +93,15 @@ describe('Main nav scene', function () {
     const updatedCtx = _.merge(_.cloneDeep(ctx), { update: update });
     await scene.middleware()(updatedCtx as IContext, jest.fn());
 
+    const { network } = sessionCtx.prop.chain;
+
     expect(replySpy).not.toHaveBeenCalled();
     expect(sceneCtx.leave).not.toHaveBeenCalled();
     expect(sceneCtx.enter).not.toHaveBeenCalled();
     expect(editMsgSpy).toHaveBeenCalledWith(chat.id, message_id, undefined, {
       inline_keyboard: [
-        [{ callback_data: ENavAction.Wallet, text: ENavAction.Wallet }],
-        [{ callback_data: ENavAction.Funding, text: ENavAction.Funding }],
-        [{ callback_data: ENavAction.Swap, text: ENavAction.Swap }],
-        [{ callback_data: ENavAction.Chain, text: ENavAction.Chain }],
+        [{ callback_data: ENavAction.FundFromSingleWallet, text: `Fund ${NATIVE_CURRENCY[network]} from wallet` }],
+        [{ callback_data: ENavAction.Back, text: ENavAction.Back }],
       ],
     });
   });
