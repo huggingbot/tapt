@@ -10,4 +10,5 @@ export enum EWizardProp {
   Contract = 'contract',
   ActiveAddress = 'activeAddress',
   DoNothing = 'doNothing',
+  OrderType = 'orderType',
 }

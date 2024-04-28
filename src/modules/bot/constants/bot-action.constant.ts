@@ -57,4 +57,16 @@ export enum ESwapAction {
   Sell_100 = 'Sell_100pct',
   Sell_X = 'Sell_X',
   ConfirmSwap = 'ConfirmSwap',
+  SubmitLimitOrder = 'SubmitLimitOrder',
+}
+
+export enum EOrderType {
+  SwapOrderType = 'Swap',
+  LimitOrderType = 'Limit',
+  DCAOrderType = 'DCA',
+}
+
+export enum ELimitOptions {
+  PreviewOrder = 'Preview Limit Order',
+  SubmitOrder = 'Submit Limit Order',
 }

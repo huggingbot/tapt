@@ -1,5 +1,7 @@
 import { Markup } from 'telegraf';
 
+import { EOrderType } from '../modules/bot/constants/bot-action.constant';
+
 export const formatKeyboard = (keyboard: { text: string; callback_data: string }[][]) => {
   return Markup.inlineKeyboard(
     keyboard.map((kb) => {
@@ -14,3 +16,14 @@ export const truncateAddress = (address: string, length = 4) => {
   }
   return `${address.substring(0, length + 2)}...${address.substring(address.length - length)}`;
 };
+
+export const isNumber = (val: unknown): boolean => {
+  const n = Number(val);
+  return !isNaN(n);
+};
+
+export const isSwapOrder = (order: unknown): boolean => order === EOrderType.SwapOrderType;
+
+export const isLimitOrder = (order: unknown): boolean => order === EOrderType.LimitOrderType;
+
+export const isDCAOrder = (order: unknown): boolean => order === EOrderType.DCAOrderType;

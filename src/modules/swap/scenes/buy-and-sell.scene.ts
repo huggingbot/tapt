@@ -3,11 +3,11 @@ import { callbackQuery, message } from 'telegraf/filters';
 import { InlineKeyboardButton, Message } from 'telegraf/typings/core/types/typegram';
 
 import { NATIVE_CURRENCY as NATIVE_CURRENCY } from '@/libs/constants';
-import { ENavAction, ESwapAction } from '@/modules/bot/constants/bot-action.constant';
+import { ENavAction, EOrderType, ESwapAction } from '@/modules/bot/constants/bot-action.constant';
 import { ESessionProp, EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
 import { IWizContractProp } from '@/modules/bot/interfaces/bot-prop.interface';
 import { composeWizardScene } from '@/modules/bot/utils/scene-factory';
-import { formatKeyboard, truncateAddress } from '@/utils/common';
+import { formatKeyboard, isDCAOrder, isLimitOrder, isSwapOrder, truncateAddress } from '@/utils/common';
 
 export const createBuyAndSellScene = composeWizardScene(
   async (ctx) => {
@@ -81,10 +81,21 @@ export const createBuyAndSellScene = composeWizardScene(
         { text: 'Sell X token', callback_data: ESwapAction.Sell_X },
       ],
     ];
+
+    // order type
+    console.log('state[EWizardProp.OrderType]', ctx.wizard.state[EWizardProp.OrderType]);
+    const orderType = ctx.wizard.state[EWizardProp.OrderType] || EOrderType.SwapOrderType;
+    console.log('orderType', orderType);
+
     const keyboardData = [
       [
         { text: isBuyMode ? `${ESwapAction.BuyMode} ❎` : ESwapAction.BuyMode, callback_data: ESwapAction.BuyMode },
         { text: !isBuyMode ? `${ESwapAction.SellMode} ❎` : ESwapAction.SellMode, callback_data: ESwapAction.SellMode },
+      ],
+      [
+        { text: isSwapOrder(orderType) ? `${EOrderType.SwapOrderType} ❎` : EOrderType.SwapOrderType, callback_data: EOrderType.SwapOrderType },
+        { text: isLimitOrder(orderType) ? `${EOrderType.LimitOrderType} ❎` : EOrderType.LimitOrderType, callback_data: EOrderType.LimitOrderType },
+        { text: isDCAOrder(orderType) ? `${EOrderType.DCAOrderType} ❎` : EOrderType.DCAOrderType, callback_data: EOrderType.DCAOrderType },
       ],
       [{ text: ESwapAction.Wallets, callback_data: ESwapAction.Wallets }],
       ...walletKeyboardData,
@@ -120,35 +131,51 @@ export const createBuyAndSellScene = composeWizardScene(
       done();
     } else if (ctx.has(callbackQuery('data'))) {
       const cbData = ctx.callbackQuery.data;
+      console.log('cbData', cbData);
       const isWalletAddress = isAddress(cbData);
-
+      console.log('isWalletAddress', isWalletAddress);
+      console.log('Object.values(ESwapAction)', Object.values(ESwapAction));
+      console.log('Object.values(EOrderType)', Object.values(EOrderType));
       if ((Object.values(ESwapAction) as string[]).includes(cbData)) {
         ctx.wizard.state[EWizardProp.Action] = cbData;
+      } else if ((Object.values(EOrderType) as string[]).includes(cbData)) {
+        console.log('setting ORDER TYPE', cbData);
+        ctx.wizard.state[EWizardProp.OrderType] = cbData;
       } else if (isWalletAddress) {
         ctx.wizard.state[EWizardProp.ActiveAddress] = cbData;
       }
-      if (([ESwapAction.BuyMode, ESwapAction.SellMode, ESwapAction.Actions, ESwapAction.Wallets] as string[]).includes(cbData) || isWalletAddress) {
+      if (
+        ([ESwapAction.BuyMode, ESwapAction.SellMode, ESwapAction.Actions, ESwapAction.Wallets, ...Object.values(EOrderType)] as string[]).includes(
+          cbData,
+        ) ||
+        isWalletAddress
+      ) {
         const contract = state[EWizardProp.Contract] as IWizContractProp;
-
+        console.log('contract', contract);
         const msg = ctx.callbackQuery.message as Message.TextMessage;
+        console.log('msg', msg);
         const inlineKb = msg.reply_markup?.inline_keyboard as InlineKeyboardButton.CallbackButton[][];
+        console.log('inlinKb', inlineKb);
         const activeButtons = inlineKb.reduce((acc, row) => {
           const activeButton = row.find((col) => col.text.includes('❎'));
           return activeButton ? acc.concat(activeButton.callback_data) : acc;
         }, [] as string[]);
-
+        console.log('activeButtons', activeButtons);
         const isActiveButton = activeButtons.includes(cbData);
         const shouldDoNothing = isActiveButton || ([ESwapAction.Actions, ESwapAction.Wallets] as string[]).includes(cbData);
-
+        console.log('shouldDoNothing', shouldDoNothing);
+        console.log('state[EWizardProp.Action]', state[EWizardProp.Action]);
+        console.log('ctx.scene.current.id', ctx.scene.current?.id);
         if (ctx.scene.current) {
           ctx.scene.enter(ctx.scene.current.id, {
             [EWizardProp.Msg]: msg,
             [EWizardProp.Contract]: contract,
             [EWizardProp.DoNothing]: shouldDoNothing,
-            ...(isWalletAddress || shouldDoNothing ? { [EWizardProp.Action]: state[EWizardProp.Action] } : { [EWizardProp.Action]: cbData }),
+            [EWizardProp.Action]: (Object.values(ESwapAction) as string[]).includes(cbData) ? cbData : state[EWizardProp.Action],
             ...(isWalletAddress && !shouldDoNothing
               ? { [EWizardProp.ActiveAddress]: cbData }
               : { [EWizardProp.ActiveAddress]: state[EWizardProp.ActiveAddress] }),
+            [EWizardProp.OrderType]: (Object.values(EOrderType) as string[]).includes(cbData) ? cbData : undefined,
           });
         } else {
           done();

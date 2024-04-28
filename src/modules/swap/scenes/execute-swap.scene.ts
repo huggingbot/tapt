@@ -20,6 +20,7 @@ import { formatKeyboard } from '@/utils/common';
 import { decryptPrivateKey } from '@/utils/crypto';
 
 export const createExecuteSwapScene = composeWizardScene(
+  // confirmation
   async (ctx) => {
     const keyboardData = [
       [{ text: 'Confirm swap', callback_data: ESwapAction.ConfirmSwap }],
@@ -29,14 +30,16 @@ export const createExecuteSwapScene = composeWizardScene(
     ctx.reply('Please confirm your swap', formatKeyboard(keyboardData));
     ctx.wizard.next();
   },
+  // execute swap
   async (ctx, done) => {
     const state = ctx.wizard.state;
-
+    // user cancel the swap
     if (ctx.has(callbackQuery('data')) && ctx.callbackQuery.data === String(ENavAction.Cancel)) {
       ctx.wizard.state[EWizardProp.Contract] = undefined;
       ctx.wizard.state[EWizardProp.Action] = undefined;
       done();
     } else if (ctx.has(callbackQuery('data')) && ctx.callbackQuery.data === String(ESwapAction.ConfirmSwap)) {
+      // user confirm and execute the swap
       const contract = state[EWizardProp.Contract] as IWizContractProp;
       const action = state[EWizardProp.Action] as string;
       const activeAddress = state[EWizardProp.ActiveAddress];
