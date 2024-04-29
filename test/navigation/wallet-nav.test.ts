@@ -65,13 +65,13 @@ describe('Wallet nav scene', function () {
   });
 
   test.each`
-    sceneNav               | action
-    ${EScene.CountWallet}  | ${ENavAction.WalletCount}
-    ${EScene.ListWallet}   | ${ENavAction.WalletList}
-    ${EScene.CreateWallet} | ${ENavAction.WalletCreate}
-    ${EScene.ImportWallet} | ${ENavAction.WalletImport}
-    ${EScene.MainNav}      | ${ENavAction.Back}
-  `('should navigate to the $sceneNav scene', async ({ sceneNav, action }) => {
+    action                     | expectedScene
+    ${ENavAction.WalletCount}  | ${EScene.CountWallet}
+    ${ENavAction.WalletList}   | ${EScene.ListWallet}
+    ${ENavAction.WalletCreate} | ${EScene.CreateWallet}
+    ${ENavAction.WalletImport} | ${EScene.ImportWallet}
+    ${ENavAction.Back}         | ${EScene.MainNav}
+  `('should navigate to the $expectedScene scene when action is $action', async ({ action, expectedScene }) => {
     await scene.middleware()(ctx as IContext, jest.fn());
 
     expect(replySpy).toHaveBeenCalledTimes(1);
@@ -83,7 +83,7 @@ describe('Wallet nav scene', function () {
 
     expect(replySpy).not.toHaveBeenCalled();
     expect(sceneCtx.leave).toHaveBeenCalledTimes(1);
-    expect(sceneCtx.enter).toHaveBeenCalledWith(sceneNav, { msg: undefined });
+    expect(sceneCtx.enter).toHaveBeenCalledWith(expectedScene, { msg: undefined });
   });
 
   it('should edit inline keyboard to the wallet nav when there is a message state', async function () {
@@ -92,10 +92,8 @@ describe('Wallet nav scene', function () {
     sceneCtx.state = { [EWizardProp.Msg]: { chat, message_id, reply_markup: { inline_keyboard: [] } } };
 
     const update = { message: { text: '' } };
-    const updatedCtx = _.merge(_.cloneDeep(ctx), { update: update });
+    const updatedCtx = _.merge(_.cloneDeep(ctx), { update });
     await scene.middleware()(updatedCtx as IContext, jest.fn());
-
-    const { network } = sessionCtx.prop.chain;
 
     expect(replySpy).not.toHaveBeenCalled();
     expect(sceneCtx.leave).not.toHaveBeenCalled();

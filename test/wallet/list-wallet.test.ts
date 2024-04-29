@@ -13,6 +13,8 @@ describe('List wallet scene', function () {
   let sessionCtx: Omit<ExtendedSession, 'user'>;
   let sceneCtx: Partial<IContext['scene']>;
 
+  let replySpy: jest.SpyInstance;
+
   beforeEach(() => {
     // List wallet scene
     scene = walletStage[1];
@@ -28,7 +30,8 @@ describe('List wallet scene', function () {
     ctx = new Context({ message: 'message' } as unknown as Deunionize<Update>, {} as Telegram, {} as UserFromGetMe);
     ctx.session = sessionCtx as IContext['session'];
     ctx.scene = sceneCtx as IContext['scene'];
-    ctx.reply = jest.fn();
+
+    replySpy = jest.spyOn(ctx, 'reply').mockImplementation(jest.fn());
   });
 
   afterEach(() => {
@@ -58,7 +61,7 @@ describe('List wallet scene', function () {
     await scene.middleware()(ctx as IContext, jest.fn());
 
     const wallets = sessionCtx.prop.wallets[network].map((wallet) => wallet.address).join('\n');
-    expect(ctx.reply).toHaveBeenCalledWith(`Your wallets are:\n${wallets}`);
+    expect(replySpy).toHaveBeenCalledWith(`Your wallets are:\n${wallets}`);
   });
 
   it('should list no wallets present in another chain', async function () {
@@ -70,6 +73,6 @@ describe('List wallet scene', function () {
     sessionCtx.prop.wallets[network].push({ encryptedPrivateKey, address: wallet.address, chainId: AppConfig[network].chainId });
 
     await scene.middleware()(ctx as IContext, jest.fn());
-    expect(ctx.reply).toHaveBeenCalledWith('You have no wallets');
+    expect(replySpy).toHaveBeenCalledWith('You have no wallets');
   });
 });

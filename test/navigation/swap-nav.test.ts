@@ -62,11 +62,11 @@ describe('Swap nav scene', function () {
   });
 
   test.each`
-    sceneNav               | action                     | scenario
-    ${EScene.MainNav}      | ${ENavAction.GetSwapToken} | ${'wallets not created'}
-    ${EScene.GetSwapToken} | ${ENavAction.GetSwapToken} | ${'wallets created'}
-    ${EScene.MainNav}      | ${ENavAction.Back}         | ${null}
-  `('should navigate to the $sceneNav scene', async ({ sceneNav, action, scenario }) => {
+    action                     | scenario                 | expectedScene
+    ${ENavAction.GetSwapToken} | ${'wallets not created'} | ${EScene.MainNav}
+    ${ENavAction.GetSwapToken} | ${'wallets created'}     | ${EScene.GetSwapToken}
+    ${ENavAction.Back}         | ${null}                  | ${EScene.MainNav}
+  `('should navigate to the $expectedScene scene when action is $action and scenario is "$scenario"', async ({ action, expectedScene, scenario }) => {
     await scene.middleware()(ctx as IContext, jest.fn());
 
     expect(replySpy).toHaveBeenCalledTimes(1);
@@ -86,7 +86,7 @@ describe('Swap nav scene', function () {
       expect(replySpy).not.toHaveBeenCalled();
     }
     expect(sceneCtx.leave).toHaveBeenCalledTimes(1);
-    expect(sceneCtx.enter).toHaveBeenCalledWith(sceneNav, { msg: undefined });
+    expect(sceneCtx.enter).toHaveBeenCalledWith(expectedScene, { msg: undefined });
   });
 
   it('should edit inline keyboard to the swap nav when there is a message state', async function () {
@@ -95,10 +95,8 @@ describe('Swap nav scene', function () {
     sceneCtx.state = { [EWizardProp.Msg]: { chat, message_id, reply_markup: { inline_keyboard: [] } } };
 
     const update = { message: { text: '' } };
-    const updatedCtx = _.merge(_.cloneDeep(ctx), { update: update });
+    const updatedCtx = _.merge(_.cloneDeep(ctx), { update });
     await scene.middleware()(updatedCtx as IContext, jest.fn());
-
-    const { network } = sessionCtx.prop.chain;
 
     expect(replySpy).not.toHaveBeenCalled();
     expect(sceneCtx.leave).not.toHaveBeenCalled();

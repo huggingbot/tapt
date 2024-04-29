@@ -7,8 +7,8 @@ import { Update, UserFromGetMe } from 'telegraf/types';
 import { Deunionize } from 'telegraf/typings/core/helpers/deunionize';
 
 import { ENavAction } from '@/modules/bot/constants/bot-action.constant';
-import { EScene } from '@/modules/bot/constants/bot-scene.constant';
 import { EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
+import { EScene } from '@/modules/bot/constants/bot-scene.constant';
 
 describe('Main nav scene', function () {
   let scene: Scenes.WizardScene<IContext>;
@@ -66,12 +66,12 @@ describe('Main nav scene', function () {
   });
 
   test.each`
-    moduleNav            | action
-    ${EScene.WalletNav}  | ${ENavAction.Wallet}
-    ${EScene.FundingNav} | ${ENavAction.Funding}
-    ${EScene.SwapNav}    | ${ENavAction.Swap}
-    ${EScene.ChainNav}   | ${ENavAction.Chain}
-  `('should navigate to the $moduleNav navigation', async ({ moduleNav, action }) => {
+    action                | expectedScene
+    ${ENavAction.Wallet}  | ${EScene.WalletNav}
+    ${ENavAction.Funding} | ${EScene.FundingNav}
+    ${ENavAction.Swap}    | ${EScene.SwapNav}
+    ${ENavAction.Chain}   | ${EScene.ChainNav}
+  `('should navigate to the $expectedScene scene when action is $action', async ({ action, expectedScene }) => {
     const update1 = { message: { text: '/start' } };
     const updatedCtx1 = _.merge(_.cloneDeep(ctx), { update: update1 });
     await scene.middleware()(updatedCtx1 as IContext, jest.fn());
@@ -85,7 +85,7 @@ describe('Main nav scene', function () {
 
     expect(replySpy).not.toHaveBeenCalled();
     expect(sceneCtx.leave).toHaveBeenCalledTimes(1);
-    expect(sceneCtx.enter).toHaveBeenCalledWith(moduleNav, { msg: undefined });
+    expect(sceneCtx.enter).toHaveBeenCalledWith(expectedScene, { msg: undefined });
   });
 
   it('should edit inline keyboard to the main nav when there is a message state', async function () {
@@ -94,7 +94,7 @@ describe('Main nav scene', function () {
     sceneCtx.state = { [EWizardProp.Msg]: { chat, message_id, reply_markup: { inline_keyboard: [] } } };
 
     const update = { message: { text: '' } };
-    const updatedCtx = _.merge(_.cloneDeep(ctx), { update: update });
+    const updatedCtx = _.merge(_.cloneDeep(ctx), { update });
     await scene.middleware()(updatedCtx as IContext, jest.fn());
 
     expect(replySpy).not.toHaveBeenCalled();

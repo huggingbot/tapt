@@ -23,14 +23,14 @@ export const createFundFromSingleWalletScene = composeWizardScene(
 Note that:
 • Leaving the amount blank transfers the entire remaining balance.
 • The address and amount are separated by comma
-      
+
 Example:
-      
+
 Address with remaining amount:
-EwR1iMRLoXEQR8qTn1AF8ydwujqdMZVs53giNbDCxicH
-      
+0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+
 Address with specified amount:
-EwR1iMRLoXEQR8qTn1AF8ydwujqdMZVs53giNbDCxicH,0.001`,
+0x70997970C51812dc3A010C7d01b50e0d17dc79C8,0.001`,
         { reply_markup: { force_reply: true } },
       );
       ctx.wizard.next();
@@ -65,6 +65,7 @@ EwR1iMRLoXEQR8qTn1AF8ydwujqdMZVs53giNbDCxicH,0.001`,
           // Transfer the entire remaining balance if the amount is not specified
           // TODO: Account for gas fees
           const transferAmount = amount ? BigInt(amount) : balance;
+          console.log('zzzztransferAmount', transferAmount, amount, balance, transferAmount <= 0n);
 
           if (transferAmount > balance || transferAmount <= 0n) {
             ctx.reply('Insufficient balance');
@@ -88,10 +89,15 @@ EwR1iMRLoXEQR8qTn1AF8ydwujqdMZVs53giNbDCxicH,0.001`,
             });
             const hashes = (await Promise.all(txReceiptPromises)).map((tx) => tx.transactionHash);
 
-            ctx.reply(`✅ **Funding successful!**\n\nTransaction hashes:\n\`${hashes.join('\n')}\``, {
-              parse_mode: 'Markdown',
-            });
-            done();
+            if (hashes.length === 0) {
+              ctx.reply('No wallets to fund');
+              done();
+            } else {
+              ctx.reply(`✅ **Funding successful!**\n\nTransaction hashes:\n\`${hashes.join('\n')}\``, {
+                parse_mode: 'Markdown',
+              });
+              done();
+            }
           }
         } catch (err) {
           log.error(`Error occurred in createFundFromSingleWalletScene: ${String(err)}`);

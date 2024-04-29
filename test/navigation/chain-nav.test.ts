@@ -9,7 +9,6 @@ import { Deunionize } from 'telegraf/typings/core/helpers/deunionize';
 import { ENavAction } from '@/modules/bot/constants/bot-action.constant';
 import { EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
 import { EScene } from '@/modules/bot/constants/bot-scene.constant';
-import { NATIVE_CURRENCY } from '@/libs/constants';
 
 describe('Chain nav scene', function () {
   let scene: Scenes.WizardScene<IContext>;
@@ -52,8 +51,6 @@ describe('Chain nav scene', function () {
   it('should show the chain navigation', async function () {
     await scene.middleware()(ctx as IContext, jest.fn());
 
-    const { network } = sessionCtx.prop.chain;
-
     expect(replySpy).toHaveBeenCalledWith('Manage chain', {
       reply_markup: {
         inline_keyboard: [
@@ -66,11 +63,11 @@ describe('Chain nav scene', function () {
   });
 
   test.each`
-    sceneNav                  | action
-    ${EScene.GetCurrentChain} | ${ENavAction.GetCurrentChain}
-    ${EScene.SwitchChain}     | ${ENavAction.SwitchChain}
-    ${EScene.MainNav}         | ${ENavAction.Back}
-  `('should navigate to the $sceneNav scene', async ({ sceneNav, action }) => {
+    action                        | expectedScene
+    ${ENavAction.GetCurrentChain} | ${EScene.GetCurrentChain}
+    ${ENavAction.SwitchChain}     | ${EScene.SwitchChain}
+    ${ENavAction.Back}            | ${EScene.MainNav}
+  `('should navigate to the $expectedScene scene when action is $action', async ({ action, expectedScene }) => {
     await scene.middleware()(ctx as IContext, jest.fn());
 
     expect(replySpy).toHaveBeenCalledTimes(1);
@@ -82,7 +79,7 @@ describe('Chain nav scene', function () {
 
     expect(replySpy).not.toHaveBeenCalled();
     expect(sceneCtx.leave).toHaveBeenCalledTimes(1);
-    expect(sceneCtx.enter).toHaveBeenCalledWith(sceneNav, { msg: undefined });
+    expect(sceneCtx.enter).toHaveBeenCalledWith(expectedScene, { msg: undefined });
   });
 
   it('should edit inline keyboard to the chain nav when there is a message state', async function () {
@@ -91,10 +88,8 @@ describe('Chain nav scene', function () {
     sceneCtx.state = { [EWizardProp.Msg]: { chat, message_id, reply_markup: { inline_keyboard: [] } } };
 
     const update = { message: { text: '' } };
-    const updatedCtx = _.merge(_.cloneDeep(ctx), { update: update });
+    const updatedCtx = _.merge(_.cloneDeep(ctx), { update });
     await scene.middleware()(updatedCtx as IContext, jest.fn());
-
-    const { network } = sessionCtx.prop.chain;
 
     expect(replySpy).not.toHaveBeenCalled();
     expect(sceneCtx.leave).not.toHaveBeenCalled();
