@@ -27,7 +27,6 @@ export const swapStage = [
   createBuyAndSellScene(EScene.BuyAndSell, async (ctx) => {
     const state = ctx.wizard.state;
     const isStart = ctx.has(message('text')) && ctx.message?.text === String(ENavAction.Start);
-    console.log('state', state);
     const contract = state[EWizardProp.Contract] as IWizContractProp;
     const action = state[EWizardProp.Action];
     const activeAddress = state[EWizardProp.ActiveAddress];
@@ -73,11 +72,23 @@ export const swapStage = [
   }),
   createSubmitLimitOrderScene(EScene.SubmitLimitOrder, async (ctx) => {
     const state = ctx.wizard.state;
+    const contract = state[EWizardProp.Contract] as IWizContractProp;
+    const action = state[EWizardProp.Action];
+    const activeAddress = state[EWizardProp.ActiveAddress];
+    const orderType = state[EWizardProp.OrderType];
     const isStart = ctx.has(message('text')) && ctx.message?.text === String(ENavAction.Start);
     if (isStart) {
       ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+    } else if (contract && action && activeAddress && orderType) {
+      ctx.scene.enter(EScene.SubmitLimitOrder, {
+        [EWizardProp.Msg]: state[EWizardProp.Msg],
+        [EWizardProp.Contract]: contract,
+        [EWizardProp.Action]: action,
+        [EWizardProp.ActiveAddress]: activeAddress,
+        [EWizardProp.OrderType]: orderType,
+      });
     } else {
-      ctx.scene.enter(EScene.SubmitLimitOrder, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+      ctx.scene.enter(EScene.SwapNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
     }
   }),
 ];

@@ -67,7 +67,7 @@ export const placeLimitOrder = async (params: {
 }) => {
   const { tokenIn, tokenOut, wallet, tradeParam } = params;
 
-  await db.transaction().execute(async (txn) => {
+  return await db.transaction().execute(async (txn) => {
     // wallet valiation
     const w = await getWallet(wallet, txn);
     if (!w) {
@@ -79,7 +79,8 @@ export const placeLimitOrder = async (params: {
       throw new Error('Failed to create tokens');
     }
     const [inputToken, outputToken] = tokens;
-
+    console.log('inputToken', inputToken);
+    console.log('outputToken', outputToken);
     const newOrder: ICreateOrderParams = {
       orderType: 'LIMIT',
       orderStatus: 'SUBMITTED',
@@ -91,10 +92,12 @@ export const placeLimitOrder = async (params: {
       targetPrice: tradeParam.targetPrice,
       expirationDate: tradeParam.expirationDate,
     };
-    const order = await createOrder(newOrder);
+    const order = await createOrder(newOrder, txn);
     if (!order) {
       throw new Error('failed to create order');
     }
+
+    return { wallet: w, order };
   });
 };
 

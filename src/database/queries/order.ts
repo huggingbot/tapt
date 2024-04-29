@@ -28,9 +28,24 @@ export interface ICreateOrderParams
   frequency?: number | null;
 }
 
+export type GetOrdersFilters = Partial<Pick<ICreateOrderParams, 'orderType' | 'orderStatus'>>;
+
 export const createOrder = async (params: ICreateOrderParams, trx?: Transaction<DB>) => {
   const queryCreator = trx ? trx : db;
 
   const order = await queryCreator.insertInto('order').values(params).returningAll().executeTakeFirst();
   return order;
+};
+
+export const getOrders = async (filters?: GetOrdersFilters) => {
+  let query = db.selectFrom('order');
+  if (filters?.orderType) {
+    query = query.where('order.orderType', '=', filters.orderType);
+  }
+  if (filters?.orderStatus) {
+    query = query.where('order.orderStatus', '=', filters.orderStatus);
+  }
+
+  const orders = await query.selectAll().execute();
+  return orders;
 };

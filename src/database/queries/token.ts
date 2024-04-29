@@ -19,19 +19,18 @@ export const selectTokens = async (params: ISelectTokensParams[], trx?: Transact
     });
     return eb.or(andExprs);
   };
-
   return await queryCreator.selectFrom('token').selectAll().where(buildOrExpr).execute();
 };
 
 export const createTokens = async (params: ICreateTokenParams[], trx?: Transaction<DB>) => {
   const queryCreator = trx ? trx : db;
 
-  await queryCreator
+  const tokensAdded = await queryCreator
     .insertInto('token')
     .values(params)
     .onConflict((oc) => oc.constraint('unique_contract_address_chain_id').doNothing())
     .execute();
-
+  console.log('tokensAdded', tokensAdded);
   const tokens = await selectTokens(params, trx);
   return tokens;
 };

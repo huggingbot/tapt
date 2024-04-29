@@ -24,8 +24,7 @@ export interface IAppConfig {
 export const AppConfig: IAppConfig = {
   [ENetwork.Local]: {
     chainId: SupportedChainId.MAINNET,
-    // rpc: 'http://127.0.0.1:8545',
-    rpc: 'https://812c-116-15-207-96.ngrok-free.app',
+    rpc: process.env.LOCAL_MAINNET_RPC_URL || 'http://127.0.0.1:8545',
   },
   [ENetwork.Mainnet]: {
     chainId: SupportedChainId.MAINNET,

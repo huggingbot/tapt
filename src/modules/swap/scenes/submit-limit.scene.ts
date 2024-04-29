@@ -6,6 +6,7 @@ import { AppConfig } from '@/libs/config';
 import { WRAPPED_NATIVE_TOKEN } from '@/libs/constants';
 import { ELimitOptions, ENavAction } from '@/modules/bot/constants/bot-action.constant';
 import { ESessionProp, EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
+import { IWizContractProp } from '@/modules/bot/interfaces/bot-prop.interface';
 import { composeWizardScene } from '@/modules/bot/utils/scene-factory';
 import { IBasicWallet } from '@/types';
 import { formatKeyboard, isNumber } from '@/utils/common';
@@ -31,14 +32,27 @@ export const createSubmitLimitOrderScene = composeWizardScene(
     } else if (ctx.has(callbackQuery('data')) && ctx.callbackQuery.data === String(ELimitOptions.PreviewOrder)) {
       // display preview of the limit order
       const action = state[EWizardProp.Action] as string;
-      const contract = state[EWizardProp.Contract];
-      const wallet = state[EWizardProp.ActiveAddress];
-      const orderType = state[EWizardProp.OrderType];
-      const [mode, rawSwapAmount] = action.split(/_(.+)/);
+      const wallet = state[EWizardProp.ActiveAddress] as string;
+      const orderType = state[EWizardProp.OrderType] as string;
 
-      console.log('preview', { mode, contract, wallet, orderType, rawSwapAmount });
+      console.log('preview', { wallet, orderType, action });
 
-      ctx.reply(`Order Preview\n${JSON.stringify({ mode, contract, wallet, orderType, rawSwapAmount })}`);
+      const previewObj = { action, wallet, orderType };
+      const previewArr = Object.entries(previewObj).map((entry) => {
+        const [key, value] = entry;
+        return `${key} = ${value}`;
+      });
+
+      const contract = state[EWizardProp.Contract] as IWizContractProp;
+      const contractDetails = Object.entries(contract).map((entry) => {
+        const [key, value] = entry;
+        return `${key} = ${value}`;
+      });
+
+      ctx.reply(
+        `Order Preview\n----------------------\n${previewArr.join('\n')}` +
+          `\n====================================\nToken Details\n-------------------\n${contractDetails.join('\n')}`,
+      );
 
       done();
     } else if (ctx.has(callbackQuery('data')) && ctx.callbackQuery.data === String(ELimitOptions.SubmitOrder)) {
@@ -86,14 +100,13 @@ export const createSubmitLimitOrderScene = composeWizardScene(
         await ctx.reply('Limit order submitted successfully!');
       } catch (e: unknown) {
         await ctx.reply('Failed to create Limit order. Please try again');
+      } finally {
+        // clean up
+        ctx.wizard.state[EWizardProp.Contract] = undefined;
+        ctx.wizard.state[EWizardProp.Action] = undefined;
+        ctx.wizard.state[EWizardProp.OrderType] = undefined;
+        done();
       }
     }
-  },
-  // clean up
-  async (ctx, done) => {
-    ctx.wizard.state[EWizardProp.Contract] = undefined;
-    ctx.wizard.state[EWizardProp.Action] = undefined;
-    ctx.wizard.state[EWizardProp.OrderType] = undefined;
-    done();
   },
 );

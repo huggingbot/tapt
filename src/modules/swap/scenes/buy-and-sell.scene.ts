@@ -13,7 +13,7 @@ export const createBuyAndSellScene = composeWizardScene(
   async (ctx) => {
     const state = ctx.wizard.state;
     const msg = state[EWizardProp.Msg] as Message.TextMessage | undefined;
-    const { name, symbol } = state[EWizardProp.Contract] as IWizContractProp;
+    const contract = state[EWizardProp.Contract] as IWizContractProp;
 
     const shouldDoNothing = state[EWizardProp.DoNothing];
 
@@ -114,7 +114,7 @@ export const createBuyAndSellScene = composeWizardScene(
       }
     } else {
       ctx.reply(
-        `${name} (${symbol})\n----------------------------------------------------------------------------------------------------`,
+        `${contract?.name} (${contract?.name})\n----------------------------------------------------------------------------------------------------`,
         formatKeyboard(keyboardData),
       );
       ctx.wizard.next();
