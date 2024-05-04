@@ -4,5 +4,5 @@
   },
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "typescript.tsdk": "node_modules/typescript/lib",
-  "deno.enable": false
+  "deno.enable": true
 }

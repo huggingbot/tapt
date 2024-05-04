@@ -13,6 +13,8 @@ dotenv.config({
   path: envPath,
 });
 
+import { errors } from 'celebrate';
+
 import apiMiddlewareRouter from './middlewares/api.middleware';
 import { BotService } from './modules/bot';
 import routes from './routes';
@@ -45,13 +47,15 @@ export const startServer = async (): Promise<void> => {
   app.use('/', routes);
   app.use('/api', apiMiddlewareRouter);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  app.use(((err, _req, res, _next: NextFunction) => {
-    if (err instanceof Error) {
-      log.error(err.stack);
-    }
-    res.status(500).send('Something went wrong.');
-  }) as ErrorRequestHandler);
+  app.use(errors());
+
+  // // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // app.use(((err, _req, res, _next: NextFunction) => {
+  //   if (err instanceof Error) {
+  //     log.error(err.stack);
+  //   }
+  //   res.status(500).send('Something went wrong.');
+  // }) as ErrorRequestHandler);
 
   const port = process.env.PORT || 4040;
 

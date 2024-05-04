@@ -1,20 +1,23 @@
-import { Request, RequestHandler, Response, Router } from 'express';
+import { celebrate, Joi, Segments } from 'celebrate';
+import { RequestHandler, Router } from 'express';
 
-import { getOrders } from '@/database/queries/order';
+import { bulkUpdateOrderStatus, getAllActiveLimitOrdersHandler } from '@/controllers/orders';
 
 const router = Router();
 
-async function getAllActiveLimitOrdersHandler(_req: Request, res: Response) {
-  try {
-    const data = await getOrders({ orderType: 'LIMIT' });
-    return res.status(200).json({ success: true, data });
-  } catch (e: unknown) {
-    console.error('error getting active limit orders', e);
-    const errMsg = (e as Error)?.message || 'unknown error';
-    return res.status(500).json({ success: false, error: errMsg });
-  }
-}
+router.get('/limit', getAllActiveLimitOrdersHandler as RequestHandler);
 
-router.get('/limit/active', getAllActiveLimitOrdersHandler as RequestHandler);
+router.patch(
+  '/bulk_update_status',
+  celebrate({
+    [Segments.BODY]: Joi.object({
+      setdata: Joi.object({
+        orderStatus: Joi.string().required(),
+      }).required(),
+      idsToUpdate: Joi.array().items(Joi.number()).required(),
+    }),
+  }),
+  bulkUpdateOrderStatus as RequestHandler,
+);
 
 export default router;

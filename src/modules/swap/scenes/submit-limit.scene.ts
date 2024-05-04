@@ -70,16 +70,6 @@ export const createSubmitLimitOrderScene = composeWizardScene(
           return;
         }
 
-        let amount = 0;
-        const isBuyMode = mode.toLowerCase() === 'buy';
-        if (isBuyMode) {
-          amount = parseFloat(amountStr);
-          amount = Math.max(Math.min(amount, 1), 0);
-        } else {
-          amount = parseFloat(amountStr);
-          amount = Math.max(Math.min(amount, Number.MAX_SAFE_INTEGER), 0);
-        }
-
         const network = ctx.session.prop[ESessionProp.Chain].network;
         const wallets = ctx.session.prop[ESessionProp.Wallets][network];
         const wallet = wallets.find((w) => w.address === activeAddress);
@@ -92,8 +82,21 @@ export const createSubmitLimitOrderScene = composeWizardScene(
         const walletParam: IBasicWallet = { walletAddress: activeAddress, chainId, network };
         const { address, decimals, symbol, name } = contract;
         const input = WRAPPED_NATIVE_TOKEN[network] as Required<Token>;
-        const tokenIn = { name: input.name, symbol: input.symbol, contractAddress: input.address, decimalPlaces: input.decimals, chainId };
-        const tokenOut = { name: name || address, symbol: symbol || '', contractAddress: address, decimalPlaces: decimals, chainId };
+        let tokenIn = { name: input.name, symbol: input.symbol, contractAddress: input.address, decimalPlaces: input.decimals, chainId };
+        let tokenOut = { name: name || address, symbol: symbol || '', contractAddress: address, decimalPlaces: decimals, chainId };
+
+        let amount = 0;
+        const isBuyMode = mode.toLowerCase() === 'buy';
+        if (isBuyMode) {
+          amount = parseFloat(amountStr);
+          amount = Math.max(Math.min(amount, 1), 0);
+          tokenIn = { name: name || address, symbol: symbol || '', contractAddress: address, decimalPlaces: decimals, chainId };
+          tokenOut = { name: input.name, symbol: input.symbol, contractAddress: input.address, decimalPlaces: input.decimals, chainId };
+        } else {
+          amount = parseFloat(amountStr);
+          amount = Math.max(Math.min(amount, Number.MAX_SAFE_INTEGER), 0);
+        }
+
         const tradeParam = { targetPrice: amount };
 
         await placeLimitOrder({ tokenIn, tokenOut, wallet: walletParam, tradeParam });

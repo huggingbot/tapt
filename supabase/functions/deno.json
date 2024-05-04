@@ -1,0 +1,5 @@
+{
+  "imports": {
+    "@uniswap/smart-order-router": "https://esm.sh/@uniswap/smart-order-router@3.0.6"
+  }
+}
