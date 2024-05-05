@@ -21,4 +21,5 @@ export enum EScene {
 
   // Limit scene
   SubmitLimitOrder = 'SubmitLimitOrder',
+  PreviewOrder = 'PreviewOrder',
 }

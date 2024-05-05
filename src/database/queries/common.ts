@@ -1,9 +1,10 @@
 import { V3_UNISWAP_ROUTER_ADDRESS } from '@/libs/constants';
 import { EOrderStatus, EOrderType, ETransactionStatus, ETransactionType, IBasicWallet } from '@/types';
+import { isNumber } from '@/utils/common';
 
 import { db } from '../db';
 import { createOrder, ICreateOrderParams } from './order';
-import { createTokens, ICreateTokenParams } from './token';
+import { createTokens, ICreateTokenParams, selectTokens } from './token';
 import { createTransaction, ICreateTransactionParams } from './transaction';
 import { getWallet } from './wallet';
 
@@ -63,9 +64,19 @@ export const placeLimitOrder = async (params: {
   tokenIn: ICreateTokenParams;
   tokenOut: ICreateTokenParams;
   wallet: IBasicWallet;
-  tradeParam: Pick<ICreateOrderParams, 'targetPrice' | 'expirationDate'>;
+  tradeParam: {
+    buyAmount: number;
+    sellAmount: number;
+    targetPrice: string;
+    expirationDate?: string;
+  };
 }) => {
   const { tokenIn, tokenOut, wallet, tradeParam } = params;
+  const { buyAmount, sellAmount, targetPrice, expirationDate } = tradeParam;
+  console.log('targetPrice', targetPrice);
+  if (!isNumber(targetPrice)) {
+    throw new Error('invalid target price');
+  }
 
   return await db.transaction().execute(async (txn) => {
     // wallet valiation
@@ -74,23 +85,34 @@ export const placeLimitOrder = async (params: {
       throw new Error('Wallet not found');
     }
 
-    const tokens = await createTokens([tokenIn, tokenOut], txn);
-    if (tokens.length !== 2) {
-      throw new Error('Failed to create tokens');
+    const tokenA = await selectTokens([tokenIn], txn);
+    let buyToken = tokenA.length > 0 ? tokenA[0] : undefined;
+    if (!buyToken) {
+      // create if not exist
+      const [newToken] = await createTokens([tokenIn], txn);
+      buyToken = newToken;
     }
-    const [inputToken, outputToken] = tokens;
-    console.log('inputToken', inputToken);
-    console.log('outputToken', outputToken);
+
+    const tokenB = await createTokens([tokenOut], txn);
+    let sellToken = tokenB.length > 0 ? tokenB[0] : undefined;
+    if (!sellToken) {
+      // create if not exist
+      const [newToken] = await createTokens([tokenIn], txn);
+      sellToken = newToken;
+    }
+
+    console.log('buyToken', buyToken);
+    console.log('sellToken', sellToken);
     const newOrder: ICreateOrderParams = {
       orderType: 'LIMIT',
       orderStatus: 'SUBMITTED',
       walletId: w.id,
-      buyAmount: 0,
-      sellAmount: 0,
-      buyTokenId: inputToken.id,
-      sellTokenId: outputToken.id,
-      targetPrice: tradeParam.targetPrice,
-      expirationDate: tradeParam.expirationDate,
+      buyTokenId: buyToken.id,
+      sellTokenId: sellToken.id,
+      targetPrice: Number(tradeParam.targetPrice),
+      buyAmount,
+      sellAmount,
+      expirationDate,
     };
     const order = await createOrder(newOrder, txn);
     if (!order) {
