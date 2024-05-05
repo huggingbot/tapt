@@ -1,12 +1,13 @@
-// Follow this setup guide to integrate the Deno language server with your editor:
-// https://deno.land/manual/getting_started/setup_your_environment
-// This enables autocomplete, go to definition, etc.
+/**
+ * This function is responsible to get approval from wallet for uniswap usage
+ * This is first function (cron) in the order processing crons
+ */
 
-// Setup type definitions for built-in Supabase Runtime APIs
 /// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
-// import { AlphaRouter, CurrencyAmount, SwapOptionsSwapRouter02, SwapType } from "npm:@uniswap/smart-order-router@3.26.1";
+
 import { AlphaRouter, CurrencyAmount, SwapOptionsSwapRouter02, SwapType } from '@uniswap/smart-order-router';
 import { Percent, Token, TradeType } from 'npm:@uniswap/sdk-core@3.2.6';
+// import { AlphaRouter, CurrencyAmount, SwapOptionsSwapRouter02, SwapType } from "npm:@uniswap/smart-order-router@3.0.6";
 import { ethers } from 'npm:ethers@^5.7.2';
 
 import { ETH_UNISWAP_V3_SWAP_ROUTER_ADDRESS, TAPT_BACKEND_API_URL } from '../utils/config.ts';
@@ -19,7 +20,8 @@ const ResponseHeaders = { headers: { 'Content-Type': 'application/json' } };
 
 Deno.serve(async () => {
   // fetching orders which are ready to be approve txn
-  const resp = await fetch(`${TAPT_BACKEND_API_URL}/orders/limit?orderStatus=${EOrderStatus.READY_TO_PROCESS}`);
+  console.log('url', `${TAPT_BACKEND_API_URL}/orders/limit?orderStatus=${EOrderStatus.SUBMITTED}`);
+  const resp = await fetch(`${TAPT_BACKEND_API_URL}/orders/limit?orderStatus=${EOrderStatus.SUBMITTED}`);
   const respJson: ApiResponse<ILimitOrder[]> = await resp.json();
 
   if (!respJson.success || !respJson.data) {

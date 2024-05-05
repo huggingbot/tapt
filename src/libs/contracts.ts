@@ -1,7 +1,8 @@
 import { Contract, providers } from 'ethers';
 
+import ERC20_ABI from '../contracts/ERC_20_abi.json';
 import { ENetwork } from './config';
-import { ERC20_ABI, WRAPPED_NATIVE_TOKEN_ABI, WRAPPED_NATIVE_TOKEN_CONTRACT_ADDRESS } from './constants';
+import { WRAPPED_NATIVE_TOKEN_ABI, WRAPPED_NATIVE_TOKEN_CONTRACT_ADDRESS } from './constants';
 
 export const getWrappedNativeTokenContract = (network: ENetwork, provider: providers.Provider): Contract => {
   return new Contract(WRAPPED_NATIVE_TOKEN_CONTRACT_ADDRESS[network], WRAPPED_NATIVE_TOKEN_ABI, provider);

@@ -1,40 +1,29 @@
-// Follow this setup guide to integrate the Deno language server with your editor:
-// https://deno.land/manual/getting_started/setup_your_environment
-// This enables autocomplete, go to definition, etc.
+import { Token } from '@uniswap/sdk-core';
+import IUniswapV3PoolABI from '@uniswap/v3-core/artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json';
+import QuoterABI from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json';
+import { computePoolAddress, FeeAmount } from '@uniswap/v3-sdk';
+import { ethers } from 'ethers';
 
-// Setup type definitions for built-in Supabase Runtime APIs
-/// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
+import { ENetwork } from '../src/libs/config';
+import { getProvider } from '../src/libs/providers';
+import { EOrderStatus, ETH_UNISWAP_V3_FACTORY_ADDRESS, ETH_UNISWAP_V3_QUOTER_ADDRESS, TAPT_API_ENDPOINT } from './utils/constants';
+import { ApiResponse, ILimitOrder } from './utils/types';
 
-import { Token } from 'npm:@uniswap/sdk-core@^3.2.3';
-import { computePoolAddress, FeeAmount } from 'npm:@uniswap/v3-sdk@3.11.0';
-import { ethers } from 'npm:ethers@^5.7.2';
+export async function run() {
+  const resp = await fetch(`${TAPT_API_ENDPOINT}/orders/limit?orderStatus=${EOrderStatus.Approved}`);
+  const jsonResp = (await resp.json()) as ApiResponse<ILimitOrder[]>;
 
-import IUniswapV3PoolABI from '../../../src/contracts/UniswapV3Pool.json' with { type: 'json' };
-import QuoterABI from '../../../src/contracts/UniswapV3Quote.json' with { type: 'json' };
-import { ETH_UNISWAP_V3_FACTORY_ADDRESS, TAPT_BACKEND_API_URL } from '../utils/config.ts';
-import { ETH_UNISWAP_V3_QUOTER_ADDRESS } from '../utils/config.ts';
-import { ENetwork, EOrderStatus } from '../utils/constants.ts';
-import { getProvider } from '../utils/helpers.ts';
-import { ApiResponse, ILimitOrder } from '../utils/types.ts';
-
-const ResponseHeaders = { headers: { 'Content-Type': 'application/json' } };
-
-Deno.serve(async () => {
-  const resp = await fetch(`${TAPT_BACKEND_API_URL}/orders/limit?orderStatus=${EOrderStatus.READY_TO_PROCESS}`);
-  const respJson: ApiResponse<ILimitOrder[]> = await resp.json();
-
-  if (!respJson.success || !respJson.data) {
-    return new Response(JSON.stringify({ error: respJson.error || 'error calling API' }), ResponseHeaders);
+  if (!jsonResp.success || !jsonResp.data) {
+    throw new Error(`failed to make request. ${jsonResp.message}`);
   }
 
-  const orders = respJson.data;
-  const provider = getProvider(ENetwork.Local);
+  const orders = jsonResp.data;
   const ordersToBePrcessed: number[] = [];
 
   for (let i = 0; i < orders.length; i++) {
     const order = orders[i];
-    const { id, buyToken, sellToken, buyAmount, sellAmount } = order;
-
+    const { id, buyToken, sellToken, targetPrice, sellAmount } = order;
+    const provider = getProvider(ENetwork.Local);
     const tokenOutput = new Token(buyToken.chainId, buyToken.contractAddress, buyToken.decimalPlaces, buyToken.symbol);
     const tokenInput = new Token(sellToken.chainId, sellToken.contractAddress, sellToken.decimalPlaces, sellToken.symbol);
 
@@ -65,7 +54,7 @@ Deno.serve(async () => {
     console.log('=====================');
     console.log(`${sellAmount} ${tokenInput.symbol} can be swapped for ${amountIn} ${tokenOutput.symbol}`);
     console.log('=====================');
-    if (amountIn >= buyAmount) {
+    if (Number(amountIn) >= targetPrice) {
       // send for approval
       console.log(`Limit order condition met for order with id, ${id}`);
       ordersToBePrcessed.push(id);
@@ -74,17 +63,15 @@ Deno.serve(async () => {
 
   if (ordersToBePrcessed.length > 0) {
     // bulk update orders
-    await fetch(`${TAPT_BACKEND_API_URL}/orders/bulk_update_status`, {
+    await fetch(`${TAPT_API_ENDPOINT}/orders/bulk_update_status`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        setdata: { orderStatus: EOrderStatus.READY_TO_PROCESS },
+        setdata: { orderStatus: EOrderStatus.ExecutionReady },
         idsToUpdate: ordersToBePrcessed,
       }),
     });
   }
-
-  return new Response(JSON.stringify(orders), ResponseHeaders);
-});
+}

@@ -101,11 +101,9 @@ export const placeLimitOrder = async (params: {
       sellToken = newToken;
     }
 
-    console.log('buyToken', buyToken);
-    console.log('sellToken', sellToken);
     const newOrder: ICreateOrderParams = {
       orderType: 'LIMIT',
-      orderStatus: 'SUBMITTED',
+      orderStatus: EOrderStatus.Submitted,
       walletId: w.id,
       buyTokenId: buyToken.id,
       sellTokenId: sellToken.id,

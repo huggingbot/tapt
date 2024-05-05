@@ -37,7 +37,7 @@ export async function sendTransaction(
 
 // Internal Functionality
 
-async function sendTransactionViaWallet(
+export async function sendTransactionViaWallet(
   wallet: Wallet,
   network: ENetwork,
   transaction: ethers.providers.TransactionRequest,
