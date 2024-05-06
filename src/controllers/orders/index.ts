@@ -3,16 +3,7 @@ import { Transaction } from 'kysely';
 
 import { db } from '@/database/db';
 import { DB } from '@/database/gen-types';
-import {
-  bulkUpdateByOrderIds,
-  getOrderById,
-  getOrders,
-  GetOrdersFilters,
-  IOrder,
-  updateOrderById,
-  UpdateOrderParams,
-} from '@/database/queries/order';
-import { getTokenDetailsById, TokenDetails } from '@/database/queries/token';
+import { bulkUpdateByOrderIds, getOrderById, getOrders, GetOrdersFilters, updateOrderById, UpdateOrderParams } from '@/database/queries/order';
 import { createTransaction } from '@/database/queries/transaction';
 import { ETransactionStatus } from '@/types';
 import { isNumber } from '@/utils/common';
@@ -27,23 +18,6 @@ export async function getAllActiveLimitOrdersHandler(req: Request, res: Response
     }
     const data = await db.transaction().execute(async (trx) => {
       const orders = await getOrders(getOrderFilters, trx);
-      // iterate orders and fetch token details
-      // const orderWithDetails = await Promise.all(
-      //   orders.map(async (order: IOrder) => {
-      //     const buyToken = await getTokenDetailsById(order.buyTokenId, trx);
-      //     const sellToken = await getTokenDetailsById(order.sellTokenId, trx);
-
-      //     const orderDetails: IOrder & { buyToken: TokenDetails; sellToken: TokenDetails; chainId: number } = {
-      //       ...order,
-      //       buyToken,
-      //       sellToken,
-      //       chainId: buyToken.chainId,
-      //     };
-      //     return orderDetails;
-      //   }),
-      // );
-      // // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      // return orderWithDetails;
       return orders;
     });
 

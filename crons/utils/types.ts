@@ -31,6 +31,20 @@ export interface ILimitOrder {
   expirationDate?: string;
   createdAt?: string;
   updatedAt?: string;
+  transactionHash: null | string;
+  transactionType: null | string;
+}
+
+export interface ITransaction {
+  id: number;
+  walletId: number;
+  orderId: number;
+  fromAddress: string | null;
+  toAddress: string | null;
+  transactionHash: string;
+  transactionFee: number | null;
+  transactionType: string;
+  transactionStatus: string;
 }
 
 export interface ApiResponse<T> {

@@ -1,3 +1,10 @@
+/**
+ * This function is responsible for checking the trading criteria in current market based on the order placed
+ * If the trading criteria has met, then it will update the backend and db, so that the next function in line can execute the orders
+ * In trading crons workflow, we can list this trade as cron number 2
+ * For e.g:
+ *    limit order: [submit_approval] -> [track_txn] -> **[check_orders_criteria]** -> [execute_trade] -> [track_txn] -> (DONE)
+ */
 import { Token } from '@uniswap/sdk-core';
 import IUniswapV3PoolABI from '@uniswap/v3-core/artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json';
 import QuoterABI from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json';
@@ -10,7 +17,7 @@ import { EOrderStatus, ETH_UNISWAP_V3_FACTORY_ADDRESS, ETH_UNISWAP_V3_QUOTER_ADD
 import { ApiResponse, ILimitOrder } from './utils/types';
 
 export async function run() {
-  const resp = await fetch(`${TAPT_API_ENDPOINT}/orders/limit?orderStatus=${EOrderStatus.Approved}`);
+  const resp = await fetch(`${TAPT_API_ENDPOINT}/orders/limit?orderStatus=${EOrderStatus.ApprovalCompleted}`);
   const jsonResp = (await resp.json()) as ApiResponse<ILimitOrder[]>;
 
   if (!jsonResp.success || !jsonResp.data) {

@@ -19,7 +19,7 @@ export const V3_SWAP_ROUTER02_ADDRESS = '0x68b3465833fb72A70ecDF485E0e4C7bD8665F
 export const ETH_UNISWAP_V3_FACTORY_ADDRESS = '0x1F98431c8aD98523631AE4a59f267346ea31F984';
 export const ETH_UNISWAP_V3_QUOTER_ADDRESS = '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6';
 
-export const TAPT_API_ENDPOINT = 'https://7893-116-15-207-96.ngrok-free.app/api';
+export const TAPT_API_ENDPOINT = 'https://8560-116-15-207-96.ngrok-free.app/api';
 
 // order status
 export enum EOrderStatus {
@@ -27,9 +27,9 @@ export enum EOrderStatus {
   Submitted = 'ORDER_SUBMITTED',
   // after submitting approval txn
   ApprovalPending = 'APPROVAL_PENDING',
-  // after approval txn has been submitted to blockchain
-  Approved = 'APPROVED',
-  // after approval txn has been submitted
+  // after getting approval
+  ApprovalCompleted = 'APPROVAL_COMPLETED',
+  // when limit order criteria is met
   ExecutionReady = 'READY_TO_EXECUTE',
   // send transaction for the order execution
   ExecutionPending = 'EXECUTION_PENDING',

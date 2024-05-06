@@ -20,7 +20,9 @@ export enum EOrderStatus {
   Submitted = 'ORDER_SUBMITTED',
   // after submitting approval txn
   ApprovalPending = 'APPROVAL_PENDING',
-  // after approval txn has been submitted
+  // after getting approval
+  ApprovalCompleted = 'APPROVAL_COMPLETED',
+  // when limit order criteria is met
   ExecutionReady = 'READY_TO_EXECUTE',
   // send transaction for the order execution
   ExecutionPending = 'EXECUTION_PENDING',

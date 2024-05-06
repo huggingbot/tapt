@@ -5,7 +5,6 @@ import { placeLimitOrder } from '@/database/queries/common';
 import { ICreateTokenParams } from '@/database/queries/token';
 import { AppConfig } from '@/libs/config';
 import { WRAPPED_NATIVE_TOKEN } from '@/libs/constants';
-import { quoteTokePrice } from '@/libs/quoting';
 import { ENavAction } from '@/modules/bot/constants/bot-action.constant';
 import { ESessionProp, EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
 import { IContext } from '@/modules/bot/interfaces/bot-context.interface';

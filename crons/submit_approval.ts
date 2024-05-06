@@ -1,3 +1,10 @@
+/**
+ * Ideally, this function will be first function in the trading work flow.
+ * This function is responsible for checking token allowance from wallet and getting approval to spend tokens
+ * In trading crons workflow, we can list this trade as cron number 1
+ * For e.g:
+ *    limit order: **[submit_approval]** -> [track_txn] -> [check_orders_criteria] -> [execute_trade] -> [track_txn] -> (DONE)
+ */
 import { BigNumber, ethers } from 'ethers';
 
 import ERC20_ABI from '../src/contracts/ERC_20_abi.json';
@@ -9,7 +16,7 @@ import { EOrderStatus, TAPT_API_ENDPOINT, V3_SWAP_ROUTER02_ADDRESS } from './uti
 import { fromReadableAmount } from './utils/helpers';
 import { ApiResponse, ILimitOrder } from './utils/types';
 
-async function run() {
+async function submitApproval() {
   const url = `${TAPT_API_ENDPOINT}/orders/limit?orderStatus=${EOrderStatus.Submitted}`;
   const resp = await fetch(url);
   const jsonResp = (await resp.json()) as ApiResponse<ILimitOrder[]>;
@@ -71,5 +78,5 @@ async function run() {
 }
 
 (async function () {
-  await run();
+  await submitApproval();
 })();
