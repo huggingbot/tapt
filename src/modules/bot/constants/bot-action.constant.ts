@@ -23,6 +23,9 @@ export enum ENavAction {
   // Swap navigation
   GetSwapToken = 'Get swap token',
 
+  // Bridge navigation
+  BridgeEthToZkLink = 'Bridge ETH to ZkLink',
+
   // Chain navigation
   GetCurrentChain = 'Get current chain',
   SwitchChain = 'Switch chain',

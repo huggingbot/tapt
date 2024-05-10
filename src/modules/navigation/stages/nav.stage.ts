@@ -89,7 +89,20 @@ export const navStage = [
     }
   }),
   createBridgeNavScene(EScene.BridgeNav, async (ctx) => {
-    ctx.scene.enter(EScene.MainNav);
+    const state = ctx.wizard.state;
+
+    switch (state[EWizardProp.Action]) {
+      case ENavAction.BridgeEthToZkLink:
+        // TODO: Implement bridge eth to zk link
+        ctx.scene.enter(EScene.MainNav);
+        break;
+      case ENavAction.Back:
+        ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+        break;
+      default: {
+        ctx.scene.enter(EScene.MainNav);
+      }
+    }
   }),
   createChainNavScene(EScene.ChainNav, async (ctx) => {
     const state = ctx.wizard.state;
