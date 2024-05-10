@@ -2,6 +2,7 @@ import { ENavAction } from '@/modules/bot/constants/bot-action.constant';
 import { EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
 import { EScene } from '@/modules/bot/constants/bot-scene.constant';
 
+import { createBridgeNavScene } from '../scenes/bridge.nav.scene';
 import { createChainNavScene } from '../scenes/chain.nav.scene';
 import { createFundingNavScene } from '../scenes/funding.nav.scene';
 import { createMainNavScene } from '../scenes/main-nav.scene';
@@ -21,6 +22,9 @@ export const navStage = [
         break;
       case ENavAction.Swap:
         ctx.scene.enter(EScene.SwapNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+        break;
+      case ENavAction.Bridge:
+        ctx.scene.enter(EScene.BridgeNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
         break;
       case ENavAction.Chain:
         ctx.scene.enter(EScene.ChainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
@@ -83,6 +87,9 @@ export const navStage = [
         ctx.scene.enter(EScene.MainNav);
       }
     }
+  }),
+  createBridgeNavScene(EScene.BridgeNav, async (ctx) => {
+    ctx.scene.enter(EScene.MainNav);
   }),
   createChainNavScene(EScene.ChainNav, async (ctx) => {
     const state = ctx.wizard.state;

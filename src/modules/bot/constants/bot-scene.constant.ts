@@ -3,6 +3,7 @@ export enum EScene {
   WalletNav = 'WalletNav',
   FundingNav = 'FundingNav',
   SwapNav = 'SwapNav',
+  BridgeNav = 'BridgeNav',
   ChainNav = 'ChainNav',
 
   CountWallet = 'CountWallet',
