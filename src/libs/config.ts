@@ -3,6 +3,7 @@ import { SupportedChainId } from '@uniswap/sdk-core';
 export enum ENetwork {
   Local = 'local',
   Mainnet = 'mainnet',
+  EthereumSepolia = 'ethereum_sepolia',
   Polygon = 'polygon',
 }
 
@@ -12,6 +13,10 @@ export interface IAppConfig {
     rpc: string;
   };
   [ENetwork.Mainnet]: {
+    chainId: number;
+    rpc: string;
+  };
+  [ENetwork.EthereumSepolia]: {
     chainId: number;
     rpc: string;
   };
@@ -29,6 +34,10 @@ export const AppConfig: IAppConfig = {
   [ENetwork.Mainnet]: {
     chainId: SupportedChainId.MAINNET,
     rpc: 'https://eth-mainnet.g.alchemy.com/v2/pr8u1gRyj3zrfU07224m8DYeq2LeW0d-',
+  },
+  [ENetwork.EthereumSepolia]: {
+    chainId: SupportedChainId.SEPOLIA,
+    rpc: 'https://eth-sepolia.g.alchemy.com/v2/s42qdWodFgxqeZCtX3m6SKMDjEfuzNzq',
   },
   [ENetwork.Polygon]: {
     chainId: SupportedChainId.POLYGON,

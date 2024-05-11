@@ -15,7 +15,12 @@ export type TWallet = { encryptedPrivateKey: string; address: string; chainId: n
 export interface ExtendedSession extends Scenes.WizardSession<SceneSession> {
   // will be available under `ctx.session.<prop>`
   prop: {
-    [ESessionProp.Wallets]: { [ENetwork.Local]: TWallet[]; [ENetwork.Mainnet]: TWallet[]; [ENetwork.Polygon]: TWallet[] };
+    [ESessionProp.Wallets]: {
+      [ENetwork.Local]: TWallet[];
+      [ENetwork.Mainnet]: TWallet[];
+      [ENetwork.EthereumSepolia]: TWallet[];
+      [ENetwork.Polygon]: TWallet[];
+    };
     [ESessionProp.Chain]: { network: ENetwork };
   };
   user: Pick<User, 'id' | 'username'>;

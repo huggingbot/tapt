@@ -9,12 +9,14 @@ import { ENetwork } from './config';
 export const V3_UNISWAP_ROUTER_ADDRESS = {
   [ENetwork.Local]: '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45',
   [ENetwork.Mainnet]: '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45',
+  [ENetwork.EthereumSepolia]: '0x3bFA4769FB09eefC5a80d6E87c3B9C650f7Ae48E',
   [ENetwork.Polygon]: '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45',
 };
 
 export const WRAPPED_NATIVE_TOKEN_CONTRACT_ADDRESS = {
   [ENetwork.Local]: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
   [ENetwork.Mainnet]: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+  [ENetwork.EthereumSepolia]: '0xfff9976782d46cc05630d1f6ebab18b2324d6b14',
   [ENetwork.Polygon]: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
 };
 
@@ -23,12 +25,20 @@ export const WRAPPED_NATIVE_TOKEN_CONTRACT_ADDRESS = {
 export const WRAPPED_NATIVE_TOKEN = {
   [ENetwork.Local]: new Token(SupportedChainId.MAINNET, WRAPPED_NATIVE_TOKEN_CONTRACT_ADDRESS[ENetwork.Mainnet], 18, 'WETH', 'Wrapped Ether'),
   [ENetwork.Mainnet]: new Token(SupportedChainId.MAINNET, WRAPPED_NATIVE_TOKEN_CONTRACT_ADDRESS[ENetwork.Mainnet], 18, 'WETH', 'Wrapped Ether'),
+  [ENetwork.EthereumSepolia]: new Token(
+    SupportedChainId.SEPOLIA,
+    WRAPPED_NATIVE_TOKEN_CONTRACT_ADDRESS[ENetwork.EthereumSepolia],
+    18,
+    'WETH',
+    'Wrapped Ether',
+  ),
   [ENetwork.Polygon]: new Token(SupportedChainId.POLYGON, WRAPPED_NATIVE_TOKEN_CONTRACT_ADDRESS[ENetwork.Polygon], 18, 'WMATIC', 'Wrapped Matic'),
 };
 
 export const NATIVE_CURRENCY = {
   [ENetwork.Local]: 'ETH',
   [ENetwork.Mainnet]: 'ETH',
+  [ENetwork.EthereumSepolia]: 'ETH',
   [ENetwork.Polygon]: 'MATIC',
 };
 

@@ -65,7 +65,6 @@ Address with specified amount:
           // Transfer the entire remaining balance if the amount is not specified
           // TODO: Account for gas fees
           const transferAmount = amount ? BigInt(amount) : balance;
-          console.log('zzzztransferAmount', transferAmount, amount, balance, transferAmount <= 0n);
 
           if (transferAmount > balance || transferAmount <= 0n) {
             ctx.reply('Insufficient balance');

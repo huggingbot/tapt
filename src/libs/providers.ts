@@ -4,6 +4,7 @@ import { AppConfig, ENetwork } from './config';
 
 // Single copies of provider and wallet
 const mainnetProvider = new ethers.providers.JsonRpcProvider(AppConfig[ENetwork.Mainnet].rpc);
+const ethSepoliaProvider = new ethers.providers.JsonRpcProvider(AppConfig[ENetwork.EthereumSepolia].rpc);
 const polygonProvider = new ethers.providers.JsonRpcProvider(AppConfig[ENetwork.Polygon].rpc);
 
 // Interfaces
@@ -21,6 +22,8 @@ export enum TransactionState {
 export function getProvider(network: ENetwork): providers.BaseProvider {
   if (network === ENetwork.Local) {
     return new ethers.providers.JsonRpcProvider(AppConfig[ENetwork.Local].rpc);
+  } else if (network === ENetwork.EthereumSepolia) {
+    return ethSepoliaProvider;
   } else if (network === ENetwork.Polygon) {
     return polygonProvider;
   }
