@@ -33,8 +33,9 @@ export const createImportWalletScene = composeWizardScene(
         privateKeys.forEach((key) => {
           const privateKeyHex = key.startsWith('0x') ? key : `0x${key}`;
           const { address, privateKey } = new Wallet(privateKeyHex);
-          addresses.push(address);
-          wallets.push({ encryptedPrivateKey: encryptPrivateKey(privateKey), address: address, chainId: AppConfig[network].chainId });
+          const lowerCaseAddress = address.toLowerCase();
+          addresses.push(lowerCaseAddress);
+          wallets.push({ encryptedPrivateKey: encryptPrivateKey(privateKey), address: lowerCaseAddress, chainId: AppConfig[network].chainId });
         });
         await createWallets(String(ctx.session.user.id), wallets);
 
