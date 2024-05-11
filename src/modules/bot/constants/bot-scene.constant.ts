@@ -17,6 +17,8 @@ export enum EScene {
   BuyAndSell = 'BuyAndSell',
   ExecuteSwap = 'ExecuteSwap',
 
+  BridgeEthToZkLink = 'BridgeEthToZkLink',
+
   GetCurrentChain = 'GetCurrentChain',
   SwitchChain = 'SwitchChain',
 }

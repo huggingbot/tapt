@@ -7,6 +7,7 @@ import { createUser, getUserWithWallets } from '@/database/queries/user';
 import { AppConfig, ENetwork } from '@/libs/config';
 
 import { telegrafClient } from '../../database/redis';
+import { bridgeStage } from '../bridge';
 import { chainStage } from '../chain';
 import { BaseService } from '../common';
 import { fundingStage } from '../funding';
@@ -33,7 +34,7 @@ export class BotService extends BaseService {
       return next();
     });
 
-    const stages = [...navStage, ...walletStage, ...fundingStage, ...swapStage, ...chainStage];
+    const stages = [...navStage, ...walletStage, ...fundingStage, ...swapStage, ...bridgeStage, ...chainStage];
     const mainStage = new Scenes.Stage(stages);
     this.bot.use(mainStage.middleware());
 

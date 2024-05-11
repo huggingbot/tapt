@@ -93,8 +93,7 @@ export const navStage = [
 
     switch (state[EWizardProp.Action]) {
       case ENavAction.BridgeEthToZkLink:
-        // TODO: Implement bridge eth to zk link
-        ctx.scene.enter(EScene.MainNav);
+        ctx.scene.enter(EScene.BridgeEthToZkLink, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
         break;
       case ENavAction.Back:
         ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
