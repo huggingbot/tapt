@@ -58,6 +58,7 @@ Address with specified amount:
           const provider = getProvider(network);
           const rawBalance = await provider.getBalance(sendingWallet.address);
 
+          // TODO: Fix decimal conversion to BigInt. Follow the same pattern as in bridge-eth-to-zk-link.scene.ts
           let balance: bigint;
           balance = rawBalance.toBigInt();
           balance = BigInt(toReadableAmount(balance.toString(), WRAPPED_NATIVE_TOKEN[network].decimals));
