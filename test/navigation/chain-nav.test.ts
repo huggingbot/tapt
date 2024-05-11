@@ -21,12 +21,12 @@ describe('Chain nav scene', function () {
 
   beforeEach(() => {
     // Chain nav scene
-    scene = navStage[4];
+    scene = navStage[5];
 
     sessionCtx = {
       prop: {
         chain: { network: ENetwork.Mainnet },
-        wallets: { [ENetwork.Local]: [], [ENetwork.Mainnet]: [], [ENetwork.Polygon]: [] },
+        wallets: { [ENetwork.Local]: [], [ENetwork.Mainnet]: [], [ENetwork.EthereumSepolia]: [], [ENetwork.Polygon]: [] },
       },
       user: { id: 1 },
     };

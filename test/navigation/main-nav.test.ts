@@ -26,7 +26,7 @@ describe('Main nav scene', function () {
     sessionCtx = {
       prop: {
         chain: { network: ENetwork.Mainnet },
-        wallets: { [ENetwork.Local]: [], [ENetwork.Mainnet]: [], [ENetwork.Polygon]: [] },
+        wallets: { [ENetwork.Local]: [], [ENetwork.Mainnet]: [], [ENetwork.EthereumSepolia]: [], [ENetwork.Polygon]: [] },
       },
       user: { id: 1 },
     };
@@ -59,6 +59,7 @@ describe('Main nav scene', function () {
           [{ callback_data: ENavAction.Wallet, hide: false, text: ENavAction.Wallet }],
           [{ callback_data: ENavAction.Funding, hide: false, text: ENavAction.Funding }],
           [{ callback_data: ENavAction.Swap, hide: false, text: ENavAction.Swap }],
+          [{ callback_data: ENavAction.Bridge, hide: false, text: ENavAction.Bridge }],
           [{ callback_data: ENavAction.Chain, hide: false, text: ENavAction.Chain }],
         ],
       },
@@ -105,6 +106,7 @@ describe('Main nav scene', function () {
         [{ callback_data: ENavAction.Wallet, text: ENavAction.Wallet }],
         [{ callback_data: ENavAction.Funding, text: ENavAction.Funding }],
         [{ callback_data: ENavAction.Swap, text: ENavAction.Swap }],
+        [{ callback_data: ENavAction.Bridge, text: ENavAction.Bridge }],
         [{ callback_data: ENavAction.Chain, text: ENavAction.Chain }],
       ],
     });
