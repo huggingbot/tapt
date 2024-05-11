@@ -3,7 +3,7 @@ import { SupportedChainId } from '@uniswap/sdk-core';
 export enum ENetwork {
   Local = 'local',
   Mainnet = 'mainnet',
-  EthereumSepolia = 'ethereum_sepolia',
+  EthereumSepolia = 'ethereum sepolia',
   Polygon = 'polygon',
 }
 

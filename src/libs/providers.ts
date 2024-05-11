@@ -19,7 +19,7 @@ export enum TransactionState {
 
 // Provider and Wallet Functions
 
-export function getProvider(network: ENetwork): providers.BaseProvider {
+export function getProvider(network: ENetwork): providers.JsonRpcProvider {
   if (network === ENetwork.Local) {
     return new ethers.providers.JsonRpcProvider(AppConfig[ENetwork.Local].rpc);
   } else if (network === ENetwork.EthereumSepolia) {
