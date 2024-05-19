@@ -109,7 +109,7 @@ export const placeLimitOrder = async (params: {
       buyAmount,
       sellAmount,
       expirationDate,
-      orderMode: orderMode,
+      orderMode,
     };
     const order = await createOrder(newOrder, txn);
     if (!order) {
