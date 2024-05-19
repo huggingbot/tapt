@@ -38,6 +38,11 @@ export const createOrderPreviewScene = composeWizardScene(
     const previewObj = { action, wallet, orderType, targetPrice: `${quotedPrice} (${triggerPrice})`, orderExpiry, amount: 0 };
     const [mode, rawAmount] = action.split(/_(.+)/);
     const amountStr = rawAmount.replace(/_/g, '.');
+    if (!isNumber(amountStr)) {
+      ctx.reply(`invalid ${mode} amount, ${amountStr}`);
+      throw new Error(`invalid ${mode} amount, ${amountStr}`);
+    }
+
     previewObj.action = mode;
     previewObj.amount = Number(amountStr);
 

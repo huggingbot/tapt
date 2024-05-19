@@ -7,7 +7,16 @@ import { ENavAction, EOrderDetails, EOrderType, ESwapAction } from '@/modules/bo
 import { ESessionProp, EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
 import { IWizContractProp } from '@/modules/bot/interfaces/bot-prop.interface';
 import { composeWizardScene } from '@/modules/bot/utils/scene-factory';
-import { formatKeyboard, isBuyMode, isDCAOrder, isLimitOrder, isSwapOrder, populateBuyModeKeyboardData, truncateAddress } from '@/utils/common';
+import {
+  formatKeyboard,
+  isBuyMode,
+  isDCAOrder,
+  isLimitOrder,
+  isSwapOrder,
+  isTargetPriceValid,
+  populateBuyModeKeyboardData,
+  truncateAddress,
+} from '@/utils/common';
 
 export const createBuyAndSellScene = composeWizardScene(
   async (ctx) => {
@@ -187,13 +196,20 @@ export const createBuyAndSellScene = composeWizardScene(
   async (ctx, done) => {
     if (ctx.has(message('reply_to_message', 'text'))) {
       const orderDetailsAction = ctx.wizard.state[EWizardProp.OrderDetailsAction];
+      const action = ctx.wizard.state[EWizardProp.Action] || ESwapAction.BuyMode;
       console.log('orderDetailsAction', orderDetailsAction);
       if (orderDetailsAction) {
         // reenter the scene
         if (orderDetailsAction === String(EOrderDetails.Expiry)) {
           ctx.wizard.state[EWizardProp.Expiry] = ctx.message.text.toString();
         } else if (orderDetailsAction === String(EOrderDetails.TriggerPrice)) {
-          ctx.wizard.state[EWizardProp.TriggerPrice] = ctx.message.text.toString();
+          // validate input
+          const targetPrice = ctx.message.text.toString();
+          if (!isTargetPriceValid(action, targetPrice)) {
+            ctx.reply(`Invalid target price, ${targetPrice}, for ${action as string}`);
+          } else {
+            ctx.wizard.state[EWizardProp.TriggerPrice] = targetPrice;
+          }
         }
       } else {
         const action = ctx.wizard.state[EWizardProp.Action] as string;

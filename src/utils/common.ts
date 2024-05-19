@@ -1,5 +1,6 @@
 import { Markup } from 'telegraf';
 
+import { ELimitOrderMode } from '@/database/queries/order';
 import { ENetwork } from '@/libs/config';
 import { NATIVE_CURRENCY } from '@/libs/constants';
 import { EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
@@ -105,4 +106,20 @@ export const resetScene = (ctx: IContext) => {
   Object.values(EWizardProp).forEach((prop) => {
     ctx.wizard.state[prop] = undefined;
   });
+};
+
+// validating target price for limit order
+export const isTargetPriceValid = (action: unknown, targetPrice: string): boolean => {
+  // check if the input is number of the percentage value
+  const isPercentageValue = targetPrice.trim().endsWith('%') && isNumber(targetPrice.trim().replace('%', ''));
+  if (!isPercentageValue && !isNumber(targetPrice)) {
+    return false;
+  }
+
+  const num = Number(targetPrice.trim().replace('%', ''));
+  if (isBuyMode(action)) {
+    // buy mode
+    return num > 0;
+  }
+  return num < 0;
 };
