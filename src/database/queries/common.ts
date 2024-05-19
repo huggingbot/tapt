@@ -4,7 +4,7 @@ import { isNumber } from '@/utils/common';
 
 import { db } from '../db';
 import { createOrder, ELimitOrderMode, ICreateLimitOrderParams, ICreateOrderParams } from './order';
-import { createTokens, ICreateTokenParams, selectTokens } from './token';
+import { createTokens, ICreateTokenParams } from './token';
 import { createTransaction, ICreateTransactionParams } from './transaction';
 import { getWallet } from './wallet';
 
@@ -87,24 +87,20 @@ export const placeLimitOrder = async (params: {
       throw new Error('Wallet not found');
     }
 
-    const tokenA = await selectTokens([tokenIn], txn);
-    let buyToken = tokenA.length > 0 ? tokenA[0] : undefined;
-    if (!buyToken) {
-      // create if not exist
-      const [newToken] = await createTokens([tokenIn], txn);
-      buyToken = newToken;
+    const tokens = await createTokens([tokenIn, tokenOut], txn);
+    if (tokens.length !== 2) {
+      throw new Error('Failed to create tokens');
     }
-
-    const tokenB = await createTokens([tokenOut], txn);
-    let sellToken = tokenB.length > 0 ? tokenB[0] : undefined;
-    if (!sellToken) {
-      // create if not exist
-      const [newToken] = await createTokens([tokenIn], txn);
-      sellToken = newToken;
+    // in below, we need to re:find the correct token from the `tokens array` we got from `createTokens` func
+    // since `createTokens` func doesn't preserve the input orders, we can't do list destructuring
+    const buyToken = tokens.find((token) => token.contractAddress === tokenIn.contractAddress);
+    const sellToken = tokens.find((token) => token.contractAddress === tokenOut.contractAddress);
+    if (!buyToken || !sellToken) {
+      throw new Error('Failed to get tokens');
     }
 
     const newOrder: ICreateLimitOrderParams = {
-      orderType: 'LIMIT',
+      orderType: EOrderType.Limit,
       orderStatus: EOrderStatus.Submitted,
       walletId: w.id,
       buyTokenId: buyToken.id,

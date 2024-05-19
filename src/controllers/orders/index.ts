@@ -5,13 +5,13 @@ import { db } from '@/database/db';
 import { DB } from '@/database/gen-types';
 import { bulkUpdateByOrderIds, getOrderById, getOrders, GetOrdersFilters, updateOrderById, UpdateOrderParams } from '@/database/queries/order';
 import { createTransaction } from '@/database/queries/transaction';
-import { ETransactionStatus } from '@/types';
+import { EOrderType, ETransactionStatus } from '@/types';
 import { isNumber } from '@/utils/common';
 
 export async function getAllActiveLimitOrdersHandler(req: Request, res: Response) {
   try {
     const { orderStatus } = req.query;
-    const getOrderFilters: GetOrdersFilters = { orderType: 'LIMIT' };
+    const getOrderFilters: GetOrdersFilters = { orderType: EOrderType.Limit };
     console.log('orderStatus', orderStatus);
     if (orderStatus) {
       getOrderFilters.orderStatus = orderStatus as string;
