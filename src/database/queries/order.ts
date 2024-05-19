@@ -1,6 +1,5 @@
 import { ExpressionBuilder, Transaction } from 'kysely';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
-import type { IPostgresInterval } from 'postgres-interval';
 
 import { db } from '../db';
 import { DB, Order as DBOrder } from '../gen-types';
@@ -30,18 +29,13 @@ export interface ICreateOrderParams
   frequency?: number | null;
 }
 
-export interface IOrder {
-  buyAmount: number;
-  sellAmount: number;
-  targetPrice: number | null;
-  expirationDate?: Date | null;
-  minPrice: number | null;
-  maxPrice: number | null;
-  interval: IPostgresInterval | null;
-  frequency: number | null;
-  walletId: number;
-  buyTokenId: number;
-  sellTokenId: number;
+export enum ELimitOrderMode {
+  BUY = 'buy',
+  SELL = 'sell',
+}
+
+export interface ICreateLimitOrderParams extends ICreateOrderParams {
+  orderMode: ELimitOrderMode;
 }
 
 export type GetOrdersFilters = Partial<Pick<ICreateOrderParams, 'orderType' | 'orderStatus'>>;
@@ -61,7 +55,7 @@ export const createOrder = async (params: ICreateOrderParams, trx?: Transaction<
   return order;
 };
 
-export const getOrders = async (filters?: GetOrdersFilters, trx?: Transaction<DB>): Promise<IOrder[]> => {
+export const getOrders = async (filters?: GetOrdersFilters, trx?: Transaction<DB>) => {
   const queryCreator = trx ? trx : db;
   let query = queryCreator
     .selectFrom('order')
@@ -78,7 +72,8 @@ export const getOrders = async (filters?: GetOrdersFilters, trx?: Transaction<DB
           .where('transaction.transactionType', '=', 'approval')
           .as('transaction'),
       (join) => join.onRef('txnOrderId', '=', 'order.id'),
-    );
+    )
+    .innerJoin('wallet', 'wallet.id', 'order.walletId');
 
   if (filters?.orderType) {
     query = query.where('order.orderType', '=', filters.orderType);

@@ -21,10 +21,11 @@ export interface IAppConfig {
   };
 }
 
+const LOCAL_FORKED_RPC_URL = process.env.LOCAL_FORKED_RPC_URL || 'http://localhost://8545';
 export const AppConfig: IAppConfig = {
   [ENetwork.Local]: {
     chainId: SupportedChainId.MAINNET,
-    rpc: 'https://1597-116-15-207-96.ngrok-free.app',
+    rpc: LOCAL_FORKED_RPC_URL,
   },
   [ENetwork.Mainnet]: {
     chainId: SupportedChainId.MAINNET,

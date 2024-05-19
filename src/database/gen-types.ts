@@ -7,7 +7,7 @@ export type Int8 = ColumnType<string, bigint | number | string, bigint | number 
 
 export type Interval = ColumnType<IPostgresInterval, IPostgresInterval | number, IPostgresInterval | number>;
 
-export type Numeric = ColumnType<number, number | string, number | string>;
+export type Numeric = ColumnType<string, number | string, number | string>;
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
@@ -21,6 +21,7 @@ export interface Order {
   interval: Interval | null;
   maxPrice: Numeric | null;
   minPrice: Numeric | null;
+  orderMode: string | null;
   orderStatus: string;
   orderType: string;
   sellAmount: Numeric;

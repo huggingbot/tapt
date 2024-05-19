@@ -2,6 +2,7 @@ import { Token } from '@uniswap/sdk-core';
 import { callbackQuery } from 'telegraf/filters';
 
 import { placeLimitOrder } from '@/database/queries/common';
+import { ELimitOrderMode } from '@/database/queries/order';
 import { ICreateTokenParams } from '@/database/queries/token';
 import { AppConfig } from '@/libs/config';
 import { WRAPPED_NATIVE_TOKEN } from '@/libs/constants';
@@ -111,7 +112,6 @@ export const createOrderPreviewScene = composeWizardScene(
         const amountIn = 0;
         // amountOut is the amount which will be go out from my wallet in order to buy X token
         const amountOut = amount;
-        const tradeParam = { sellAmount: amountOut, buyAmount: amountIn, targetPrice, expirationDate: undefined };
         // tokenIn => token I want to buy => token which will be put inside my wallet
         // tokenOut => token I want to sell => token which will go outside of my wallet
         const { name, address, decimals, symbol } = contract;
@@ -124,6 +124,7 @@ export const createOrderPreviewScene = composeWizardScene(
           contractAddress: WETH_TOKEN.address,
         };
 
+        const orderMode = _isBuyMode ? ELimitOrderMode.BUY : ELimitOrderMode.SELL;
         let tokenIn = baseToken;
         let tokenOut = targetToken;
         if (_isBuyMode) {
@@ -131,6 +132,7 @@ export const createOrderPreviewScene = composeWizardScene(
           tokenOut = baseToken;
         }
 
+        const tradeParam = { sellAmount: amountOut, buyAmount: amountIn, targetPrice, orderMode };
         // save limit order details in db
         await placeLimitOrder({ tokenIn, tokenOut, tradeParam, wallet: walletParam });
         await ctx.reply('Limit order submitted successfully!');

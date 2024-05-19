@@ -52,6 +52,7 @@ export async function up(db: Kysely<DB>): Promise<void> {
     .addColumn('sell_amount', 'numeric', (col) => col.notNull())
     .addColumn('target_price', 'numeric') // limit order
     .addColumn('expiration_date', 'timestamp') // limit order
+    .addColumn('order_mode', 'text') // for limit order, 'buy' | 'sell'
     .addColumn('min_price', 'numeric') // dca order
     .addColumn('max_price', 'numeric') // dca order
     .addColumn('interval', sql`interval`) // dca order

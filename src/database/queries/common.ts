@@ -3,7 +3,7 @@ import { EOrderStatus, EOrderType, ETransactionStatus, ETransactionType, IBasicW
 import { isNumber } from '@/utils/common';
 
 import { db } from '../db';
-import { createOrder, ICreateOrderParams } from './order';
+import { createOrder, ELimitOrderMode, ICreateLimitOrderParams, ICreateOrderParams } from './order';
 import { createTokens, ICreateTokenParams, selectTokens } from './token';
 import { createTransaction, ICreateTransactionParams } from './transaction';
 import { getWallet } from './wallet';
@@ -29,13 +29,14 @@ export const placeSwapOrder = async (basicWallet: IBasicWallet, params: IPlaceSw
     }
     const [inputToken, outputToken] = tokens;
 
-    const completeOrderParam = {
+    const completeOrderParam: ICreateOrderParams = {
       ...orderParam,
       walletId: wallet.id,
       buyTokenId: inputToken.id,
       sellTokenId: outputToken.id,
       orderType: EOrderType.Market,
       orderStatus: EOrderStatus.Active,
+      orderMode: null,
     };
     const order = await createOrder(completeOrderParam, trx);
     if (!order) {
@@ -69,10 +70,11 @@ export const placeLimitOrder = async (params: {
     sellAmount: number;
     targetPrice: string;
     expirationDate?: string;
+    orderMode: ELimitOrderMode;
   };
 }) => {
   const { tokenIn, tokenOut, wallet, tradeParam } = params;
-  const { buyAmount, sellAmount, targetPrice, expirationDate } = tradeParam;
+  const { buyAmount, sellAmount, targetPrice, expirationDate, orderMode } = tradeParam;
   console.log('targetPrice', targetPrice);
   if (!isNumber(targetPrice)) {
     throw new Error('invalid target price');
@@ -101,7 +103,7 @@ export const placeLimitOrder = async (params: {
       sellToken = newToken;
     }
 
-    const newOrder: ICreateOrderParams = {
+    const newOrder: ICreateLimitOrderParams = {
       orderType: 'LIMIT',
       orderStatus: EOrderStatus.Submitted,
       walletId: w.id,
@@ -111,6 +113,7 @@ export const placeLimitOrder = async (params: {
       buyAmount,
       sellAmount,
       expirationDate,
+      orderMode: orderMode,
     };
     const order = await createOrder(newOrder, txn);
     if (!order) {
