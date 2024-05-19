@@ -30,50 +30,42 @@ export const createOrderPreviewScene = composeWizardScene(
     const triggerPrice = (state[EWizardProp.TriggerPrice] as string) || '+1%';
     const orderExpiry = (state[EWizardProp.Expiry] as string) || '1d';
 
-    // const quotedPrice = await quoteTokePrice(contract, network, triggerPrice);
     const quotedPrice = ctx.wizard.state[EWizardProp.TargetPrice] as string;
-    console.log('quotedPrice', quotedPrice);
-    // ctx.wizard.state[EWizardProp.TargetPrice] = quotedPrice;
 
     const previewObj = { action, wallet, orderType, targetPrice: `${quotedPrice} (${triggerPrice})`, orderExpiry, amount: 0 };
     const [mode, rawAmount] = action.split(/_(.+)/);
     const amountStr = rawAmount.replace(/_/g, '.');
     if (!isNumber(amountStr)) {
       ctx.reply(`invalid ${mode} amount, ${amountStr}`);
-      throw new Error(`invalid ${mode} amount, ${amountStr}`);
+    } else {
+      previewObj.action = mode;
+      previewObj.amount = Number(amountStr);
+
+      const previewArr = Object.entries(previewObj).map((entry) => {
+        const [key, value] = entry;
+        return `${key} = ${value}`;
+      });
+
+      const contractDetails = Object.entries(contract).map((entry) => {
+        const [key, value] = entry;
+        return `${key} = ${value}`;
+      });
+
+      const previewOrderDetails =
+        `Order Preview\n----------------------\n${previewArr.join('\n')}` +
+        `\n====================================\nToken Details\n-------------------\n${contractDetails.join('\n')}`;
+
+      ctx.reply(previewOrderDetails, formatKeyboard(keyboardData));
     }
-
-    previewObj.action = mode;
-    previewObj.amount = Number(amountStr);
-
-    const previewArr = Object.entries(previewObj).map((entry) => {
-      const [key, value] = entry;
-      return `${key} = ${value}`;
-    });
-
-    const contractDetails = Object.entries(contract).map((entry) => {
-      const [key, value] = entry;
-      return `${key} = ${value}`;
-    });
-
-    const previewOrderDetails =
-      `Order Preview\n----------------------\n${previewArr.join('\n')}` +
-      `\n====================================\nToken Details\n-------------------\n${contractDetails.join('\n')}`;
-
-    console.log('inside preview scene');
-    ctx.reply(previewOrderDetails, formatKeyboard(keyboardData));
     ctx.wizard.next();
   },
   async (ctx: IContext, done) => {
-    console.log("ctx.has(callbackQuery('data'))", ctx.has(callbackQuery('data')));
     if (ctx.has(callbackQuery('data')) && ctx.callbackQuery.data === String(ENavAction.Cancel)) {
-      console.log('ctx.callbackQuery.data', ctx.callbackQuery.data);
       ctx.wizard.state[EWizardProp.Contract] = undefined;
       ctx.wizard.state[EWizardProp.Action] = undefined;
       ctx.wizard.state[EWizardProp.OrderType] = undefined;
       ctx.wizard.state[EWizardProp.Msg] = undefined;
     } else if (ctx.has(callbackQuery('data')) && ctx.callbackQuery.data === String(ENavAction.Back)) {
-      console.log('back button pressed');
       // go back to buy-sell scene
       if (ctx.msg && ctx.msg.message_id) {
         ctx.deleteMessage(ctx.msg.message_id);

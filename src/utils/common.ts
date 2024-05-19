@@ -88,11 +88,19 @@ export const populateBuyModeKeyboardData = (action: string, network: ENetwork) =
     // set default selected buy/sell price
     selectedOption = _isBuyMode ? String(ESwapAction.Buy_0_01) : String(ESwapAction.Sell_10);
   }
-
+  console.log('selectedOption', selectedOption);
   const modifiedKeyboardData = keyboardData.map((row) => {
     return row.map((cell) => {
       if (selectedOption === String(cell.callback_data)) {
         return { ...cell, text: `❎ ${cell.text}` };
+      } else if (
+        // custom value
+        !(Object.values(ESwapAction) as string[]).includes(selectedOption) &&
+        ((_isBuyMode && cell.callback_data === ESwapAction.Buy_X) || (!_isBuyMode && cell.callback_data === ESwapAction.Sell_X))
+      ) {
+        // extract the custom value
+        const [mode, amount] = selectedOption.split('_');
+        return { ...cell, text: `❎ ${mode}_${amount}` };
       }
       return cell;
     });

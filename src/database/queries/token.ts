@@ -27,19 +27,6 @@ export const selectTokens = async (params: ISelectTokensParams[], trx?: Transact
   return await queryCreator.selectFrom('token').selectAll().where(buildOrExpr).execute();
 };
 
-export const getTokenDetailsById = async (id: number, trx?: Transaction<DB>): Promise<TokenDetails> => {
-  const queryCreator = trx ? trx : db;
-  const token = await queryCreator
-    .selectFrom('token')
-    .where('token.id', '=', id)
-    .select(['symbol', 'chainId', 'contractAddress', 'decimalPlaces'])
-    .executeTakeFirst();
-  if (!token) {
-    throw new Error(`Token with id, ${id} not found!`);
-  }
-  return token;
-};
-
 export const getTokenByIds = async (buyId: number, sellId: number, trx?: Transaction<DB>): Promise<TokenDetails[]> => {
   const queryCreator = trx ? trx : db;
   return await queryCreator
