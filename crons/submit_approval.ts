@@ -16,7 +16,7 @@ import { ETransactionType } from '../src/types/db';
 import { decryptPrivateKey } from '../src/utils/crypto';
 import { EOrderStatus, TAPT_API_ENDPOINT } from './utils/constants';
 import { fromReadableAmount } from './utils/helpers';
-import { ApiResponse, ILimitOrder } from './utils/types';
+import { ApiResponse, ILimitOrder, IToken, IUpdateOrderRequestBody } from './utils/types';
 
 async function submitApproval() {
   const url = `${TAPT_API_ENDPOINT}/orders/limit?orderStatus=${EOrderStatus.Submitted}`;
@@ -27,56 +27,92 @@ async function submitApproval() {
   }
 
   const orders = jsonResp.data;
+  // additional params which will be shared between promises iterations
+  const additionalParams: {
+    orderId: number;
+    sellAmount: string;
+    sellToken: IToken;
+    wallet: ethers.Wallet;
+  }[] = [];
 
-  for (let i = 0; i < orders.length; i++) {
-    const { id: orderId, sellAmount, sellToken, encryptedPrivateKey } = orders[i];
-
+  // getting allowance from the wallet
+  const allowancePromises: Promise<BigNumber>[] = orders.map((order) => {
+    const { id: orderId, sellAmount, sellToken, encryptedPrivateKey } = order;
     const provider = getProvider(ENetwork.Local);
     // create wallet instance
     const privateKey = decryptPrivateKey(encryptedPrivateKey);
     const wallet = new ethers.Wallet(privateKey, provider);
 
-    const tokenOutContract = new ethers.Contract(sellToken.contractAddress, ERC20_ABI, provider);
-    // check allowance allocated by wallet
-    const allowance: BigNumber = await tokenOutContract.allowance(wallet.address, V3_UNISWAP_ROUTER_ADDRESS[ENetwork.Local]);
-    const amountOut = ethers.utils.parseUnits(sellAmount, sellToken.decimalPlaces);
+    // save to additionalParams to use the values for later in approval submition
+    additionalParams.push({ orderId, wallet, sellAmount, sellToken });
 
-    const body: { orderStatus: string; transaction?: { hash: string; type: string; toAddress: string } } = {
-      orderStatus: EOrderStatus.ApprovalPending,
-    };
+    const tokenOutContract = new ethers.Contract(sellToken.contractAddress, ERC20_ABI, provider);
+    const allowance: Promise<BigNumber> = tokenOutContract.allowance(wallet.address, V3_UNISWAP_ROUTER_ADDRESS[ENetwork.Local]);
+    return allowance;
+  });
+  const allowanceResult = await Promise.allSettled(allowancePromises);
+
+  // validate allowance and prepare `Approval Txn`
+  const approvalTxnPromises = allowanceResult.map((result, idx) => {
+    if (result.status === 'rejected' || !result.value) {
+      return undefined;
+    }
+    const provider = getProvider(ENetwork.Local);
+    const { sellAmount, sellToken } = additionalParams[idx];
+    const amountOut = ethers.utils.parseUnits(sellAmount, sellToken.decimalPlaces);
+    const allowance = result.value;
     if (allowance.lt(amountOut)) {
-      // request approval
-      const tokenApproval = await tokenOutContract.populateTransaction.approve(
+      const tokenOutContract = new ethers.Contract(sellToken.contractAddress, ERC20_ABI, provider);
+      return tokenOutContract.populateTransaction.approve(
         V3_UNISWAP_ROUTER_ADDRESS[ENetwork.Local],
         fromReadableAmount(Number(sellAmount), sellToken.decimalPlaces).toString(),
       );
+    }
+    return undefined;
+  });
+  const approvalTxnResults = await Promise.allSettled(approvalTxnPromises);
 
-      const approvalTxnResp = await sendTransactionViaWallet(wallet, ENetwork.Local, tokenApproval);
-      if (approvalTxnResp === TransactionState.Failed) {
-        console.error('failed to get approval');
-        // update orders table as failed
-        body.orderStatus = EOrderStatus.Failed;
-      } else {
-        const txn = approvalTxnResp as ethers.providers.TransactionResponse;
-        if (txn.to) {
-          body.transaction = {
-            hash: txn.hash,
-            type: ETransactionType.Approval,
-            toAddress: txn.to,
-          };
-        }
+  // Send `Approval` Txn
+  const approvalRxnRespPromises = approvalTxnResults.map((result, idx) => {
+    if (result.status === 'rejected' || !result.value) {
+      return undefined;
+    }
+    const tokenApproval = result.value;
+    const { wallet } = additionalParams[idx];
+    return sendTransactionViaWallet(wallet, ENetwork.Local, tokenApproval);
+  });
+  const approvalTxnResponsesResult = await Promise.allSettled(approvalRxnRespPromises);
+
+  // Check `Approval` TXN responses and update the database
+  approvalTxnResponsesResult.map((result, idx) => {
+    if (result.status === 'rejected' || !result.value) {
+      return undefined;
+    }
+    const approvalTxnResp = result.value;
+    const reqBody: IUpdateOrderRequestBody = {
+      orderStatus: EOrderStatus.ApprovalPending,
+    };
+    if (approvalTxnResp === TransactionState.Failed) {
+      reqBody.orderStatus = EOrderStatus.Failed;
+    } else {
+      const txn = approvalTxnResp as ethers.providers.TransactionResponse;
+      if (txn.to) {
+        reqBody.transaction = {
+          hash: txn.hash,
+          type: ETransactionType.Approval,
+          toAddress: txn.to,
+        };
       }
     }
-
-    // no need to retry or check the resp, next iteration will be take care of it if it's failed
-    await fetch(`${TAPT_API_ENDPOINT}/orders/${orderId}`, {
+    const { orderId } = additionalParams[idx];
+    return fetch(`${TAPT_API_ENDPOINT}/orders/${orderId}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(reqBody),
     });
-  }
+  });
 }
 
 (async function () {

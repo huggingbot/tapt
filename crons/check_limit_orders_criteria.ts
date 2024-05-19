@@ -16,9 +16,13 @@ import { UNISWAP_QUOTER_ADDRESS, V3_UNISWAP_FACTORY_ADDRESS } from '@/libs/const
 import { ENetwork } from '../src/libs/config';
 import { getProvider } from '../src/libs/providers';
 import { EOrderStatus, TAPT_API_ENDPOINT } from './utils/constants';
-import { ApiResponse, ILimitOrder } from './utils/types';
+import { ApiResponse, ILimitOrder, LimitOrderMode } from './utils/types';
 
-export async function checkLimitOrdersCriteria() {
+export function isLimitOrderCriteriaMet(orderMode: LimitOrderMode, amountIn: number, targetPrice: number): boolean {
+  return (orderMode === 'buy' && amountIn <= targetPrice) || (orderMode === 'sell' && amountIn >= targetPrice);
+}
+
+export async function checkLimitOrderCriteria() {
   const resp = await fetch(`${TAPT_API_ENDPOINT}/orders/limit?orderStatus=${EOrderStatus.ApprovalCompleted}`);
   const jsonResp = (await resp.json()) as ApiResponse<ILimitOrder[]>;
 
@@ -28,10 +32,19 @@ export async function checkLimitOrdersCriteria() {
 
   const orders = jsonResp.data;
   const ordersToBePrcessed: number[] = [];
+  // additional params which will be shared between promises iterations
+  const additionalParams: {
+    id: number;
+    targetPrice: number;
+    sellAmount: string;
+    tokenInput: Token;
+    tokenOutput: Token;
+    limitOrderMode: LimitOrderMode;
+  }[] = [];
 
-  for (let i = 0; i < orders.length; i++) {
-    const order = orders[i];
-    const { id, buyToken, sellToken, targetPrice, sellAmount } = order;
+  // compute TokenPool Addr and get Tokens Details
+  const tokensDetailsPromise = orders.map((order) => {
+    const { id, buyToken, sellToken, targetPrice, sellAmount, limitOrderMode } = order;
     const provider = getProvider(ENetwork.Local);
     const tokenOutput = new Token(buyToken.chainId, buyToken.contractAddress, buyToken.decimalPlaces, buyToken.symbol);
     const tokenInput = new Token(sellToken.chainId, sellToken.contractAddress, sellToken.decimalPlaces, sellToken.symbol);
@@ -44,31 +57,44 @@ export async function checkLimitOrdersCriteria() {
     });
     console.log('currentPoolAddress', currentPoolAddress);
 
-    const quoterContract = new ethers.Contract(UNISWAP_QUOTER_ADDRESS[ENetwork.Local], QuoterABI.abi, provider);
+    additionalParams.push({ id, targetPrice, sellAmount, tokenOutput, tokenInput, limitOrderMode });
 
     const poolContract = new ethers.Contract(currentPoolAddress, IUniswapV3PoolABI.abi, provider);
-    // const immutables = await getPoolImmutables(poolContract);
-    const [token0, token1, fee] = await Promise.all([
-      poolContract.token0(),
-      poolContract.token1(),
-      poolContract.fee(),
-      poolContract.liquidity(),
-      poolContract.slot0(),
-    ]);
+    return Promise.all([poolContract.token0(), poolContract.token1(), poolContract.fee(), poolContract.liquidity(), poolContract.slot0()]);
+  });
+  const tokenDetailsResult = await Promise.allSettled(tokensDetailsPromise);
 
-    const amountOut = ethers.utils.parseUnits(sellAmount, tokenInput.decimals);
-    const quotedAmountIn = await quoterContract.callStatic.quoteExactOutputSingle(token0, token1, fee, amountOut, 0);
-
-    const amountIn = ethers.utils.formatUnits(quotedAmountIn, tokenOutput.decimals);
-    console.log('=====================');
-    console.log(`${sellAmount} ${tokenInput.symbol} can be swapped for ${amountIn} ${tokenOutput.symbol}`);
-    console.log('=====================');
-    if (Number(amountIn) >= targetPrice) {
-      // send for approval
-      console.log(`Limit order condition met for order with id, ${id}`);
-      ordersToBePrcessed.push(id);
+  // Quote current market price for Target Token
+  const quotedAmountsPromises = tokenDetailsResult.map((result, idx) => {
+    if (result.status === 'rejected' || !result.value) {
+      return undefined;
     }
-  }
+    const provider = getProvider(ENetwork.Local);
+    const quoterContract = new ethers.Contract(UNISWAP_QUOTER_ADDRESS[ENetwork.Local], QuoterABI.abi, provider);
+    const { sellAmount, tokenInput } = additionalParams[idx];
+
+    const [token0, token1, fee] = result.value;
+    const amountIn = ethers.utils.parseUnits(sellAmount, tokenInput.decimals);
+    return quoterContract.callStatic.quoteExactOutputSingle(token0, token1, fee, amountIn, 0);
+  });
+  const quotedAmountResults = await Promise.allSettled(quotedAmountsPromises);
+
+  // Validate and check LIMIT_ORDER crtieria
+  quotedAmountResults.forEach((result, idx) => {
+    const { tokenOutput, sellAmount, tokenInput, id, targetPrice, limitOrderMode } = additionalParams[idx];
+    if (result.status === 'fulfilled' && result.value) {
+      const amountOut = ethers.utils.formatUnits(result.value, tokenOutput.decimals);
+      console.log('=====================');
+      console.log(`${sellAmount} ${tokenInput.symbol} can be swapped for ${amountOut} ${tokenOutput.symbol}`);
+      console.log('=====================');
+
+      if (isLimitOrderCriteriaMet(limitOrderMode, Number(amountOut), targetPrice)) {
+        // send for approval
+        console.log(`Limit order condition met for order with id, ${id}`);
+        ordersToBePrcessed.push(id);
+      }
+    }
+  });
 
   if (ordersToBePrcessed.length > 0) {
     // bulk update orders

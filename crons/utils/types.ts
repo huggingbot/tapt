@@ -5,6 +5,8 @@ export interface IToken {
   decimalPlaces: number;
 }
 
+export type LimitOrderMode = 'buy' | 'sell';
+
 export enum TransactionState {
   Failed = 'Failed',
   New = 'New',
@@ -24,6 +26,7 @@ export interface ILimitOrder {
   targetPrice: number;
   buyAmount: string;
   sellAmount: string;
+  limitOrderMode: LimitOrderMode;
   expirationDate?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -47,4 +50,10 @@ export interface ApiResponse<T> {
   data?: T;
   success: boolean;
   message?: string;
+}
+
+export interface IUpdateOrderRequestBody {
+  orderStatus: string;
+  buyAmount?: number;
+  transaction?: { hash: string; type: string; toAddress: string };
 }

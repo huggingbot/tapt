@@ -5,6 +5,7 @@
  *    limit order: [submit_approval] -> [track_txn] -> [check_orders_criteria] -> **[execute_trade]** -> [track_txn] -> (DONE)
  */
 import { Token } from '@uniswap/sdk-core';
+import { SwapRoute } from '@uniswap/smart-order-router';
 import { ethers } from 'ethers';
 
 import { ENetwork } from '../src/libs/config';
@@ -13,7 +14,7 @@ import { executeRoute, generateRoute } from '../src/libs/routing';
 import { ETransactionType } from '../src/types';
 import { decryptPrivateKey } from '../src/utils/crypto';
 import { EOrderStatus, TAPT_API_ENDPOINT } from './utils/constants';
-import { ApiResponse, ILimitOrder } from './utils/types';
+import { ApiResponse, ILimitOrder, IUpdateOrderRequestBody } from './utils/types';
 
 export async function executeTrade() {
   const resp = await fetch(`${TAPT_API_ENDPOINT}/orders/limit?orderStatus=${EOrderStatus.ExecutionReady}`);
@@ -25,46 +26,73 @@ export async function executeTrade() {
 
   const orders = jsonResp.data;
 
-  for (let i = 0; i < orders.length; i++) {
-    // execute order
+  // additional params which will be shared between promises iterations
+  const additionalParams: {
+    orderId: number;
+    wallet: ethers.Wallet;
+    route?: SwapRoute;
+  }[] = [];
+
+  // generating routes
+  const routeGenPromises = orders.map((order) => {
     const provider = getProvider(ENetwork.Local);
-    const { id: orderId, sellAmount, sellToken, buyToken, encryptedPrivateKey } = orders[i];
+    const { id: orderId, sellAmount, sellToken, buyToken, encryptedPrivateKey } = order;
 
     const tokenIn = new Token(buyToken.chainId, buyToken.contractAddress, buyToken.decimalPlaces, buyToken.symbol);
     const tokenOut = new Token(sellToken.chainId, sellToken.contractAddress, sellToken.decimalPlaces, sellToken.symbol);
     const privateKey = decryptPrivateKey(encryptedPrivateKey);
     const wallet = new ethers.Wallet(privateKey, provider);
 
-    const route = await generateRoute(wallet, ENetwork.Local, { tokenIn, tokenOut, amount: Number(sellAmount) });
+    // save to additional param for later use
+    additionalParams.push({ orderId, wallet });
+    return generateRoute(wallet, ENetwork.Local, { tokenIn, tokenOut, amount: Number(sellAmount) });
+  });
+  const routeGenResult = await Promise.allSettled(routeGenPromises);
 
-    const body: { orderStatus: string; buyAmount?: number; transaction?: { hash: string; type: string; toAddress: string } } = {
+  // executing routes
+  const routeExecPromises = routeGenResult.map((result, idx) => {
+    if (result.status === 'rejected' || !result.value) {
+      return undefined;
+    }
+    additionalParams[idx] = { ...additionalParams[idx], route: result.value };
+    const { wallet } = additionalParams[idx];
+    return executeRoute(wallet, ENetwork.Local, result.value);
+  });
+  const routeExecResult = await Promise.allSettled(routeExecPromises);
+
+  // update database based on `routeExecResult`
+  routeExecResult.map((result, idx) => {
+    const { route, orderId } = additionalParams[idx];
+    if (result.status === 'rejected' || !result.value || !route) {
+      return undefined;
+    }
+    const res = result.value;
+    const body: IUpdateOrderRequestBody = {
       orderStatus: EOrderStatus.ExecutionPending,
     };
-    if (route) {
-      const res = await executeRoute(wallet, ENetwork.Local, route);
-      if (res === TransactionState.Failed) {
-        // failed update db
-        body.orderStatus = EOrderStatus.Failed;
-      } else {
-        const txnRes = res as ethers.providers.TransactionResponse;
-        // update db
-        body.buyAmount = Number(route.quote.toExact());
-        if (txnRes.to) {
-          body.transaction = {
-            hash: txnRes.hash,
-            type: ETransactionType.Withdraw,
-            toAddress: txnRes.to,
-          };
-        }
+    if (res === TransactionState.Failed) {
+      // failed update db
+      body.orderStatus = EOrderStatus.Failed;
+    } else {
+      const txnRes = res as ethers.providers.TransactionResponse;
+      // update db
+      body.buyAmount = Number(route.quote.toExact());
+      if (txnRes.to) {
+        body.transaction = {
+          hash: txnRes.hash,
+          type: ETransactionType.Withdraw,
+          toAddress: txnRes.to,
+        };
       }
     }
 
-    await fetch(`${TAPT_API_ENDPOINT}/orders/${orderId}`, {
+    // TODO: replace with BULK_UPDATE instead of multiple updates
+    return fetch(`${TAPT_API_ENDPOINT}/orders/${orderId}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
     });
-  }
+  });
 }

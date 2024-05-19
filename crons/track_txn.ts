@@ -20,19 +20,30 @@ export async function trackTransactions() {
 
   const txns = jsonResp.data;
   const txnsToUpdate: (Pick<ITransaction, 'transactionFee' | 'transactionStatus' | 'orderId' | 'transactionType'> & { transactionId: number })[] = [];
+  // additional params which will be used during difference promises iteration
+  const additionalParams: {
+    orderId: number;
+    transactionType: string;
+    transactionId: number;
+  }[] = [];
 
-  for (let i = 0; i < txns.length; i++) {
-    // track txn
-    const { transactionHash, orderId, transactionType, id: transactionId } = txns[i];
+  const txnReceiptPromises = txns.map((txn) => {
+    const { transactionHash, orderId, transactionType, id: transactionId } = txn;
     const provider = getProvider(ENetwork.Local);
-    const txnReceipt = await provider.getTransactionReceipt(transactionHash);
-    console.log('txn_receipt', txnReceipt);
-    if (txnReceipt != null) {
+    additionalParams.push({ orderId, transactionId, transactionType });
+    return provider.getTransactionReceipt(transactionHash);
+  });
+  const txnReceiptResults = await Promise.allSettled(txnReceiptPromises);
+
+  txnReceiptResults.forEach((result, idx) => {
+    if (result.status === 'fulfilled' && result.value) {
+      const { orderId, transactionType, transactionId } = additionalParams[idx];
+      const txnReceipt = result.value;
       const transactionFee = txnReceipt.gasUsed.toNumber();
       const transactionStatus = ETransactionStatus.Confirmed;
       txnsToUpdate.push({ orderId, transactionType, transactionStatus, transactionFee, transactionId });
     }
-  }
+  });
 
   if (txnsToUpdate.length > 0) {
     await fetch(`${TAPT_API_ENDPOINT}/transactions/bulk_update`, {
