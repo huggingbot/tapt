@@ -7,18 +7,19 @@ import { ethers } from 'ethers';
 import { IWizContractProp } from '@/modules/bot/interfaces/bot-prop.interface';
 
 import { AppConfig, ENetwork } from './config';
-import { ETH_UNISWAP_V3_FACTORY_CONTRACT, UNISWAP_QUOTER_ADDRESS, WETH_TOKEN } from './constants';
+import { UNISWAP_QUOTER_ADDRESS, V3_UNISWAP_FACTORY_ADDRESS, WRAPPED_NATIVE_TOKEN } from './constants';
 import { getProvider } from './providers';
 
-export const quoteTokePrice = async (contract: IWizContractProp, network: ENetwork, targetPrice?: unknown) => {
+export const quoteTokenPrice = async (contract: IWizContractProp, network: ENetwork, targetPrice?: unknown) => {
   // firstly, we calculate current market price based on
   // 1 WETH = X TOKEN
   const chainId = AppConfig[network].chainId;
   const token = new Token(chainId, contract.address, contract.decimals, contract.symbol, contract.name);
+  const WETH_TOKEN = WRAPPED_NATIVE_TOKEN[network] as Required<Token>;
 
   // get tokenpool
   const currentPoolAddress = computePoolAddress({
-    factoryAddress: ETH_UNISWAP_V3_FACTORY_CONTRACT,
+    factoryAddress: V3_UNISWAP_FACTORY_ADDRESS[network],
     tokenA: token,
     tokenB: WETH_TOKEN,
     fee: FeeAmount.MEDIUM,
@@ -33,7 +34,7 @@ export const quoteTokePrice = async (contract: IWizContractProp, network: ENetwo
     poolContract.liquidity(),
     poolContract.slot0(),
   ]);
-  const quoterContract = new ethers.Contract(UNISWAP_QUOTER_ADDRESS, Quoter.abi, provider);
+  const quoterContract = new ethers.Contract(UNISWAP_QUOTER_ADDRESS[network], Quoter.abi, provider);
   const baseAmount = ethers.utils.parseUnits('1', WETH_TOKEN.decimals).toString();
   let quotedAmount = await quoterContract.callStatic.quoteExactOutputSingle(token0, token1, fee, baseAmount, 0);
 

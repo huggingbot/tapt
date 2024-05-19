@@ -2,7 +2,7 @@ import { isAddress } from 'ethers/lib/utils';
 import { callbackQuery, message } from 'telegraf/filters';
 import { InlineKeyboardButton, Message } from 'telegraf/typings/core/types/typegram';
 
-import { quoteTokePrice } from '@/libs/quoting';
+import { quoteTokenPrice } from '@/libs/quoting';
 import { ENavAction, EOrderDetails, EOrderType, ESwapAction } from '@/modules/bot/constants/bot-action.constant';
 import { ESessionProp, EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
 import { IWizContractProp } from '@/modules/bot/interfaces/bot-prop.interface';
@@ -114,7 +114,7 @@ export const createBuyAndSellScene = composeWizardScene(
         ctx.wizard.state[EWizardProp.Action] = isBuyMode(action) ? ESwapAction.Buy_0_01 : ESwapAction.Sell_10;
       }
       ctx.wizard.state[EWizardProp.ReEnterTheScene] = false;
-      const quotedPrice = await quoteTokePrice(contract, network, triggerPrice);
+      const quotedPrice = await quoteTokenPrice(contract, network, triggerPrice);
       ctx.wizard.state[EWizardProp.TargetPrice] = quotedPrice;
       done();
     } else if (ctx.has(callbackQuery('data'))) {
