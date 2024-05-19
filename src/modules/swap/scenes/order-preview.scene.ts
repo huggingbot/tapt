@@ -106,16 +106,21 @@ export const createOrderPreviewScene = composeWizardScene(
         const walletParam: IBasicWallet = { walletAddress: activeAddress, chainId, network };
 
         const _isBuyMode = mode.trim().toLowerCase() === 'buy';
-        // weth
-        const WETH_TOKEN = WRAPPED_NATIVE_TOKEN[network] as Required<Token>;
-        // amountIn is the amount which will go into my wallet after I sell X number of token
-        const amountIn = 0;
-        // amountOut is the amount which will be go out from my wallet in order to buy X token
-        const amountOut = amount;
-        // tokenIn => token I want to buy => token which will be put inside my wallet
-        // tokenOut => token I want to sell => token which will go outside of my wallet
+        // the input amount, should be the amount i am selling,
+        // which is the amount that will leave my wallet.
+        // From the point of view of a router, it's the input amount of X token that
+        // you are giving to the router in exchange for another output amount of Y token.
+        const amountIn = amount;
+        // On the otherhand, amountOut is the output amount, should be the amount i am buying,
+        // which is the amount that will enter my wallet.
+        const amountOut = 0;
+        const orderMode = _isBuyMode ? ELimitOrderMode.BUY : ELimitOrderMode.SELL;
+        const tradeParam = { sellAmount: amountIn, buyAmount: amountOut, targetPrice, orderMode };
+
         const { name, address, decimals, symbol } = contract;
         const targetToken: ICreateTokenParams = { name, contractAddress: address, symbol, decimalPlaces: decimals, chainId };
+        // weth
+        const WETH_TOKEN = WRAPPED_NATIVE_TOKEN[network] as Required<Token>;
         const baseToken: ICreateTokenParams = {
           name: WETH_TOKEN.name,
           symbol: WETH_TOKEN.symbol,
@@ -123,18 +128,13 @@ export const createOrderPreviewScene = composeWizardScene(
           chainId,
           contractAddress: WETH_TOKEN.address,
         };
+        // In 'buy' mode, we are buying 'X' token and give out 'WETH' as exchange
+        // In 'sell' mode, we are selling 'X' token and get back 'WETH' in return
+        const tokenToBuy = _isBuyMode ? targetToken : baseToken;
+        const tokenToSell = _isBuyMode ? baseToken : targetToken;
 
-        const orderMode = _isBuyMode ? ELimitOrderMode.BUY : ELimitOrderMode.SELL;
-        let tokenIn = baseToken;
-        let tokenOut = targetToken;
-        if (_isBuyMode) {
-          tokenIn = targetToken;
-          tokenOut = baseToken;
-        }
-
-        const tradeParam = { sellAmount: amountOut, buyAmount: amountIn, targetPrice, orderMode };
         // save limit order details in db
-        await placeLimitOrder({ tokenIn, tokenOut, tradeParam, wallet: walletParam });
+        await placeLimitOrder({ tokenToBuy, tokenToSell, tradeParam, wallet: walletParam });
         await ctx.reply('Limit order submitted successfully!');
         resetScene(ctx);
       } catch (e: unknown) {
