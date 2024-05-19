@@ -5,11 +5,6 @@ export interface IToken {
   decimalPlaces: number;
 }
 
-export interface IBasicWallet {
-  wallet_address: string;
-  encryted_private_key: string;
-}
-
 export enum TransactionState {
   Failed = 'Failed',
   New = 'New',
@@ -21,7 +16,8 @@ export enum TransactionState {
 export interface ILimitOrder {
   id: number;
   walletId: number;
-  wallet: IBasicWallet;
+  walletAddress: string;
+  encryptedPrivateKey: string;
   buyToken: IToken;
   sellToken: IToken;
   orderStatus: string;

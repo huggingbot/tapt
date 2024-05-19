@@ -125,13 +125,13 @@ export const createOrderPreviewScene = composeWizardScene(
         const { name, address, decimals, symbol } = contract;
         const targetToken: ICreateTokenParams = { name, contractAddress: address, symbol, decimalPlaces: decimals, chainId };
         // weth
-        const WETH_TOKEN = WRAPPED_NATIVE_TOKEN[network] as Required<Token>;
+        const wNativeToken = WRAPPED_NATIVE_TOKEN[network] as Required<Token>;
         const baseToken: ICreateTokenParams = {
-          name: WETH_TOKEN.name,
-          symbol: WETH_TOKEN.symbol,
-          decimalPlaces: WETH_TOKEN.decimals,
+          name: wNativeToken.name,
+          symbol: wNativeToken.symbol,
+          decimalPlaces: wNativeToken.decimals,
           chainId,
-          contractAddress: WETH_TOKEN.address,
+          contractAddress: wNativeToken.address,
         };
         // In 'buy' mode, we are buying 'X' token and give out 'WETH' as exchange
         // In 'sell' mode, we are selling 'X' token and get back 'WETH' in return

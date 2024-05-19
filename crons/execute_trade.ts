@@ -28,11 +28,11 @@ export async function executeTrade() {
   for (let i = 0; i < orders.length; i++) {
     // execute order
     const provider = getProvider(ENetwork.Local);
-    const { id: orderId, sellAmount, sellToken, buyToken, wallet: walletDetails } = orders[i];
+    const { id: orderId, sellAmount, sellToken, buyToken, encryptedPrivateKey } = orders[i];
 
     const tokenIn = new Token(buyToken.chainId, buyToken.contractAddress, buyToken.decimalPlaces, buyToken.symbol);
     const tokenOut = new Token(sellToken.chainId, sellToken.contractAddress, sellToken.decimalPlaces, sellToken.symbol);
-    const privateKey = decryptPrivateKey(walletDetails.encryted_private_key);
+    const privateKey = decryptPrivateKey(encryptedPrivateKey);
     const wallet = new ethers.Wallet(privateKey, provider);
 
     const route = await generateRoute(wallet, ENetwork.Local, { tokenIn, tokenOut, amount: Number(sellAmount) });

@@ -11,8 +11,7 @@ import { TAPT_API_ENDPOINT } from './utils/constants';
 import { ApiResponse, ITransaction } from './utils/types';
 
 export async function trackTransactions() {
-  const url = `${TAPT_API_ENDPOINT}/transactions?type=${ETransactionType.Swap}&status=${ETransactionStatus.Pending}`;
-  console.log('url', url);
+  const url = `${TAPT_API_ENDPOINT}/transactions?type=${ETransactionType.Approval}&status=${ETransactionStatus.Pending}`;
   const resp = await fetch(url);
   const jsonResp = (await resp.json()) as ApiResponse<ITransaction[]>;
   if (!jsonResp.success || !jsonResp.data) {
@@ -20,7 +19,6 @@ export async function trackTransactions() {
   }
 
   const txns = jsonResp.data;
-  console.log('txns', txns);
   const txnsToUpdate: (Pick<ITransaction, 'transactionFee' | 'transactionStatus' | 'orderId' | 'transactionType'> & { transactionId: number })[] = [];
 
   for (let i = 0; i < txns.length; i++) {

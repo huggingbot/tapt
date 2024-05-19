@@ -15,13 +15,13 @@ export const quoteTokenPrice = async (contract: IWizContractProp, network: ENetw
   // 1 WETH = X TOKEN
   const chainId = AppConfig[network].chainId;
   const token = new Token(chainId, contract.address, contract.decimals, contract.symbol, contract.name);
-  const WETH_TOKEN = WRAPPED_NATIVE_TOKEN[network] as Required<Token>;
+  const wNativeToken = WRAPPED_NATIVE_TOKEN[network] as Required<Token>;
 
   // get tokenpool
   const currentPoolAddress = computePoolAddress({
     factoryAddress: V3_UNISWAP_FACTORY_ADDRESS[network],
     tokenA: token,
-    tokenB: WETH_TOKEN,
+    tokenB: wNativeToken,
     fee: FeeAmount.MEDIUM,
   });
   const provider = getProvider(network);
@@ -35,7 +35,7 @@ export const quoteTokenPrice = async (contract: IWizContractProp, network: ENetw
     poolContract.slot0(),
   ]);
   const quoterContract = new ethers.Contract(UNISWAP_QUOTER_ADDRESS[network], Quoter.abi, provider);
-  const baseAmount = ethers.utils.parseUnits('1', WETH_TOKEN.decimals).toString();
+  const baseAmount = ethers.utils.parseUnits('1', wNativeToken.decimals).toString();
   let quotedAmount = await quoterContract.callStatic.quoteExactOutputSingle(token0, token1, fee, baseAmount, 0);
 
   const variation = (targetPrice as string) || '1%';

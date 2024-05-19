@@ -12,8 +12,8 @@ export enum EWizardProp {
   DoNothing = 'doNothing',
   OrderType = 'orderType',
   TriggerPrice = 'triggerPrice',
-  TargetPrice = 'TargetPrice',
+  TargetPrice = 'targetPrice',
   Expiry = 'orderExpiry',
   OrderDetailsAction = 'orderDetailsAction',
-  ReEnterTheScene = 'ReEnterTheScene',
+  ReEnterTheScene = 'reEnterTheScene',
 }

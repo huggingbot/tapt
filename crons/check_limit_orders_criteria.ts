@@ -11,12 +11,14 @@ import QuoterABI from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol
 import { computePoolAddress, FeeAmount } from '@uniswap/v3-sdk';
 import { ethers } from 'ethers';
 
+import { UNISWAP_QUOTER_ADDRESS, V3_UNISWAP_FACTORY_ADDRESS } from '@/libs/constants';
+
 import { ENetwork } from '../src/libs/config';
 import { getProvider } from '../src/libs/providers';
-import { EOrderStatus, ETH_UNISWAP_V3_FACTORY_ADDRESS, ETH_UNISWAP_V3_QUOTER_ADDRESS, TAPT_API_ENDPOINT } from './utils/constants';
+import { EOrderStatus, TAPT_API_ENDPOINT } from './utils/constants';
 import { ApiResponse, ILimitOrder } from './utils/types';
 
-export async function run() {
+export async function checkLimitOrdersCriteria() {
   const resp = await fetch(`${TAPT_API_ENDPOINT}/orders/limit?orderStatus=${EOrderStatus.ApprovalCompleted}`);
   const jsonResp = (await resp.json()) as ApiResponse<ILimitOrder[]>;
 
@@ -35,14 +37,14 @@ export async function run() {
     const tokenInput = new Token(sellToken.chainId, sellToken.contractAddress, sellToken.decimalPlaces, sellToken.symbol);
 
     const currentPoolAddress = computePoolAddress({
-      factoryAddress: ETH_UNISWAP_V3_FACTORY_ADDRESS,
+      factoryAddress: V3_UNISWAP_FACTORY_ADDRESS[ENetwork.Local],
       tokenA: tokenOutput,
       tokenB: tokenInput,
       fee: FeeAmount.MEDIUM,
     });
     console.log('currentPoolAddress', currentPoolAddress);
 
-    const quoterContract = new ethers.Contract(ETH_UNISWAP_V3_QUOTER_ADDRESS, QuoterABI.abi, provider);
+    const quoterContract = new ethers.Contract(UNISWAP_QUOTER_ADDRESS[ENetwork.Local], QuoterABI.abi, provider);
 
     const poolContract = new ethers.Contract(currentPoolAddress, IUniswapV3PoolABI.abi, provider);
     // const immutables = await getPoolImmutables(poolContract);

@@ -7,12 +7,14 @@
  */
 import { BigNumber, ethers } from 'ethers';
 
+import { V3_UNISWAP_ROUTER_ADDRESS } from '@/libs/constants';
+
 import ERC20_ABI from '../src/contracts/ERC_20_abi.json';
 import { ENetwork } from '../src/libs/config';
 import { getProvider, sendTransactionViaWallet, TransactionState } from '../src/libs/providers';
 import { ETransactionType } from '../src/types/db';
 import { decryptPrivateKey } from '../src/utils/crypto';
-import { EOrderStatus, TAPT_API_ENDPOINT, V3_SWAP_ROUTER02_ADDRESS } from './utils/constants';
+import { EOrderStatus, TAPT_API_ENDPOINT } from './utils/constants';
 import { fromReadableAmount } from './utils/helpers';
 import { ApiResponse, ILimitOrder } from './utils/types';
 
@@ -27,16 +29,16 @@ async function submitApproval() {
   const orders = jsonResp.data;
 
   for (let i = 0; i < orders.length; i++) {
-    const { id: orderId, sellAmount, sellToken, wallet: walletDetails } = orders[i];
+    const { id: orderId, sellAmount, sellToken, encryptedPrivateKey } = orders[i];
 
     const provider = getProvider(ENetwork.Local);
     // create wallet instance
-    const privateKey = decryptPrivateKey(walletDetails.encryted_private_key);
+    const privateKey = decryptPrivateKey(encryptedPrivateKey);
     const wallet = new ethers.Wallet(privateKey, provider);
 
     const tokenOutContract = new ethers.Contract(sellToken.contractAddress, ERC20_ABI, provider);
     // check allowance allocated by wallet
-    const allowance: BigNumber = await tokenOutContract.allowance(wallet.address, V3_SWAP_ROUTER02_ADDRESS);
+    const allowance: BigNumber = await tokenOutContract.allowance(wallet.address, V3_UNISWAP_ROUTER_ADDRESS[ENetwork.Local]);
     const amountOut = ethers.utils.parseUnits(sellAmount, sellToken.decimalPlaces);
 
     const body: { orderStatus: string; transaction?: { hash: string; type: string; toAddress: string } } = {
@@ -45,7 +47,7 @@ async function submitApproval() {
     if (allowance.lt(amountOut)) {
       // request approval
       const tokenApproval = await tokenOutContract.populateTransaction.approve(
-        V3_SWAP_ROUTER02_ADDRESS,
+        V3_UNISWAP_ROUTER_ADDRESS[ENetwork.Local],
         fromReadableAmount(Number(sellAmount), sellToken.decimalPlaces).toString(),
       );
 

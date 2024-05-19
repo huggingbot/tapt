@@ -1,6 +1,5 @@
 import { Markup } from 'telegraf';
 
-import { ELimitOrderMode } from '@/database/queries/order';
 import { ENetwork } from '@/libs/config';
 import { NATIVE_CURRENCY } from '@/libs/constants';
 import { EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
