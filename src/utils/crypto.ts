@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 
 const algorithm = 'aes-256-ecb';
-const key = Buffer.from(process.env.ENCRYPTION_KEY ?? '', 'base64');
+const key = Buffer.from(process.env.ENCRYPTION_KEY ?? 'qIIjmnjWZbexkGa3a2VSu8pd3ydvlHS6kcs+GDyY2hw=', 'base64');
 
 export const encryptPrivateKey = (privateKey: string) => {
   const cipher = crypto.createCipheriv(algorithm, key, null);

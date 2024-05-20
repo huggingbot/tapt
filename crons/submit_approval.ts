@@ -7,10 +7,9 @@
  */
 import { BigNumber, ethers } from 'ethers';
 
-import { V3_UNISWAP_ROUTER_ADDRESS } from '@/libs/constants';
-
 import ERC20_ABI from '../src/contracts/ERC_20_abi.json';
 import { ENetwork } from '../src/libs/config';
+import { V3_UNISWAP_ROUTER_ADDRESS } from '../src/libs/constants';
 import { getProvider, sendTransactionViaWallet, TransactionState } from '../src/libs/providers';
 import { ETransactionType } from '../src/types/db';
 import { decryptPrivateKey } from '../src/utils/crypto';
@@ -34,10 +33,9 @@ async function submitApproval() {
     sellToken: IToken;
     wallet: ethers.Wallet;
   }[] = [];
-
   // getting allowance from the wallet
   const allowancePromises: Promise<BigNumber>[] = orders.map((order) => {
-    const { id: orderId, sellAmount, sellToken, encryptedPrivateKey } = order;
+    const { orderId, sellAmount, sellToken, encryptedPrivateKey } = order;
     const provider = getProvider(ENetwork.Local);
     // create wallet instance
     const privateKey = decryptPrivateKey(encryptedPrivateKey);
@@ -68,7 +66,8 @@ async function submitApproval() {
         fromReadableAmount(Number(sellAmount), sellToken.decimalPlaces).toString(),
       );
     }
-    return undefined;
+    // already approved
+    return EOrderStatus.ApprovalCompleted;
   });
   const approvalTxnResults = await Promise.allSettled(approvalTxnPromises);
 
@@ -77,6 +76,9 @@ async function submitApproval() {
     if (result.status === 'rejected' || !result.value) {
       return undefined;
     }
+    if (result.value === EOrderStatus.ApprovalCompleted) {
+      return result.value;
+    }
     const tokenApproval = result.value;
     const { wallet } = additionalParams[idx];
     return sendTransactionViaWallet(wallet, ENetwork.Local, tokenApproval);
@@ -84,18 +86,19 @@ async function submitApproval() {
   const approvalTxnResponsesResult = await Promise.allSettled(approvalRxnRespPromises);
 
   // Check `Approval` TXN responses and update the database
-  approvalTxnResponsesResult.map((result, idx) => {
+  const updateOrdersPromises = approvalTxnResponsesResult.map((result, idx) => {
     if (result.status === 'rejected' || !result.value) {
       return undefined;
     }
     const approvalTxnResp = result.value;
     const reqBody: IUpdateOrderRequestBody = {
-      orderStatus: EOrderStatus.ApprovalPending,
+      orderStatus: EOrderStatus.ApprovalCompleted,
     };
     if (approvalTxnResp === TransactionState.Failed) {
       reqBody.orderStatus = EOrderStatus.Failed;
-    } else {
+    } else if (approvalTxnResp !== EOrderStatus.ApprovalCompleted) {
       const txn = approvalTxnResp as ethers.providers.TransactionResponse;
+      reqBody.orderStatus = EOrderStatus.ApprovalPending;
       if (txn.to) {
         reqBody.transaction = {
           hash: txn.hash,
@@ -113,6 +116,7 @@ async function submitApproval() {
       body: JSON.stringify(reqBody),
     });
   });
+  await Promise.allSettled(updateOrdersPromises);
 }
 
 (async function () {

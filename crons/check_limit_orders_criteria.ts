@@ -11,14 +11,14 @@ import QuoterABI from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol
 import { computePoolAddress, FeeAmount } from '@uniswap/v3-sdk';
 import { ethers } from 'ethers';
 
-import { UNISWAP_QUOTER_ADDRESS, V3_UNISWAP_FACTORY_ADDRESS } from '@/libs/constants';
-
 import { ENetwork } from '../src/libs/config';
+import { UNISWAP_QUOTER_ADDRESS, V3_UNISWAP_FACTORY_ADDRESS } from '../src/libs/constants';
 import { getProvider } from '../src/libs/providers';
 import { EOrderStatus, TAPT_API_ENDPOINT } from './utils/constants';
 import { ApiResponse, ILimitOrder, LimitOrderMode } from './utils/types';
 
 export function isLimitOrderCriteriaMet(orderMode: LimitOrderMode, amountIn: number, targetPrice: number): boolean {
+  console.log('orderMode', orderMode);
   return (orderMode === 'buy' && amountIn <= targetPrice) || (orderMode === 'sell' && amountIn >= targetPrice);
 }
 
@@ -34,17 +34,16 @@ export async function checkLimitOrderCriteria() {
   const ordersToBePrcessed: number[] = [];
   // additional params which will be shared between promises iterations
   const additionalParams: {
-    id: number;
+    orderId: number;
     targetPrice: number;
     sellAmount: string;
     tokenInput: Token;
     tokenOutput: Token;
-    limitOrderMode: LimitOrderMode;
+    orderMode: LimitOrderMode;
   }[] = [];
-
   // compute TokenPool Addr and get Tokens Details
   const tokensDetailsPromise = orders.map((order) => {
-    const { id, buyToken, sellToken, targetPrice, sellAmount, limitOrderMode } = order;
+    const { orderId, buyToken, sellToken, targetPrice, sellAmount, orderMode } = order;
     const provider = getProvider(ENetwork.Local);
     const tokenOutput = new Token(buyToken.chainId, buyToken.contractAddress, buyToken.decimalPlaces, buyToken.symbol);
     const tokenInput = new Token(sellToken.chainId, sellToken.contractAddress, sellToken.decimalPlaces, sellToken.symbol);
@@ -57,7 +56,7 @@ export async function checkLimitOrderCriteria() {
     });
     console.log('currentPoolAddress', currentPoolAddress);
 
-    additionalParams.push({ id, targetPrice, sellAmount, tokenOutput, tokenInput, limitOrderMode });
+    additionalParams.push({ orderId, targetPrice, sellAmount, tokenOutput, tokenInput, orderMode });
 
     const poolContract = new ethers.Contract(currentPoolAddress, IUniswapV3PoolABI.abi, provider);
     return Promise.all([poolContract.token0(), poolContract.token1(), poolContract.fee(), poolContract.liquidity(), poolContract.slot0()]);
@@ -74,39 +73,47 @@ export async function checkLimitOrderCriteria() {
     const { sellAmount, tokenInput } = additionalParams[idx];
 
     const [token0, token1, fee] = result.value;
-    const amountIn = ethers.utils.parseUnits(sellAmount, tokenInput.decimals);
+    const amountIn = ethers.utils.parseUnits('1', tokenInput.decimals);
     return quoterContract.callStatic.quoteExactOutputSingle(token0, token1, fee, amountIn, 0);
   });
   const quotedAmountResults = await Promise.allSettled(quotedAmountsPromises);
 
   // Validate and check LIMIT_ORDER crtieria
   quotedAmountResults.forEach((result, idx) => {
-    const { tokenOutput, sellAmount, tokenInput, id, targetPrice, limitOrderMode } = additionalParams[idx];
+    const { tokenOutput, sellAmount, tokenInput, orderId, targetPrice, orderMode } = additionalParams[idx];
     if (result.status === 'fulfilled' && result.value) {
       const amountOut = ethers.utils.formatUnits(result.value, tokenOutput.decimals);
       console.log('=====================');
+      console.log(`Target Price: ${targetPrice}`);
       console.log(`${sellAmount} ${tokenInput.symbol} can be swapped for ${amountOut} ${tokenOutput.symbol}`);
       console.log('=====================');
 
-      if (isLimitOrderCriteriaMet(limitOrderMode, Number(amountOut), targetPrice)) {
+      if (isLimitOrderCriteriaMet(orderMode, Number(amountOut), targetPrice)) {
         // send for approval
-        console.log(`Limit order condition met for order with id, ${id}`);
-        ordersToBePrcessed.push(id);
+        console.log(`Limit order condition met for order with id, ${orderId}`);
+        ordersToBePrcessed.push(orderId);
       }
     }
   });
 
   if (ordersToBePrcessed.length > 0) {
     // bulk update orders
-    await fetch(`${TAPT_API_ENDPOINT}/orders/bulk_update_status`, {
+    const body = {
+      setdata: { orderStatus: EOrderStatus.ExecutionReady },
+      idsToUpdate: ordersToBePrcessed,
+    };
+    console.log('body', body);
+    const resp = await fetch(`${TAPT_API_ENDPOINT}/orders/bulk_update_status`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        setdata: { orderStatus: EOrderStatus.ExecutionReady },
-        idsToUpdate: ordersToBePrcessed,
-      }),
+      body: JSON.stringify(body),
     });
+    console.log('resp', await resp.json());
   }
 }
+
+(async function () {
+  await checkLimitOrderCriteria();
+})();

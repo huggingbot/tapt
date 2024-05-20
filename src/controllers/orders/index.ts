@@ -39,7 +39,7 @@ export async function bulkUpdateOrderStatus(req: Request, res: Response) {
     await bulkUpdateByOrderIds(setdata, idsToUpdate);
     return res.status(201).json({ success: true, message: `Updated the orders with ids, ${idsToUpdate.join(',')}.` });
   } catch (e: unknown) {
-    console.error('error getting active limit orders', e);
+    console.error('error bulk_update_order status', e);
     const errMsg = (e as Error)?.message || 'unknown error';
     return res.status(500).json({ success: false, error: errMsg });
   }
@@ -56,7 +56,7 @@ export async function updateOrderByIdHandler(req: Request, res: Response) {
     await db.transaction().execute(async (trx: Transaction<DB>) => {
       const order = await getOrderById(Number(orderId), trx);
       if (!order) {
-        return res.status(400).json({ success: false, error: `no order found with id, ${orderId}` });
+        throw new Error(`no order found with id, ${orderId}`);
       }
       const { orderStatus, transaction } = req.body as { orderStatus: string; transaction?: { hash: string; toAddress: string; type: string } };
       await updateOrderById(Number(orderId), { orderStatus }, trx);
@@ -73,12 +73,15 @@ export async function updateOrderByIdHandler(req: Request, res: Response) {
           },
           trx,
         );
-        transactionId = txn?.id || -1;
+        if (!txn) {
+          throw new Error('error creating new transaction');
+        }
+        transactionId = txn.id;
       }
     });
     return res.status(201).json({ success: true, data: { orderId, transactionId } });
   } catch (e: unknown) {
-    console.error('error getting active limit orders', e);
+    console.error('error updating orders', e);
     const errMsg = (e as Error)?.message || 'unknown error';
     return res.status(500).json({ success: false, error: errMsg });
   }

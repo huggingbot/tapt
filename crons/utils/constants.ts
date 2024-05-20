@@ -12,7 +12,7 @@ export const ERC20_ABI = [
   'event Transfer(address indexed from, address indexed to, uint amount)',
 ];
 
-export const TAPT_API_ENDPOINT = 'https://8560-116-15-207-96.ngrok-free.app/api';
+export const TAPT_API_ENDPOINT = 'https://0251-103-100-175-163.ngrok-free.app/api';
 
 // order status
 export enum EOrderStatus {

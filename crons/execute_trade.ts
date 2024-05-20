@@ -36,7 +36,7 @@ export async function executeTrade() {
   // generating routes
   const routeGenPromises = orders.map((order) => {
     const provider = getProvider(ENetwork.Local);
-    const { id: orderId, sellAmount, sellToken, buyToken, encryptedPrivateKey } = order;
+    const { orderId, sellAmount, sellToken, buyToken, encryptedPrivateKey } = order;
 
     const tokenIn = new Token(buyToken.chainId, buyToken.contractAddress, buyToken.decimalPlaces, buyToken.symbol);
     const tokenOut = new Token(sellToken.chainId, sellToken.contractAddress, sellToken.decimalPlaces, sellToken.symbol);
@@ -85,7 +85,6 @@ export async function executeTrade() {
         };
       }
     }
-
     // TODO: replace with BULK_UPDATE instead of multiple updates
     return fetch(`${TAPT_API_ENDPOINT}/orders/${orderId}`, {
       method: 'PATCH',
@@ -96,3 +95,7 @@ export async function executeTrade() {
     });
   });
 }
+
+(async function () {
+  await executeTrade();
+})();

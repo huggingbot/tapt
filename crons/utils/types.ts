@@ -16,7 +16,7 @@ export enum TransactionState {
 }
 
 export interface ILimitOrder {
-  id: number;
+  orderId: number;
   walletId: number;
   walletAddress: string;
   encryptedPrivateKey: string;
@@ -26,7 +26,7 @@ export interface ILimitOrder {
   targetPrice: number;
   buyAmount: string;
   sellAmount: string;
-  limitOrderMode: LimitOrderMode;
+  orderMode: LimitOrderMode;
   expirationDate?: string;
   createdAt?: string;
   updatedAt?: string;
