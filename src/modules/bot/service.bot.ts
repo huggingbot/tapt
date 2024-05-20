@@ -55,7 +55,7 @@ export class BotService extends BaseService {
     return {
       prop: {
         [ESessionProp.Wallets]: { [ENetwork.Local]: [], [ENetwork.Mainnet]: [], [ENetwork.EthereumSepolia]: [], [ENetwork.Polygon]: [] },
-        [ESessionProp.Chain]: { network: ENetwork.Local },
+        [ESessionProp.Chain]: { network: ENetwork.Mainnet },
       },
       user: { id: 0, username: '' },
     };
