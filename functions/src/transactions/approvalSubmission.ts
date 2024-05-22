@@ -1,23 +1,39 @@
-/**
- * Ideally, this function will be first function in the trading work flow.
- * This function is responsible for checking token allowance from wallet and getting approval to spend tokens
- * In trading crons workflow, we can list this trade as cron number 1
- * For e.g:
- *    limit order: **[submit_approval]** -> [track_txn] -> [check_orders_criteria] -> [execute_trade] -> [track_txn] -> (DONE)
- */
+/* eslint-disable max-len */
 import { BigNumber, ethers } from 'ethers';
 
-import ERC20_ABI from '../src/contracts/ERC_20_abi.json';
-import { ENetwork } from '../src/libs/config';
-import { V3_UNISWAP_ROUTER_ADDRESS } from '../src/libs/constants';
-import { getProvider, sendTransactionViaWallet, TransactionState } from '../src/libs/providers';
-import { ETransactionType } from '../src/types/db';
-import { decryptPrivateKey } from '../src/utils/crypto';
-import { EOrderStatus, TAPT_API_ENDPOINT } from './utils/constants';
-import { fromReadableAmount } from './utils/helpers';
-import { ApiResponse, ILimitOrder, IToken, IUpdateOrderRequestBody } from './utils/types';
+import { ERC20_ABI, TAPT_API_ENDPOINT, V3_UNISWAP_ROUTER_ADDRESS } from '../utils/constants';
+import { fromReadableAmount } from '../utils/helpers';
+import { getProvider } from '../utils/providers';
+import {
+  ApiResponse,
+  ILimitOrder,
+  IToken,
+  ENetwork,
+  IUpdateOrderRequestBody,
+  TransactionState,
+  ETransactionType,
+  EOrderStatus,
+} from '../utils/types';
+import { sendTransactionViaWallet } from '../utils/transactions';
+import { decrypt } from '../utils/crypto';
+import { handleErrorResponse } from '../utils/responseHandler';
+import { onRequest } from 'firebase-functions/v2/https';
 
-async function submitApproval() {
+/**
+ * Ideally, this function will be first function in the trading work flow.
+ * This function is responsible for checking token allowance
+ * from wallet and getting approval to spend tokens
+ * In trading crons workflow, we can list this trade as cron number 1
+ * For e.g:
+ *    limit order: (from up to bottom)
+ *    **[submit_approval]
+ *    [track_txn]
+ *    [check_orders_criteria]
+ *    [execute_trade]
+ *    [track_txn]
+ *    (DONE)
+ */
+async function submitApprovalTransactions() {
   const url = `${TAPT_API_ENDPOINT}/orders/limit?orderStatus=${EOrderStatus.Submitted}`;
   const resp = await fetch(url);
   const jsonResp = (await resp.json()) as ApiResponse<ILimitOrder[]>;
@@ -38,7 +54,7 @@ async function submitApproval() {
     const { orderId, sellAmount, sellToken, encryptedPrivateKey } = order;
     const provider = getProvider(ENetwork.Local);
     // create wallet instance
-    const privateKey = decryptPrivateKey(encryptedPrivateKey);
+    const privateKey = decrypt(encryptedPrivateKey);
     const wallet = new ethers.Wallet(privateKey, provider);
 
     // save to additionalParams to use the values for later in approval submition
@@ -108,6 +124,7 @@ async function submitApproval() {
       }
     }
     const { orderId } = additionalParams[idx];
+    // TODO: Replace this with bulk_update instead of updating 1 by 1
     return fetch(`${TAPT_API_ENDPOINT}/orders/${orderId}`, {
       method: 'PATCH',
       headers: {
@@ -116,9 +133,15 @@ async function submitApproval() {
       body: JSON.stringify(reqBody),
     });
   });
-  await Promise.allSettled(updateOrdersPromises);
+  return await Promise.allSettled(updateOrdersPromises);
 }
 
-(async function () {
-  await submitApproval();
-})();
+// submit approval transaction
+export const approvalSubmission = onRequest(async (req, res) => {
+  try {
+    const approvalTxns = await submitApprovalTransactions();
+    res.json({ result: approvalTxns });
+  } catch (e: unknown) {
+    handleErrorResponse(res, e);
+  }
+});

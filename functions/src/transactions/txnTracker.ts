@@ -1,17 +1,37 @@
+/* eslint-disable max-len */
+import { onRequest } from 'firebase-functions/v2/https';
+import { TAPT_API_ENDPOINT } from '../utils/constants';
+import { getProvider } from '../utils/providers';
+import { ApiResponse, ENetwork, ETransactionStatus, ETransactionType, ITransaction } from '../utils/types';
+import { handleErrorResponse } from '../utils/responseHandler';
+
+interface IAdditionalTxnTrackerParams {
+  orderId: number;
+  transactionType: string;
+  transactionId: number;
+}
+
+type TUpdateTransactionParams = Pick<ITransaction, 'transactionFee' | 'transactionStatus' | 'orderId' | 'transactionType'> & {
+  transactionId: number;
+};
+
 /**
- * This function is responsible for tracking the pending transactions and update the backend and db accordingly
+ * This function is responsible for tracking the pending transactions
+ * and update the backend and db accordingly
  * This function will be used to run in between crons
  * For e.g:
- *    limit order: [submit_approval] -> **[track_txn]** -> [check_orders_criteria] -> [execute_trade] -> **[track_txn]** -> (DONE)
+ *    limit order: (from up to bottom)
+ *    [submit_approval]
+ *    **[track_txn]**
+ *    [check_orders_criteria]
+ *    [execute_trade]
+ *    **[track_txn]**
+ *    (DONE)
  */
-import { ENetwork } from '../src/libs/config';
-import { getProvider } from '../src/libs/providers';
-import { ETransactionStatus, ETransactionType } from '../src/types';
-import { TAPT_API_ENDPOINT } from './utils/constants';
-import { ApiResponse, ITransaction } from './utils/types';
-
-export async function trackTransactions() {
+async function trackTransaction() {
+  // eslint-disable-next-line max-len
   const url = `${TAPT_API_ENDPOINT}/transactions?type=${ETransactionType.Approval}&status=${ETransactionStatus.Pending}`;
+
   const resp = await fetch(url);
   const jsonResp = (await resp.json()) as ApiResponse<ITransaction[]>;
   if (!jsonResp.success || !jsonResp.data) {
@@ -19,13 +39,9 @@ export async function trackTransactions() {
   }
 
   const txns = jsonResp.data;
-  const txnsToUpdate: (Pick<ITransaction, 'transactionFee' | 'transactionStatus' | 'orderId' | 'transactionType'> & { transactionId: number })[] = [];
+  const txnsToUpdate: TUpdateTransactionParams[] = [];
   // additional params which will be used during difference promises iteration
-  const additionalParams: {
-    orderId: number;
-    transactionType: string;
-    transactionId: number;
-  }[] = [];
+  const additionalParams: IAdditionalTxnTrackerParams[] = [];
 
   const txnReceiptPromises = txns.map((txn) => {
     const { transactionHash, orderId, transactionType, id: transactionId } = txn;
@@ -54,8 +70,15 @@ export async function trackTransactions() {
       body: JSON.stringify({ data: txnsToUpdate }),
     });
   }
+  return txnsToUpdate;
 }
 
-(async function () {
-  await trackTransactions();
-})();
+// track transaction
+export const txnTracker = onRequest(async (req, res) => {
+  try {
+    const updatedTxns = await trackTransaction();
+    res.json({ result: updatedTxns });
+  } catch (e: unknown) {
+    handleErrorResponse(res, e);
+  }
+});

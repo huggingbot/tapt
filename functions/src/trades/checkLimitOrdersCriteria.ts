@@ -1,28 +1,44 @@
-/**
- * This function is responsible for checking the trading criteria in current market based on the order placed
- * If the trading criteria has met, then it will update the backend and db, so that the next function in line can execute the orders
- * In trading crons workflow, we can list this trade as cron number 2
- * For e.g:
- *    limit order: [submit_approval] -> [track_txn] -> **[check_orders_criteria]** -> [execute_trade] -> [track_txn] -> (DONE)
- */
+/* eslint-disable max-len */
+
 import { Token } from '@uniswap/sdk-core';
 import IUniswapV3PoolABI from '@uniswap/v3-core/artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json';
 import QuoterABI from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json';
 import { computePoolAddress, FeeAmount } from '@uniswap/v3-sdk';
 import { ethers } from 'ethers';
+import { ApiResponse, ENetwork, EOrderStatus, ILimitOrder, LimitOrderMode } from '../utils/types';
+import { TAPT_API_ENDPOINT, UNISWAP_QUOTER_ADDRESS, V3_UNISWAP_FACTORY_ADDRESS } from '../utils/constants';
+import { getProvider } from '../utils/providers';
+import { onRequest } from 'firebase-functions/v1/https';
+import { handleErrorResponse } from '../utils/responseHandler';
 
-import { ENetwork } from '../src/libs/config';
-import { UNISWAP_QUOTER_ADDRESS, V3_UNISWAP_FACTORY_ADDRESS } from '../src/libs/constants';
-import { getProvider } from '../src/libs/providers';
-import { EOrderStatus, TAPT_API_ENDPOINT } from './utils/constants';
-import { ApiResponse, ILimitOrder, LimitOrderMode } from './utils/types';
-
+/**
+ * Check if the trade criteria met with the current price and target price
+ * @param {LimitOrderMode} orderMode - 'buy' | 'sell'
+ * @param {number} amountIn - current market price of the token
+ * @param {number} targetPrice - targetted price to exectue the trade if met
+ * @return {boolean} True if limit order criteria met, otherwise false
+ */
 export function isLimitOrderCriteriaMet(orderMode: LimitOrderMode, amountIn: number, targetPrice: number): boolean {
   console.log('orderMode', orderMode);
   return (orderMode === 'buy' && amountIn <= targetPrice) || (orderMode === 'sell' && amountIn >= targetPrice);
 }
 
-export async function checkLimitOrderCriteria() {
+/**
+ * This function is responsible for checking
+ * the trading criteria in current market based on the order placed
+ * If the trading criteria has met, then it will update the backend and db,
+ * so that the next function in line can execute the orders
+ * In trading crons workflow, we can list this trade as cron number 2
+ * For e.g:
+ *    limit order: (from up to bottom)
+ *    [submit_approval]
+ *    [track_txn]
+ *    **[check_orders_criteria]
+ *    [execute_trade]
+ *    [track_txn]
+ *    (DONE)
+ */
+async function checkLimitOrderCriteria() {
   const resp = await fetch(`${TAPT_API_ENDPOINT}/orders/limit?orderStatus=${EOrderStatus.ApprovalCompleted}`);
   const jsonResp = (await resp.json()) as ApiResponse<ILimitOrder[]>;
 
@@ -70,7 +86,7 @@ export async function checkLimitOrderCriteria() {
     }
     const provider = getProvider(ENetwork.Local);
     const quoterContract = new ethers.Contract(UNISWAP_QUOTER_ADDRESS[ENetwork.Local], QuoterABI.abi, provider);
-    const { sellAmount, tokenInput } = additionalParams[idx];
+    const { tokenInput } = additionalParams[idx];
 
     const [token0, token1, fee] = result.value;
     const amountIn = ethers.utils.parseUnits('1', tokenInput.decimals);
@@ -110,10 +126,20 @@ export async function checkLimitOrderCriteria() {
       },
       body: JSON.stringify(body),
     });
-    console.log('resp', await resp.json());
+    return await resp.json();
   }
+  return undefined;
 }
 
-(async function () {
-  await checkLimitOrderCriteria();
-})();
+export const limitOrderCriteriaChecker = onRequest(async (req, res) => {
+  try {
+    const result = await checkLimitOrderCriteria();
+    if (!result) {
+      res.json({ result: 'none of the `limit` orders met the criteria' });
+    } else {
+      res.json({ result });
+    }
+  } catch (e: unknown) {
+    handleErrorResponse(res, e);
+  }
+});
