@@ -6,6 +6,7 @@ import { InlineKeyboardButton, Message } from 'telegraf/typings/core/types/typeg
 import { quoteTokenPrice } from '@/libs/quoting';
 import { ENavAction, EOrderDetails, EOrderType, ESwapAction } from '@/modules/bot/constants/bot-action.constant';
 import { ESessionProp, EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
+import { ORDER_EXPIRY_UNITS_TEXT } from '@/modules/bot/constants/bot-reply-constant';
 import { IWizContractProp } from '@/modules/bot/interfaces/bot-prop.interface';
 import { composeWizardScene } from '@/modules/bot/utils/scene-factory';
 import {
@@ -14,6 +15,7 @@ import {
   isDCAOrder,
   isLimitOrder,
   isNumber,
+  isOrderExpiryValid,
   isSwapOrder,
   isTargetPriceValid,
   populateBuyModeKeyboardData,
@@ -82,7 +84,12 @@ export const createBuyAndSellScene = composeWizardScene(
         { text: `(${triggerPrice}) ${EOrderDetails.TriggerPrice}`, callback_data: EOrderDetails.TriggerPrice },
         { text: `(${orderExpiry}) ${EOrderDetails.Expiry}`, callback_data: EOrderDetails.Expiry },
       ];
-      keyboardData.splice(5, 0, limitOrderKeyboardAction);
+
+      // insert limit order keyboard action (target price and expiry) into keyboard actions array at index 5
+      const insertLocation = 5;
+      // number of elements to be removed in order to insert limit order keyboard action
+      const numOfElementsNeedToBeDeleted = 0;
+      keyboardData.splice(insertLocation, numOfElementsNeedToBeDeleted, limitOrderKeyboardAction);
     }
 
     if (msg && (action || activeAddress)) {
@@ -156,6 +163,7 @@ export const createBuyAndSellScene = composeWizardScene(
 
           if (ctx.scene.current) {
             ctx.scene.enter(ctx.scene.current.id, {
+              ...state,
               [EWizardProp.Msg]: msg,
               [EWizardProp.Contract]: contract,
               [EWizardProp.DoNothing]: shouldDoNothing,
@@ -174,12 +182,13 @@ export const createBuyAndSellScene = composeWizardScene(
           ctx.reply(`Enter ${action} amount`, { reply_markup: { force_reply: true } });
           ctx.wizard.next();
         } else if ((Object.values(EOrderDetails) as string[]).includes(cbData)) {
-          const action = cbData === String(ESwapAction.Buy_X) ? 'buy' : 'sell';
+          const action = cbData || ESwapAction.BuyMode;
+          const mode = action === String(ESwapAction.Buy_X) ? 'buy' : 'sell';
           if (cbData === String(EOrderDetails.TriggerPrice)) {
-            const txt = `Enter the trigger price of your limit ${action} order. Valid options are % change (e.g. -5% or 5%) or a specific price.`;
+            const txt = `Enter the trigger price of your limit ${mode} order. Valid options are % change (e.g. -5% or 5%) or a specific price.`;
             ctx.reply(txt, { reply_markup: { force_reply: true } });
           } else if (cbData === String(EOrderDetails.Expiry)) {
-            const txt = `Enter the expiry of your limit ${action} order. Valid options are s (seconds), m (minutes), h (hours), and d (days). E.g. 30m or 2h`;
+            const txt = `Enter the expiry of your limit ${mode} order. ${ORDER_EXPIRY_UNITS_TEXT}`;
             ctx.reply(txt, { reply_markup: { force_reply: true } });
           }
           ctx.wizard.state[EWizardProp.OrderDetailsAction] = cbData;
@@ -207,12 +216,21 @@ export const createBuyAndSellScene = composeWizardScene(
       if (orderDetailsAction) {
         // reenter the scene
         if (orderDetailsAction === String(EOrderDetails.Expiry)) {
-          ctx.wizard.state[EWizardProp.Expiry] = ctx.message.text.toString();
+          const orderExpiry = ctx.message.text.toString();
+          if (!isOrderExpiryValid(orderExpiry)) {
+            ctx.reply(`Invalid order expiry, ${orderExpiry}`);
+            done();
+            return;
+          } else {
+            ctx.wizard.state[EWizardProp.Expiry] = ctx.message.text.toString();
+          }
         } else if (orderDetailsAction === String(EOrderDetails.TriggerPrice)) {
           // validate input
           const targetPrice = ctx.message.text.toString();
           if (!isTargetPriceValid(action, targetPrice)) {
             ctx.reply(`Invalid target price, ${targetPrice}, for ${action as string}`);
+            done();
+            return;
           } else {
             ctx.wizard.state[EWizardProp.TriggerPrice] = targetPrice;
           }

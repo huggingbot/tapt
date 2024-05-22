@@ -9,10 +9,15 @@ import { createTransaction } from '@/database/queries/transaction';
 import { EOrderType, ETransactionStatus } from '@/types';
 import { isNumber } from '@/utils/common';
 
+// TODO: separate the app logic into Services from Controllers
+
 export async function getAllActiveLimitOrdersHandler(req: Request, res: Response) {
   try {
     const { orderStatus } = req.query;
-    const getOrderFilters: GetOrdersFilters = { orderType: EOrderType.Limit };
+    const getOrderFilters: GetOrdersFilters = {
+      orderType: EOrderType.Limit,
+      expirationDate: new Date().toISOString(),
+    };
     log.debug('orderStatus', orderStatus);
     if (orderStatus) {
       getOrderFilters.orderStatus = orderStatus as string;

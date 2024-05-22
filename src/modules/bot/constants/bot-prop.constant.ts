@@ -17,3 +17,11 @@ export enum EWizardProp {
   OrderDetailsAction = 'orderDetailsAction',
   ReEnterTheScene = 'reEnterTheScene',
 }
+
+export enum EOrderExpiryUnit {
+  Minute = 'm',
+  Hour = 'h',
+  Day = 'd',
+  Week = 'w',
+  Month = 'M',
+}

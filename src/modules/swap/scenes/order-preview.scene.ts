@@ -8,12 +8,12 @@ import { ICreateTokenParams } from '@/database/queries/token';
 import { AppConfig } from '@/libs/config';
 import { WRAPPED_NATIVE_TOKEN } from '@/libs/constants';
 import { ENavAction } from '@/modules/bot/constants/bot-action.constant';
-import { ESessionProp, EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
+import { EOrderExpiryUnit, ESessionProp, EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
 import { IContext } from '@/modules/bot/interfaces/bot-context.interface';
 import { IWizContractProp } from '@/modules/bot/interfaces/bot-prop.interface';
 import { composeWizardScene } from '@/modules/bot/utils/scene-factory';
 import { IBasicWallet } from '@/types';
-import { formatKeyboard, isNumber, resetScene } from '@/utils/common';
+import { computeOrderExpiryDate, formatKeyboard, isNumber, resetScene } from '@/utils/common';
 
 export const createOrderPreviewScene = composeWizardScene(
   async (ctx: IContext) => {
@@ -29,7 +29,7 @@ export const createOrderPreviewScene = composeWizardScene(
     const orderType = state[EWizardProp.OrderType] as string;
     const contract = state[EWizardProp.Contract] as IWizContractProp;
     const triggerPrice = (state[EWizardProp.TriggerPrice] as string) || '+1%';
-    const orderExpiry = (state[EWizardProp.Expiry] as string) || '1d';
+    const orderExpiry = (state[EWizardProp.Expiry] as string) || `1${EOrderExpiryUnit.Day}`;
 
     const quotedPrice = ctx.wizard.state[EWizardProp.TargetPrice] as string;
 
@@ -81,6 +81,7 @@ export const createOrderPreviewScene = composeWizardScene(
         const contract = state[EWizardProp.Contract] as IWizContractProp;
         const activeAddress = state[EWizardProp.ActiveAddress] as string;
         const targetPrice = state[EWizardProp.TargetPrice] as string;
+        const orderExpiry = (state[EWizardProp.Expiry] as string) || `1${EOrderExpiryUnit.Day}`;
         const [mode, rawAmount] = action.split(/_(.+)/);
 
         const amountStr = rawAmount.replace(/_/g, '.');
@@ -112,7 +113,9 @@ export const createOrderPreviewScene = composeWizardScene(
         // which is the amount that will enter my wallet.
         const amountOut = 0;
         const orderMode = _isBuyMode ? ELimitOrderMode.BUY : ELimitOrderMode.SELL;
-        const tradeParam = { sellAmount: amountIn, buyAmount: amountOut, targetPrice, orderMode };
+        const orderExpiryDate = computeOrderExpiryDate(orderExpiry);
+        const expirationDate = orderExpiryDate.toISOString();
+        const tradeParam = { sellAmount: amountIn, buyAmount: amountOut, targetPrice, orderMode, expirationDate };
 
         const { name, address, decimals, symbol } = contract;
         const targetToken: ICreateTokenParams = { name, contractAddress: address, symbol, decimalPlaces: decimals, chainId };

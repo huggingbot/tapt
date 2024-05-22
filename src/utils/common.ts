@@ -2,7 +2,7 @@ import { Markup } from 'telegraf';
 
 import { ENetwork } from '@/libs/config';
 import { NATIVE_CURRENCY } from '@/libs/constants';
-import { EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
+import { EOrderExpiryUnit, EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
 import { IContext } from '@/modules/bot/interfaces/bot-context.interface';
 
 import { EOrderType, ESwapAction } from '../modules/bot/constants/bot-action.constant';
@@ -129,4 +129,57 @@ export const isTargetPriceValid = (action: unknown, targetPrice: string): boolea
     return num > 0;
   }
   return num < 0;
+};
+
+/**
+ * verify if the order expiry value from user input is valid
+ * valid units
+ *  - m (minute)
+ *  - h (hour)
+ *  - d (day)
+ *  - w (week)
+ *  - M (month)
+ * @param {string} rawOrderExpiry - order expiry raw input
+ * @return {boolean}
+ */
+export const isOrderExpiryValid = (rawOrderExpiry: string): boolean => {
+  // regex pattern to validate the raw input
+  const rgx = /^[0-9]+(m|h|d|w|M)$/;
+  return rgx.test(rawOrderExpiry.trim());
+};
+
+export const computeOrderExpiryDate = (orderExpiryShort: string): Date => {
+  if (!isOrderExpiryValid(orderExpiryShort)) {
+    throw new Error(`Invalid order expiry value, ${orderExpiryShort}`);
+  }
+  // trim any leading/trailing whitespaces
+  const trimmedOrderExpiryShort = orderExpiryShort.trim();
+  const timeUnit = trimmedOrderExpiryShort.slice(-(trimmedOrderExpiryShort.length - 1));
+  const timeValue = Number(trimmedOrderExpiryShort.replace(/\D/, ''));
+  if (isNaN(timeValue)) {
+    throw new Error(`Invalid order expiry time value, ${orderExpiryShort}`);
+  }
+  const orderExpiryDate = new Date();
+
+  switch (timeUnit) {
+    case String(EOrderExpiryUnit.Minute):
+      orderExpiryDate.setMinutes(orderExpiryDate.getMinutes() + timeValue);
+      break;
+    case String(EOrderExpiryUnit.Hour):
+      orderExpiryDate.setHours(orderExpiryDate.getHours() + timeValue);
+      break;
+    case String(EOrderExpiryUnit.Day):
+      orderExpiryDate.setDate(orderExpiryDate.getDate() + timeValue);
+      break;
+    case String(EOrderExpiryUnit.Week):
+      orderExpiryDate.setDate(orderExpiryDate.getDate() + 7 * timeValue);
+      break;
+    case String(EOrderExpiryUnit.Month):
+      orderExpiryDate.setMonth(orderExpiryDate.getMonth() + timeValue);
+      break;
+    default:
+      throw new Error(`Invalid order expiry value, ${orderExpiryShort}`);
+  }
+
+  return orderExpiryDate;
 };

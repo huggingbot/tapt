@@ -38,7 +38,7 @@ export interface ICreateLimitOrderParams extends ICreateOrderParams {
   orderMode: ELimitOrderMode;
 }
 
-export type GetOrdersFilters = Partial<Pick<ICreateOrderParams, 'orderType' | 'orderStatus'>>;
+export type GetOrdersFilters = Partial<Pick<ICreateOrderParams, 'orderType' | 'orderStatus' | 'expirationDate'>>;
 
 export type UpdateOrderParams = Partial<ICreateOrderParams>;
 
