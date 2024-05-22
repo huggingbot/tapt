@@ -1,5 +1,6 @@
 /* eslint-disable max-len */
 import { BigNumber, ethers } from 'ethers';
+import { logger } from 'firebase-functions';
 
 import { ERC20_ABI, TAPT_API_ENDPOINT, V3_UNISWAP_ROUTER_ADDRESS } from '../utils/constants';
 import { fromReadableAmount } from '../utils/helpers';
@@ -16,8 +17,8 @@ import {
 } from '../utils/types';
 import { sendTransactionViaWallet } from '../utils/transactions';
 import { decrypt } from '../utils/crypto';
-import { handleErrorResponse } from '../utils/responseHandler';
-import { onRequest } from 'firebase-functions/v2/https';
+import { handleError } from '../utils/responseHandler';
+import { createScheduleFunction } from '../utils/firebase-functions';
 
 /**
  * Ideally, this function will be first function in the trading work flow.
@@ -137,11 +138,11 @@ async function submitApprovalTransactions() {
 }
 
 // submit approval transaction
-export const approvalSubmission = onRequest(async (req, res) => {
+export const approvalSubmission = createScheduleFunction(async () => {
   try {
     const approvalTxns = await submitApprovalTransactions();
-    res.json({ result: approvalTxns });
+    logger.info('approvalSubmission', approvalTxns);
   } catch (e: unknown) {
-    handleErrorResponse(res, e);
+    handleError(e);
   }
 });

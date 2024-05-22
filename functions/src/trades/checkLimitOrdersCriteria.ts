@@ -8,8 +8,9 @@ import { ethers } from 'ethers';
 import { ApiResponse, ENetwork, EOrderStatus, ILimitOrder, LimitOrderMode } from '../utils/types';
 import { TAPT_API_ENDPOINT, UNISWAP_QUOTER_ADDRESS, V3_UNISWAP_FACTORY_ADDRESS } from '../utils/constants';
 import { getProvider } from '../utils/providers';
-import { onRequest } from 'firebase-functions/v1/https';
-import { handleErrorResponse } from '../utils/responseHandler';
+import { logger } from 'firebase-functions';
+import { handleError } from '../utils/responseHandler';
+import { createScheduleFunction } from '../utils/firebase-functions';
 
 /**
  * Check if the trade criteria met with the current price and target price
@@ -131,15 +132,15 @@ async function checkLimitOrderCriteria() {
   return undefined;
 }
 
-export const limitOrderCriteriaChecker = onRequest(async (req, res) => {
+export const limitOrderCriteriaChecker = createScheduleFunction(async () => {
   try {
     const result = await checkLimitOrderCriteria();
     if (!result) {
-      res.json({ result: 'none of the `limit` orders met the criteria' });
+      logger.info('[limitOrderCriteriaChecker] none of the `limit` orders met the criteria');
     } else {
-      res.json({ result });
+      logger.info('[limitOrderCriteriaChecker] trade criteria met:', result);
     }
   } catch (e: unknown) {
-    handleErrorResponse(res, e);
+    handleError(e);
   }
 });

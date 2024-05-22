@@ -1,9 +1,10 @@
 /* eslint-disable max-len */
-import { onRequest } from 'firebase-functions/v2/https';
+import { logger } from 'firebase-functions';
 import { TAPT_API_ENDPOINT } from '../utils/constants';
 import { getProvider } from '../utils/providers';
 import { ApiResponse, ENetwork, ETransactionStatus, ETransactionType, ITransaction } from '../utils/types';
-import { handleErrorResponse } from '../utils/responseHandler';
+import { handleError } from '../utils/responseHandler';
+import { createScheduleFunction } from '../utils/firebase-functions';
 
 interface IAdditionalTxnTrackerParams {
   orderId: number;
@@ -74,11 +75,11 @@ async function trackTransaction() {
 }
 
 // track transaction
-export const txnTracker = onRequest(async (req, res) => {
+export const txnTracker = createScheduleFunction(async () => {
   try {
     const updatedTxns = await trackTransaction();
-    res.json({ result: updatedTxns });
+    logger.info('[txnTracker] updated transactions', updatedTxns);
   } catch (e: unknown) {
-    handleErrorResponse(res, e);
+    handleError(e);
   }
 });

@@ -1,5 +1,6 @@
 /* eslint-disable max-len */
 import { Token } from '@uniswap/sdk-core';
+import { logger } from 'firebase-functions';
 import { SwapRoute } from '@uniswap/smart-order-router';
 import { ethers } from 'ethers';
 import { TAPT_API_ENDPOINT } from '../utils/constants';
@@ -7,8 +8,8 @@ import { getProvider } from '../utils/providers';
 import { EOrderStatus, ApiResponse, ILimitOrder, ENetwork, IUpdateOrderRequestBody, TransactionState, ETransactionType } from '../utils/types';
 import { decrypt } from '../utils/crypto';
 import { generateRoute, executeRoute } from '../utils/routing';
-import { onRequest } from 'firebase-functions/v2/https';
-import { handleErrorResponse } from '../utils/responseHandler';
+import { handleError } from '../utils/responseHandler';
+import { createScheduleFunction } from '../utils/firebase-functions';
 
 /**
  * This function is responsible for executing the trade which met the trading criteria
@@ -104,11 +105,12 @@ async function executeTrade() {
   );
 }
 
-export const tradeExecution = onRequest(async (req, res) => {
+export const tradeExecution = createScheduleFunction(async () => {
   try {
     const result = await executeTrade();
-    res.json({ result });
+    logger.info('trade executed', result);
+    logger;
   } catch (e: unknown) {
-    handleErrorResponse(res, e);
+    handleError(e);
   }
 });
