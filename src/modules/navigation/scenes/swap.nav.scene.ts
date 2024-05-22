@@ -25,7 +25,6 @@ export const createSwapNavScene = composeWizardScene(
     } else {
       ctx.reply('Manage swaps', formatKeyboard(keyboardData));
     }
-    console.log('createSwapNavScene');
     ctx.wizard.next();
   },
   async (ctx, done) => {

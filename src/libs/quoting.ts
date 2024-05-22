@@ -45,7 +45,6 @@ export const quoteTokenPrice = async (contract: IWizContractProp, network: ENetw
     if (!pctMatches?.[0]) {
       throw new Error('invalid percentage value');
     }
-    console.log('pctMatches', pctMatches);
     const pctNumber = pctMatches[0];
     const variationPercentage = quotedAmount.mul(ethers.BigNumber.from(pctNumber)).div(100);
     if (variation.trim().startsWith('-')) {

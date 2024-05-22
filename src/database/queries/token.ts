@@ -39,12 +39,11 @@ export const getTokenByIds = async (buyId: number, sellId: number, trx?: Transac
 export const createTokens = async (params: ICreateTokenParams[], trx?: Transaction<DB>) => {
   const queryCreator = trx ? trx : db;
 
-  const tokensAdded = await queryCreator
+  await queryCreator
     .insertInto('token')
     .values(params)
     .onConflict((oc) => oc.constraint('unique_contract_address_chain_id').doNothing())
     .execute();
-  console.log('tokensAdded', tokensAdded);
   const tokens = await selectTokens(params, trx);
   return tokens;
 };

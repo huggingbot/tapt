@@ -20,7 +20,6 @@ import { createScheduleFunction } from '../utils/firebase-functions';
  * @return {boolean} True if limit order criteria met, otherwise false
  */
 export function isLimitOrderCriteriaMet(orderMode: LimitOrderMode, amountIn: number, targetPrice: number): boolean {
-  console.log('orderMode', orderMode);
   return (orderMode === 'buy' && amountIn <= targetPrice) || (orderMode === 'sell' && amountIn >= targetPrice);
 }
 
@@ -71,7 +70,6 @@ async function checkLimitOrderCriteria() {
       tokenB: tokenInput,
       fee: FeeAmount.MEDIUM,
     });
-    console.log('currentPoolAddress', currentPoolAddress);
 
     additionalParams.push({ orderId, targetPrice, sellAmount, tokenOutput, tokenInput, orderMode });
 
@@ -100,14 +98,14 @@ async function checkLimitOrderCriteria() {
     const { tokenOutput, sellAmount, tokenInput, orderId, targetPrice, orderMode } = additionalParams[idx];
     if (result.status === 'fulfilled' && result.value) {
       const amountOut = ethers.utils.formatUnits(result.value, tokenOutput.decimals);
-      console.log('=====================');
-      console.log(`Target Price: ${targetPrice}`);
-      console.log(`${sellAmount} ${tokenInput.symbol} can be swapped for ${amountOut} ${tokenOutput.symbol}`);
-      console.log('=====================');
+      logger.debug('=====================');
+      logger.debug(`Target Price: ${targetPrice}`);
+      logger.debug(`${sellAmount} ${tokenInput.symbol} can be swapped for ${amountOut} ${tokenOutput.symbol}`);
+      logger.debug('=====================');
 
       if (isLimitOrderCriteriaMet(orderMode, Number(amountOut), targetPrice)) {
         // send for approval
-        console.log(`Limit order condition met for order with id, ${orderId}`);
+        logger.debug(`Limit order condition met for order with id, ${orderId}`);
         ordersToBePrcessed.push(orderId);
       }
     }
@@ -119,7 +117,7 @@ async function checkLimitOrderCriteria() {
       setdata: { orderStatus: EOrderStatus.ExecutionReady },
       idsToUpdate: ordersToBePrcessed,
     };
-    console.log('body', body);
+    logger.debug('body', body);
     const resp = await fetch(`${TAPT_API_ENDPOINT}/orders/bulk_update_status`, {
       method: 'PATCH',
       headers: {

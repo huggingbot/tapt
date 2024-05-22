@@ -1,7 +1,0 @@
-{
-  "imports": {
-    "@uniswap/smart-order-router": "https://esm.sh/@uniswap/smart-order-router@^3.26.1",
-    "@uniswap/router-sdk": "https://esm.sh/@uniswap/router-sdk@1.9.1",
-    "chai": "https://esm.sh/v135/chai@4.4.1"
-  }
-}

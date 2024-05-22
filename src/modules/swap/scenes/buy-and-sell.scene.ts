@@ -1,4 +1,5 @@
 import { isAddress } from 'ethers/lib/utils';
+import log from 'loglevel';
 import { callbackQuery, message } from 'telegraf/filters';
 import { InlineKeyboardButton, Message } from 'telegraf/typings/core/types/typegram';
 
@@ -55,7 +56,6 @@ export const createBuyAndSellScene = composeWizardScene(
 
     // order type
     const orderType = ctx.wizard.state[EWizardProp.OrderType] || EOrderType.SwapOrderType;
-    console.log('orderType', orderType);
 
     const keyboardData = [
       [
@@ -195,7 +195,8 @@ export const createBuyAndSellScene = composeWizardScene(
       }
     } catch (e: unknown) {
       const errMsg = (e as Error)?.message || 'Unexpected error';
-      ctx.reply(errMsg);
+      log.error(`error processing 'buy-sell-scene', ${errMsg}`);
+      ctx.reply('Unexpected erorr: failed to process trading scene. Please try again!');
       done();
     }
   },

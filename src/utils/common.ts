@@ -88,7 +88,7 @@ export const populateBuyModeKeyboardData = (action: string, network: ENetwork) =
     // set default selected buy/sell price
     selectedOption = _isBuyMode ? String(ESwapAction.Buy_0_01) : String(ESwapAction.Sell_10);
   }
-  console.log('selectedOption', selectedOption);
+
   const modifiedKeyboardData = keyboardData.map((row) => {
     return row.map((cell) => {
       if (selectedOption === String(cell.callback_data)) {

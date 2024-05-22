@@ -32,8 +32,6 @@ export const swapStage = [
     const activeAddress = state[EWizardProp.ActiveAddress];
     const orderType = state[EWizardProp.OrderType];
     const reenterTheScene = state[EWizardProp.ReEnterTheScene];
-    const triggerPrice = state[EWizardProp.TriggerPrice];
-    console.log('createBuyAndSellScene::State', state);
 
     if (isStart) {
       ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
@@ -48,7 +46,6 @@ export const swapStage = [
         [EWizardProp.Expiry]: state[EWizardProp.Expiry],
       });
     } else if (contract && action && activeAddress) {
-      console.log('[Before entering the scene] orderType', orderType), triggerPrice;
       switch (orderType) {
         case EOrderType.LimitOrderType:
           ctx.scene.enter(EScene.PreviewOrder, state);
@@ -78,7 +75,6 @@ export const swapStage = [
     const action = state[EWizardProp.Action];
     const activeAddress = state[EWizardProp.ActiveAddress];
     const orderType = state[EWizardProp.OrderType];
-    console.log('createOrderPreviewScene::state', state);
     if (isStart) {
       ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
     } else if (contract && action && activeAddress && orderType) {

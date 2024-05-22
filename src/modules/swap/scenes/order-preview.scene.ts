@@ -1,4 +1,5 @@
 import { Token } from '@uniswap/sdk-core';
+import log from 'loglevel';
 import { callbackQuery } from 'telegraf/filters';
 
 import { placeLimitOrder } from '@/database/queries/common';
@@ -74,7 +75,6 @@ export const createOrderPreviewScene = composeWizardScene(
       ctx.wizard.state[EWizardProp.DoNothing] = true;
     } else if (ctx.has(callbackQuery('data'))) {
       try {
-        console.log('submitting order...');
         // submit order
         const state = ctx.wizard.state;
         const action = state[EWizardProp.Action] as string;
@@ -135,7 +135,8 @@ export const createOrderPreviewScene = composeWizardScene(
         await ctx.reply('Limit order submitted successfully!');
         resetScene(ctx);
       } catch (e: unknown) {
-        ctx.reply(`error submitting limit order: ${(e as Error).message}`);
+        log.error(`error submitting limit order: ${(e as Error).message}`);
+        ctx.reply('Failed to submit linmit order. Please try again!');
         ctx.wizard.next();
       }
     }
@@ -143,7 +144,6 @@ export const createOrderPreviewScene = composeWizardScene(
   },
   // To handle validation errors
   async (ctx: IContext, done) => {
-    console.log('validation error handler');
     ctx.wizard.state[EWizardProp.ReEnterTheScene] = true;
     ctx.wizard.state[EWizardProp.DoNothing] = true;
     done();

@@ -75,7 +75,6 @@ export const placeLimitOrder = async (params: {
 }) => {
   const { tokenToSell, tokenToBuy, wallet, tradeParam } = params;
   const { buyAmount, sellAmount, targetPrice, expirationDate, orderMode } = tradeParam;
-  console.log('targetPrice', targetPrice);
   if (!isNumber(targetPrice)) {
     throw new Error('invalid target price');
   }

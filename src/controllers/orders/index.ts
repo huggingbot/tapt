@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { Transaction } from 'kysely';
+import log from 'loglevel';
 
 import { db } from '@/database/db';
 import { DB } from '@/database/gen-types';
@@ -12,7 +13,7 @@ export async function getAllActiveLimitOrdersHandler(req: Request, res: Response
   try {
     const { orderStatus } = req.query;
     const getOrderFilters: GetOrdersFilters = { orderType: EOrderType.Limit };
-    console.log('orderStatus', orderStatus);
+    log.debug('orderStatus', orderStatus);
     if (orderStatus) {
       getOrderFilters.orderStatus = orderStatus as string;
     }
