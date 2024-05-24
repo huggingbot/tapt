@@ -34,6 +34,7 @@ export const createOrderPreviewScene = composeWizardScene(
     const quotedPrice = ctx.wizard.state[EWizardProp.TargetPrice] as string;
 
     const previewObj = { action, wallet, orderType, targetPrice: `${quotedPrice} (${triggerPrice})`, orderExpiry, amount: 0 };
+    console.log('action', action);
     const [mode, rawAmount] = action.split(/_(.+)/);
     const amountStr = rawAmount.replace(/_/g, '.');
     if (!isNumber(amountStr)) {

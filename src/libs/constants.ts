@@ -30,6 +30,12 @@ export const WRAPPED_NATIVE_TOKEN_CONTRACT_ADDRESS = {
   [ENetwork.Polygon]: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
 };
 
+export const USDC_CONTRACT_ADDRESS = {
+  [ENetwork.Local]: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+  [ENetwork.Mainnet]: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+  [ENetwork.Polygon]: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
+};
+
 // Currencies and Tokens
 
 export const WRAPPED_NATIVE_TOKEN = {

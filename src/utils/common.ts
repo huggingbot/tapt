@@ -115,11 +115,14 @@ export const resetScene = (ctx: IContext) => {
   });
 };
 
+export const isValidPercentageValue = (val: string): boolean => {
+  return val.trim().endsWith('%') && isNumber(val.trim().replace('%', ''));
+};
+
 // validating target price for limit order
 export const isTargetPriceValid = (action: unknown, targetPrice: string): boolean => {
   // check if the input is number of the percentage value
-  const isPercentageValue = targetPrice.trim().endsWith('%') && isNumber(targetPrice.trim().replace('%', ''));
-  if (!isPercentageValue && !isNumber(targetPrice)) {
+  if (!isValidPercentageValue(targetPrice) && !isNumber(targetPrice)) {
     return false;
   }
 

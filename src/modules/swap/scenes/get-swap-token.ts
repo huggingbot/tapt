@@ -1,10 +1,13 @@
+import { ethers } from 'ethers';
 import { isAddress } from 'ethers/lib/utils';
 import log from 'loglevel';
 import { message } from 'telegraf/filters';
 
 import { getErc20CommonProps, getErc20Contract } from '@/libs/contracts';
 import { getProvider } from '@/libs/providers';
+import { computeTokenPriceInUSD } from '@/libs/quoting';
 import { ESessionProp, EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
+import { IWizContractProp } from '@/modules/bot/interfaces/bot-prop.interface';
 import { composeWizardScene } from '@/modules/bot/utils/scene-factory';
 
 export const createGetSwapTokenScene = composeWizardScene(
@@ -36,11 +39,16 @@ export const createGetSwapTokenScene = composeWizardScene(
             ctx.reply('Address is not a contract');
             done();
           } else {
-            const contract = getErc20Contract(contractAddress, provider);
-            const { name, symbol, decimals, address } = await getErc20CommonProps(contract);
+            ctx.reply('Reterieving token info...');
+            const erc20Contract = getErc20Contract(contractAddress, provider);
+            const { name, symbol, decimals, address } = await getErc20CommonProps(erc20Contract);
+            const contract: IWizContractProp = { name, symbol, decimals, address };
+            ctx.reply('Computing token price...');
+            const tokenPriceInUSD = await computeTokenPriceInUSD(contract, network);
 
-            ctx.wizard.state[EWizardProp.Contract] = { name, symbol, decimals, address };
+            ctx.wizard.state[EWizardProp.Contract] = contract;
             ctx.wizard.state[EWizardProp.Msg] = ctx.message;
+            ctx.wizard.state[EWizardProp.TokenPriceInUSD] = tokenPriceInUSD;
             done();
           }
         }

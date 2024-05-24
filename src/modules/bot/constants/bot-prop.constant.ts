@@ -8,6 +8,7 @@ export enum EWizardProp {
   Msg = 'msg',
   Reentering = 'reentering',
   Contract = 'contract',
+  TokenPriceInUSD = 'tokenPriceInUSD',
   ActiveAddress = 'activeAddress',
   DoNothing = 'doNothing',
   OrderType = 'orderType',

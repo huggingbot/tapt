@@ -3,7 +3,7 @@ import log from 'loglevel';
 import { callbackQuery, message } from 'telegraf/filters';
 import { InlineKeyboardButton, Message } from 'telegraf/typings/core/types/typegram';
 
-import { quoteTokenPrice } from '@/libs/quoting';
+import { quoteTargetTokenPrice } from '@/libs/quoting';
 import { ENavAction, EOrderDetails, EOrderType, ESwapAction } from '@/modules/bot/constants/bot-action.constant';
 import { ESessionProp, EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
 import { ORDER_EXPIRY_UNITS_TEXT } from '@/modules/bot/constants/bot-reply-constant';
@@ -27,6 +27,7 @@ export const createBuyAndSellScene = composeWizardScene(
     const state = ctx.wizard.state;
     const msg = state[EWizardProp.Msg] as Message.TextMessage | undefined;
     const contract = state[EWizardProp.Contract] as IWizContractProp;
+    const tokenPriceInUSD = (state[EWizardProp.TokenPriceInUSD] as string) || '_unknown_';
 
     const shouldDoNothing = state[EWizardProp.DoNothing];
 
@@ -109,7 +110,7 @@ export const createBuyAndSellScene = composeWizardScene(
       }
     } else {
       ctx.reply(
-        `${contract?.name} (${contract?.name})\n----------------------------------------------------------------------------------------------------`,
+        `${contract?.name} ($${tokenPriceInUSD})\n----------------------------------------------------------------------------------------------------`,
         formatKeyboard(keyboardData),
       );
       ctx.wizard.next();
@@ -132,8 +133,8 @@ export const createBuyAndSellScene = composeWizardScene(
           ctx.wizard.state[EWizardProp.Action] = isBuyMode(action) ? ESwapAction.Buy_0_01 : ESwapAction.Sell_10;
         }
         ctx.wizard.state[EWizardProp.ReEnterTheScene] = false;
-        const quotedPrice = await quoteTokenPrice(contract, network, triggerPrice);
-        ctx.wizard.state[EWizardProp.TargetPrice] = quotedPrice;
+        const targetPriceInUSD = await quoteTargetTokenPrice(contract, network, triggerPrice || '+1%');
+        ctx.wizard.state[EWizardProp.TargetPrice] = targetPriceInUSD;
         done();
       } else if (ctx.has(callbackQuery('data'))) {
         const cbData = ctx.callbackQuery.data;

@@ -19,7 +19,7 @@ export const swapStage = [
     if (isStart) {
       ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
     } else if (contract) {
-      ctx.scene.enter(EScene.BuyAndSell, { [EWizardProp.Msg]: state[EWizardProp.Msg], [EWizardProp.Contract]: state[EWizardProp.Contract] });
+      ctx.scene.enter(EScene.BuyAndSell, { ...state });
     } else {
       ctx.scene.enter(EScene.SwapNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
     }
@@ -32,6 +32,7 @@ export const swapStage = [
     const activeAddress = state[EWizardProp.ActiveAddress];
     const orderType = state[EWizardProp.OrderType];
     const reenterTheScene = state[EWizardProp.ReEnterTheScene];
+    const tokenPriceInUSD = state[EWizardProp.TokenPriceInUSD];
 
     if (isStart) {
       ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
@@ -44,6 +45,7 @@ export const swapStage = [
         [EWizardProp.OrderType]: orderType,
         [EWizardProp.TriggerPrice]: state[EWizardProp.TriggerPrice],
         [EWizardProp.Expiry]: state[EWizardProp.Expiry],
+        [EWizardProp.TokenPriceInUSD]: tokenPriceInUSD,
       });
     } else if (contract && action && activeAddress) {
       switch (orderType) {
