@@ -1,4 +1,5 @@
 import { Token } from '@uniswap/sdk-core';
+import { Wallet } from 'ethers';
 import log from 'loglevel';
 import { callbackQuery } from 'telegraf/filters';
 
@@ -7,13 +8,17 @@ import { ELimitOrderMode } from '@/database/queries/order';
 import { ICreateTokenParams } from '@/database/queries/token';
 import { AppConfig } from '@/libs/config';
 import { WRAPPED_NATIVE_TOKEN } from '@/libs/constants';
+import { getErc20CommonProps, getErc20Contract } from '@/libs/contracts';
+import { toReadableAmount } from '@/libs/conversion';
+import { getProvider } from '@/libs/providers';
 import { ENavAction } from '@/modules/bot/constants/bot-action.constant';
 import { EOrderExpiryUnit, ESessionProp, EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
 import { IContext } from '@/modules/bot/interfaces/bot-context.interface';
 import { IWizContractProp } from '@/modules/bot/interfaces/bot-prop.interface';
 import { composeWizardScene } from '@/modules/bot/utils/scene-factory';
 import { IBasicWallet } from '@/types';
-import { computeOrderExpiryDate, formatKeyboard, isNumber, resetScene } from '@/utils/common';
+import { computeOrderExpiryDate, formatKeyboard, isBuyMode, isNumber, resetScene } from '@/utils/common';
+import { decryptPrivateKey } from '@/utils/crypto';
 
 export const createOrderPreviewScene = composeWizardScene(
   async (ctx: IContext) => {
@@ -28,20 +33,39 @@ export const createOrderPreviewScene = composeWizardScene(
     const wallet = state[EWizardProp.ActiveAddress] as string;
     const orderType = state[EWizardProp.OrderType] as string;
     const contract = state[EWizardProp.Contract] as IWizContractProp;
-    const triggerPrice = (state[EWizardProp.TriggerPrice] as string) || '+1%';
+    const triggerPrice = (state[EWizardProp.TriggerPrice] as string) || (isBuyMode(action) ? '-1%' : '+1%');
     const orderExpiry = (state[EWizardProp.Expiry] as string) || `1${EOrderExpiryUnit.Day}`;
 
     const quotedPrice = ctx.wizard.state[EWizardProp.TargetPrice] as string;
 
-    const previewObj = { action, wallet, orderType, targetPrice: `${quotedPrice} (${triggerPrice})`, orderExpiry, amount: 0 };
-    console.log('action', action);
+    const previewObj = { action, wallet, orderType, targetPrice: `$${quotedPrice} (${triggerPrice})`, orderExpiry, amount: '0' };
     const [mode, rawAmount] = action.split(/_(.+)/);
     const amountStr = rawAmount.replace(/_/g, '.');
-    if (!isNumber(amountStr)) {
+    let amount = NaN;
+    if (isBuyMode(action)) {
+      amount = parseFloat(amountStr);
+      amount = Math.max(Math.min(amount, Number.MAX_SAFE_INTEGER), 0);
+      previewObj.amount = `${amount} ETH`;
+      ctx.wizard.state[EWizardProp.TradeAmount] = amount.toString();
+    } else {
+      const isPercentage = amountStr.endsWith('pct');
+
+      if (isPercentage) {
+        amount = parseFloat(amountStr.replace('pct', '')) / 100;
+        amount = Math.max(Math.min(amount, 1), 0);
+        previewObj.amount = amountStr;
+        ctx.wizard.state[EWizardProp.TradeAmount] = amountStr;
+      } else {
+        amount = parseFloat(amountStr);
+        amount = Math.max(Math.min(amount, Number.MAX_SAFE_INTEGER), 0);
+        previewObj.amount = `${amount} ${contract.symbol}`;
+        ctx.wizard.state[EWizardProp.TradeAmount] = amount.toString();
+      }
+    }
+    if (!isNumber(amount)) {
       ctx.reply(`invalid ${mode} amount, ${amountStr}`);
     } else {
       previewObj.action = mode;
-      previewObj.amount = Number(amountStr);
 
       const previewArr = Object.entries(previewObj).map((entry) => {
         const [key, value] = entry;
@@ -83,15 +107,6 @@ export const createOrderPreviewScene = composeWizardScene(
         const activeAddress = state[EWizardProp.ActiveAddress] as string;
         const targetPrice = state[EWizardProp.TargetPrice] as string;
         const orderExpiry = (state[EWizardProp.Expiry] as string) || `1${EOrderExpiryUnit.Day}`;
-        const [mode, rawAmount] = action.split(/_(.+)/);
-
-        const amountStr = rawAmount.replace(/_/g, '.');
-        if (!isNumber(amountStr)) {
-          ctx.reply('Invalid amount!');
-          ctx.wizard.next();
-          return;
-        }
-        const amount = Number(amountStr);
 
         const network = ctx.session.prop[ESessionProp.Chain].network;
         const wallets = ctx.session.prop[ESessionProp.Wallets][network];
@@ -102,6 +117,43 @@ export const createOrderPreviewScene = composeWizardScene(
           ctx.wizard.next();
           return;
         }
+
+        // check the wallet balance
+        const privateKey = decryptPrivateKey(wallet?.encryptedPrivateKey);
+        const selectedWallet = new Wallet(privateKey);
+        const provider = getProvider(network);
+        let balance: bigint;
+        if (isBuyMode(action)) {
+          const rawBalance = await provider.getBalance(selectedWallet.address);
+          balance = rawBalance.toBigInt();
+          balance = BigInt(toReadableAmount(balance.toString(), WRAPPED_NATIVE_TOKEN[network].decimals));
+        } else {
+          const erc20Contract = getErc20Contract(contract.address, provider);
+          const { balance: tokenBalance, decimals } = await getErc20CommonProps(erc20Contract, selectedWallet.address);
+          balance = BigInt(tokenBalance);
+          balance = BigInt(toReadableAmount(balance.toString(), decimals));
+        }
+
+        const [mode, rawAmount] = action.split(/_(.+)/);
+        let amountStr = rawAmount.replace(/_/g, '.');
+        if (amountStr.endsWith('pct')) {
+          let pctValue = parseFloat(amountStr.replace('pct', '')) / 100;
+          pctValue = Math.max(Math.min(pctValue, 1), 0);
+          amountStr = (Number(balance) * pctValue).toString();
+        }
+
+        if (!isNumber(amountStr)) {
+          ctx.reply(`Invalid trade amount, ${amountStr}`);
+          ctx.wizard.next();
+          return;
+        }
+        const amount = Number(amountStr);
+        if (amount >= balance || balance <= 0) {
+          ctx.reply('Insufficient balance in your wallet!');
+          ctx.wizard.next();
+          return;
+        }
+
         const walletParam: IBasicWallet = { walletAddress: activeAddress, chainId, network };
 
         const _isBuyMode = mode.trim().toLowerCase() === 'buy';
@@ -140,7 +192,7 @@ export const createOrderPreviewScene = composeWizardScene(
         resetScene(ctx);
       } catch (e: unknown) {
         log.error(`error submitting limit order: ${(e as Error).message}`);
-        ctx.reply('Failed to submit linmit order. Please try again!');
+        ctx.reply('Failed to submit limit order. Please try again!');
         ctx.wizard.next();
       }
     }

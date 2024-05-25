@@ -17,6 +17,7 @@ export enum EWizardProp {
   Expiry = 'orderExpiry',
   OrderDetailsAction = 'orderDetailsAction',
   ReEnterTheScene = 'reEnterTheScene',
+  TradeAmount = 'tradeAmount',
 }
 
 export enum EOrderExpiryUnit {

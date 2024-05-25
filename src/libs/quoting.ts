@@ -48,7 +48,6 @@ export const quoteTokenPrice = async (tokenOut: Token, network: ENetwork, tokenI
   });
   const provider = getProvider(network);
   const poolContract = new ethers.Contract(currentPoolAddress, IUniswapV3PoolABI.abi, provider);
-  console.log('poolContract', poolContract.address);
   const quoterContract = new ethers.Contract(UNISWAP_QUOTER_ADDRESS[network], Quoter.abi, provider);
   const amountToQuote = amount || '1';
   const immutables = await getPoolImmutables(poolContract);
@@ -64,31 +63,6 @@ export const quoteTokenPrice = async (tokenOut: Token, network: ENetwork, tokenI
   const amountOut = ethers.utils.parseUnits(amountToQuote.toString(), tokenOut.decimals);
   const quotedAmountOut = await quoterContract.callStatic.quoteExactOutputSingle(immutables.token0, immutables.token1, immutables.fee, amountOut, 0);
   return quotedAmountOut as ethers.BigNumber;
-};
-
-export const quoteTargetTokenPrice = async (contract: IWizContractProp, network: ENetwork, targetPrice: string) => {
-  const chainId = AppConfig[network].chainId;
-  const token = new Token(chainId, contract.address, contract.decimals, contract.symbol, contract.name);
-  const quotedAmountStr = await computeTokenPriceInUSD(contract, network, targetPrice);
-  const USDC_TOKEN = await createUSDCToken(network);
-  let quotedAmount = ethers.utils.parseUnits(quotedAmountStr, USDC_TOKEN.decimals);
-  // check if target price is percentage value
-  if (targetPrice.trim().endsWith('%')) {
-    const pctMatches = targetPrice.trim().match(/\d+/);
-    if (!pctMatches?.[0]) {
-      throw new Error('invalid percentage value');
-    }
-    const pctNumber = pctMatches[0];
-    const variationPercentage = quotedAmount.mul(ethers.BigNumber.from(pctNumber)).div(100);
-    if (targetPrice.trim().startsWith('-')) {
-      // negative percentage
-      quotedAmount = quotedAmount.sub(variationPercentage);
-    } else {
-      quotedAmount = quotedAmount.add(variationPercentage);
-    }
-  }
-  const finalTargetPrice = ethers.utils.formatUnits(quotedAmount, token.decimals);
-  return finalTargetPrice;
 };
 
 export const computeTokenPriceInUSD = async (contract: IWizContractProp, network: ENetwork, targetPrice?: string) => {
@@ -121,4 +95,28 @@ export const computeTokenPriceInUSD = async (contract: IWizContractProp, network
 
   const quotedAmountInUSDC = await quoteTokenPrice(wNativeToken, network, USDC_TOKEN, quotedAmountInWETHStr);
   return ethers.utils.formatUnits(quotedAmountInUSDC, USDC_TOKEN.decimals);
+};
+
+export const quoteTargetTokenPrice = async (contract: IWizContractProp, network: ENetwork, targetPrice: string) => {
+  const quotedAmountInUSDC = await computeTokenPriceInUSD(contract, network);
+  console.log('quotedAmountStr', quotedAmountInUSDC);
+  const USDC_TOKEN = await createUSDCToken(network);
+  let quotedAmount = ethers.utils.parseUnits(quotedAmountInUSDC, USDC_TOKEN.decimals);
+  // check if target price is percentage value
+  if (targetPrice.trim().endsWith('%')) {
+    const pctMatches = targetPrice.trim().match(/\d+/);
+    if (!pctMatches?.[0]) {
+      throw new Error('invalid percentage value');
+    }
+    const pctNumber = pctMatches[0];
+    const variationPercentage = quotedAmount.mul(ethers.BigNumber.from(pctNumber)).div(100);
+    if (targetPrice.trim().startsWith('-')) {
+      // negative percentage
+      quotedAmount = quotedAmount.sub(variationPercentage);
+    } else {
+      quotedAmount = quotedAmount.add(variationPercentage);
+    }
+  }
+  const finalTargetPrice = ethers.utils.formatUnits(quotedAmount, USDC_TOKEN.decimals);
+  return finalTargetPrice;
 };

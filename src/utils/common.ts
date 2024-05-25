@@ -129,9 +129,9 @@ export const isTargetPriceValid = (action: unknown, targetPrice: string): boolea
   const num = Number(targetPrice.trim().replace('%', ''));
   if (isBuyMode(action)) {
     // buy mode
-    return num > 0;
+    return num < 0;
   }
-  return num < 0;
+  return num > 0;
 };
 
 /**

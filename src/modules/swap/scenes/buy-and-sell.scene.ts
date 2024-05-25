@@ -79,7 +79,7 @@ export const createBuyAndSellScene = composeWizardScene(
     ];
 
     if (isLimitOrder(orderType)) {
-      const triggerPrice = (ctx.wizard.state[EWizardProp.TriggerPrice] as string) || '+1%';
+      const triggerPrice = (ctx.wizard.state[EWizardProp.TriggerPrice] as string) || (isBuyMode(action) ? '-1%' : '+1%');
       const orderExpiry = (ctx.wizard.state[EWizardProp.Expiry] as string) || '1d';
       const limitOrderKeyboardAction = [
         { text: `(${triggerPrice}) ${EOrderDetails.TriggerPrice}`, callback_data: EOrderDetails.TriggerPrice },
@@ -125,16 +125,20 @@ export const createBuyAndSellScene = composeWizardScene(
         ctx.deleteMessage(ctx.callbackQuery.message?.message_id);
         done();
       } else if (ctx.has(callbackQuery('data')) && ctx.callbackQuery.data === String(ENavAction.PreviewOrder)) {
-        const contract = state[EWizardProp.Contract] as IWizContractProp;
-        const triggerPrice = state[EWizardProp.TriggerPrice] as string;
-        const network = ctx.session.prop[ESessionProp.Chain].network;
         const action = state[EWizardProp.Action] as string;
         if (!action || ([ESwapAction.BuyMode, ESwapAction.SellMode] as string[]).includes(action)) {
           ctx.wizard.state[EWizardProp.Action] = isBuyMode(action) ? ESwapAction.Buy_0_01 : ESwapAction.Sell_10;
         }
         ctx.wizard.state[EWizardProp.ReEnterTheScene] = false;
-        const targetPriceInUSD = await quoteTargetTokenPrice(contract, network, triggerPrice || '+1%');
-        ctx.wizard.state[EWizardProp.TargetPrice] = targetPriceInUSD;
+        const orderType = state[EWizardProp.OrderType] as string;
+        if (orderType === String(EOrderType.LimitOrderType)) {
+          const contract = state[EWizardProp.Contract] as IWizContractProp;
+          const triggerPrice = (state[EWizardProp.TriggerPrice] as string) || (isBuyMode(action) ? '-1%' : '+1%');
+          const network = ctx.session.prop[ESessionProp.Chain].network;
+          const targetPriceInUSD = await quoteTargetTokenPrice(contract, network, triggerPrice);
+          console.log('targetPriceInUSD', targetPriceInUSD);
+          ctx.wizard.state[EWizardProp.TargetPrice] = targetPriceInUSD;
+        }
         done();
       } else if (ctx.has(callbackQuery('data'))) {
         const cbData = ctx.callbackQuery.data;
