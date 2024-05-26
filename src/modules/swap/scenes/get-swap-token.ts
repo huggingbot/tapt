@@ -1,4 +1,3 @@
-import { ethers } from 'ethers';
 import { isAddress } from 'ethers/lib/utils';
 import log from 'loglevel';
 import { message } from 'telegraf/filters';
@@ -44,11 +43,11 @@ export const createGetSwapTokenScene = composeWizardScene(
             const { name, symbol, decimals, address } = await getErc20CommonProps(erc20Contract);
             const contract: IWizContractProp = { name, symbol, decimals, address };
             ctx.reply('Computing token price...');
-            const tokenPriceInUSD = await computeTokenPriceInUSD(contract, network);
+            const tokenPrice = await computeTokenPriceInUSD(contract, network);
 
             ctx.wizard.state[EWizardProp.Contract] = contract;
             ctx.wizard.state[EWizardProp.Msg] = ctx.message;
-            ctx.wizard.state[EWizardProp.TokenPriceInUSD] = tokenPriceInUSD;
+            ctx.wizard.state[EWizardProp.TokenPriceInUSD] = tokenPrice.quotedAmountInUSDCStr;
             done();
           }
         }

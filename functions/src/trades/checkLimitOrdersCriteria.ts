@@ -5,12 +5,13 @@ import IUniswapV3PoolABI from '@uniswap/v3-core/artifacts/contracts/interfaces/I
 import QuoterABI from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json';
 import { computePoolAddress, FeeAmount } from '@uniswap/v3-sdk';
 import { ethers } from 'ethers';
-import { ApiResponse, ENetwork, EOrderStatus, ILimitOrder, LimitOrderMode } from '../utils/types';
+import { ENetwork, EOrderStatus, ILimitOrder, LimitOrderMode } from '../utils/types';
 import { TAPT_API_ENDPOINT, UNISWAP_QUOTER_ADDRESS, V3_UNISWAP_FACTORY_ADDRESS } from '../utils/constants';
 import { getProvider } from '../utils/providers';
 import { logger } from 'firebase-functions';
 import { handleError } from '../utils/responseHandler';
 import { createScheduleFunction } from '../utils/firebase-functions';
+import { makeNetworkRequest } from '../utils/networking';
 
 /**
  * Check if the trade criteria met with the current price and target price
@@ -38,15 +39,10 @@ export function isLimitOrderCriteriaMet(orderMode: LimitOrderMode, amountIn: num
  *    [track_txn]
  *    (DONE)
  */
-async function checkLimitOrderCriteria() {
-  const resp = await fetch(`${TAPT_API_ENDPOINT}/orders/limit?orderStatus=${EOrderStatus.ApprovalCompleted}`);
-  const jsonResp = (await resp.json()) as ApiResponse<ILimitOrder[]>;
+export async function checkLimitOrderCriteria() {
+  const fetchApprovalCompletedOrdersUrl = `${TAPT_API_ENDPOINT}/orders/limit?orderStatus=${EOrderStatus.ApprovalCompleted}`;
+  const orders = await makeNetworkRequest<ILimitOrder[]>(fetchApprovalCompletedOrdersUrl);
 
-  if (!jsonResp.success || !jsonResp.data) {
-    throw new Error(`failed to make request. ${jsonResp.message}`);
-  }
-
-  const orders = jsonResp.data;
   const ordersToBePrcessed: number[] = [];
   // additional params which will be shared between promises iterations
   const additionalParams: {
@@ -85,22 +81,26 @@ async function checkLimitOrderCriteria() {
     }
     const provider = getProvider(ENetwork.Local);
     const quoterContract = new ethers.Contract(UNISWAP_QUOTER_ADDRESS[ENetwork.Local], QuoterABI.abi, provider);
-    const { tokenInput } = additionalParams[idx];
+    const { tokenInput, tokenOutput, orderMode } = additionalParams[idx];
 
+    const decimals = orderMode === 'buy' ? tokenInput.decimals : tokenOutput.decimals;
     const [token0, token1, fee] = result.value;
-    const amountIn = ethers.utils.parseUnits('1', tokenInput.decimals);
+    const amountIn = ethers.utils.parseUnits('1', decimals);
     return quoterContract.callStatic.quoteExactOutputSingle(token0, token1, fee, amountIn, 0);
   });
   const quotedAmountResults = await Promise.allSettled(quotedAmountsPromises);
 
   // Validate and check LIMIT_ORDER crtieria
   quotedAmountResults.forEach((result, idx) => {
-    const { tokenOutput, sellAmount, tokenInput, orderId, targetPrice, orderMode } = additionalParams[idx];
+    const { tokenOutput, tokenInput, orderId, targetPrice, orderMode } = additionalParams[idx];
+    const baseSymbol = orderMode === 'buy' ? tokenInput.symbol : tokenOutput.symbol;
+    const targetSymbol = orderMode === 'buy' ? tokenOutput.symbol : tokenInput.symbol;
+    const decimals = orderMode === 'buy' ? tokenOutput.decimals : tokenInput.decimals;
     if (result.status === 'fulfilled' && result.value) {
-      const amountOut = ethers.utils.formatUnits(result.value, tokenOutput.decimals);
+      const amountOut = ethers.utils.formatUnits(result.value, decimals);
       logger.debug('=====================');
       logger.debug(`Target Price: ${targetPrice}`);
-      logger.debug(`${sellAmount} ${tokenInput.symbol} can be swapped for ${amountOut} ${tokenOutput.symbol}`);
+      logger.debug(`1 ${baseSymbol} can be swapped for ${amountOut} ${targetSymbol}`);
       logger.debug('=====================');
 
       if (isLimitOrderCriteriaMet(orderMode, Number(amountOut), targetPrice)) {
@@ -118,14 +118,8 @@ async function checkLimitOrderCriteria() {
       idsToUpdate: ordersToBePrcessed,
     };
     logger.debug('body', body);
-    const resp = await fetch(`${TAPT_API_ENDPOINT}/orders/bulk_update_status`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
-    return await resp.json();
+    const resp = await makeNetworkRequest(`${TAPT_API_ENDPOINT}/orders/bulk_update_status`, 'PATCH', body);
+    return resp;
   }
   return undefined;
 }

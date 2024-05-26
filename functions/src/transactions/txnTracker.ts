@@ -2,9 +2,10 @@
 import { logger } from 'firebase-functions';
 import { TAPT_API_ENDPOINT } from '../utils/constants';
 import { getProvider } from '../utils/providers';
-import { ApiResponse, ENetwork, ETransactionStatus, ETransactionType, ITransaction } from '../utils/types';
+import { ENetwork, ETransactionStatus, ITransaction } from '../utils/types';
 import { handleError } from '../utils/responseHandler';
 import { createScheduleFunction } from '../utils/firebase-functions';
+import { makeNetworkRequest } from '../utils/networking';
 
 interface IAdditionalTxnTrackerParams {
   orderId: number;
@@ -31,15 +32,9 @@ type TUpdateTransactionParams = Pick<ITransaction, 'transactionFee' | 'transacti
  */
 async function trackTransaction() {
   // eslint-disable-next-line max-len
-  const url = `${TAPT_API_ENDPOINT}/transactions?type=${ETransactionType.Approval}&status=${ETransactionStatus.Pending}`;
+  const url = `${TAPT_API_ENDPOINT}/transactions?status=${ETransactionStatus.Pending}`;
+  const txns = await makeNetworkRequest<ITransaction[]>(url);
 
-  const resp = await fetch(url);
-  const jsonResp = (await resp.json()) as ApiResponse<ITransaction[]>;
-  if (!jsonResp.success || !jsonResp.data) {
-    throw new Error(`failed to make request. ${jsonResp.message}`);
-  }
-
-  const txns = jsonResp.data;
   const txnsToUpdate: TUpdateTransactionParams[] = [];
   // additional params which will be used during difference promises iteration
   const additionalParams: IAdditionalTxnTrackerParams[] = [];
@@ -63,13 +58,7 @@ async function trackTransaction() {
   });
 
   if (txnsToUpdate.length > 0) {
-    await fetch(`${TAPT_API_ENDPOINT}/transactions/bulk_update`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ data: txnsToUpdate }),
-    });
+    await makeNetworkRequest(`${TAPT_API_ENDPOINT}/transactions/bulk_update`, 'PATCH', { data: txnsToUpdate });
   }
   return txnsToUpdate;
 }

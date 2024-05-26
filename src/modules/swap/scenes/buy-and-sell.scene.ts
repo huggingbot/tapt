@@ -103,7 +103,7 @@ export const createBuyAndSellScene = composeWizardScene(
             inline_keyboard: keyboardData,
           });
         } catch (e) {
-          console.error('error editing message', e);
+          log.error('error editing message', e);
         } finally {
           ctx.wizard.next();
         }
@@ -135,9 +135,9 @@ export const createBuyAndSellScene = composeWizardScene(
           const contract = state[EWizardProp.Contract] as IWizContractProp;
           const triggerPrice = (state[EWizardProp.TriggerPrice] as string) || (isBuyMode(action) ? '-1%' : '+1%');
           const network = ctx.session.prop[ESessionProp.Chain].network;
-          const targetPriceInUSD = await quoteTargetTokenPrice(contract, network, triggerPrice);
-          console.log('targetPriceInUSD', targetPriceInUSD);
-          ctx.wizard.state[EWizardProp.TargetPrice] = targetPriceInUSD;
+          const quotedTargetPrice = await quoteTargetTokenPrice(contract, network, triggerPrice);
+          console.log('quotedTargetPrice', quotedTargetPrice);
+          ctx.wizard.state[EWizardProp.TargetPrice] = quotedTargetPrice;
         }
         done();
       } else if (ctx.has(callbackQuery('data'))) {

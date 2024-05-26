@@ -1,2 +1,2 @@
-export { limitOrderCriteriaChecker } from './checkLimitOrdersCriteria';
-export { tradeExecution } from './executeTrade';
+export { limitOrderCriteriaChecker, checkLimitOrderCriteria } from './checkLimitOrdersCriteria';
+export * from './executeTrade';

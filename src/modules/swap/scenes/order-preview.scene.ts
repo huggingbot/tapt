@@ -11,6 +11,7 @@ import { WRAPPED_NATIVE_TOKEN } from '@/libs/constants';
 import { getErc20CommonProps, getErc20Contract } from '@/libs/contracts';
 import { toReadableAmount } from '@/libs/conversion';
 import { getProvider } from '@/libs/providers';
+import { ITargetTokenPrice } from '@/libs/quoting';
 import { ENavAction } from '@/modules/bot/constants/bot-action.constant';
 import { EOrderExpiryUnit, ESessionProp, EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
 import { IContext } from '@/modules/bot/interfaces/bot-context.interface';
@@ -36,9 +37,9 @@ export const createOrderPreviewScene = composeWizardScene(
     const triggerPrice = (state[EWizardProp.TriggerPrice] as string) || (isBuyMode(action) ? '-1%' : '+1%');
     const orderExpiry = (state[EWizardProp.Expiry] as string) || `1${EOrderExpiryUnit.Day}`;
 
-    const quotedPrice = ctx.wizard.state[EWizardProp.TargetPrice] as string;
+    const { finalTargetPriceInUSD } = ctx.wizard.state[EWizardProp.TargetPrice] as ITargetTokenPrice;
 
-    const previewObj = { action, wallet, orderType, targetPrice: `$${quotedPrice} (${triggerPrice})`, orderExpiry, amount: '0' };
+    const previewObj = { action, wallet, orderType, targetPrice: `$${finalTargetPriceInUSD} (${triggerPrice})`, orderExpiry, amount: '0' };
     const [mode, rawAmount] = action.split(/_(.+)/);
     const amountStr = rawAmount.replace(/_/g, '.');
     let amount = NaN;
@@ -105,7 +106,7 @@ export const createOrderPreviewScene = composeWizardScene(
         const action = state[EWizardProp.Action] as string;
         const contract = state[EWizardProp.Contract] as IWizContractProp;
         const activeAddress = state[EWizardProp.ActiveAddress] as string;
-        const targetPrice = state[EWizardProp.TargetPrice] as string;
+        const { finalTargetPriceInETH } = state[EWizardProp.TargetPrice] as ITargetTokenPrice;
         const orderExpiry = (state[EWizardProp.Expiry] as string) || `1${EOrderExpiryUnit.Day}`;
 
         const network = ctx.session.prop[ESessionProp.Chain].network;
@@ -133,7 +134,7 @@ export const createOrderPreviewScene = composeWizardScene(
           balance = BigInt(tokenBalance);
           balance = BigInt(toReadableAmount(balance.toString(), decimals));
         }
-
+        console.log(`wallet balance (${contract.name}):`, balance);
         const [mode, rawAmount] = action.split(/_(.+)/);
         let amountStr = rawAmount.replace(/_/g, '.');
         if (amountStr.endsWith('pct')) {
@@ -168,7 +169,7 @@ export const createOrderPreviewScene = composeWizardScene(
         const orderMode = _isBuyMode ? ELimitOrderMode.BUY : ELimitOrderMode.SELL;
         const orderExpiryDate = computeOrderExpiryDate(orderExpiry);
         const expirationDate = orderExpiryDate.toISOString();
-        const tradeParam = { sellAmount: amountIn, buyAmount: amountOut, targetPrice, orderMode, expirationDate };
+        const tradeParam = { sellAmount: amountIn, buyAmount: amountOut, targetPrice: finalTargetPriceInETH, orderMode, expirationDate };
 
         const { name, address, decimals, symbol } = contract;
         const targetToken: ICreateTokenParams = { name, contractAddress: address, symbol, decimalPlaces: decimals, chainId };

@@ -23,15 +23,22 @@ import { createScheduleFunction } from '../utils/firebase-functions';
  *    [track_txn]
  *    (DONE)
  * */
-async function executeTrade() {
-  const resp = await fetch(`${TAPT_API_ENDPOINT}/orders/limit?orderStatus=${EOrderStatus.ExecutionReady}`);
-  const jsonResp = (await resp.json()) as ApiResponse<ILimitOrder[]>;
+export async function executeTrade() {
+  const fetchReadyToExecuteOrderUrl = `${TAPT_API_ENDPOINT}/orders/limit?orderStatus=${EOrderStatus.ExecutionReady}`;
+  let orders: ILimitOrder[] = [];
+  try {
+    const resp = await fetch(fetchReadyToExecuteOrderUrl);
+    const jsonResp = (await resp.json()) as ApiResponse<ILimitOrder[]>;
 
-  if (!jsonResp.success || !jsonResp.data) {
-    throw new Error(`failed to make request. ${jsonResp.message}`);
+    if (!jsonResp.success || !jsonResp.data) {
+      throw new Error(`failed to make request. ${jsonResp.message}`);
+    }
+
+    orders = jsonResp.data;
+  } catch (e: unknown) {
+    throw new Error(`Failed to fetch orders from ${fetchReadyToExecuteOrderUrl}. Error: ${(e as Error).message}`);
   }
-
-  const orders = jsonResp.data;
+  logger.debug('orders to be executed', orders);
 
   // additional params which will be shared between promises iterations
   const additionalParams: {
@@ -68,13 +75,14 @@ async function executeTrade() {
   const routeExecResult = await Promise.allSettled(routeExecPromises);
 
   // update database based on `routeExecResult`
-  return await Promise.allSettled(
+  const updateOrderResult = await Promise.allSettled(
     routeExecResult.map((result, idx) => {
       const { route, orderId } = additionalParams[idx];
       if (result.status === 'rejected' || !result.value || !route) {
         return undefined;
       }
       const res = result.value;
+      logger.debug('Txn Result', res);
       const body: IUpdateOrderRequestBody = {
         orderStatus: EOrderStatus.ExecutionPending,
       };
@@ -103,6 +111,7 @@ async function executeTrade() {
       });
     }),
   );
+  return updateOrderResult;
 }
 
 export const tradeExecution = createScheduleFunction(async () => {

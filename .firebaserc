@@ -1,5 +1,9 @@
 {
   "projects": {
-    "default": "tapt-b7413"
-  }
+    "default": "tapt-b7413",
+    "demo": "tapt-325e7"
+  },
+  "targets": {},
+  "etags": {},
+  "dataconnectEmulatorConfig": {}
 }

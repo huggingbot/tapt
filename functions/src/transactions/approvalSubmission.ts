@@ -1,24 +1,16 @@
 /* eslint-disable max-len */
 import { BigNumber, ethers } from 'ethers';
 import { logger } from 'firebase-functions';
-
-import { ERC20_ABI, TAPT_API_ENDPOINT, V3_UNISWAP_ROUTER_ADDRESS } from '../utils/constants';
+import ERC20_ABI from '../contracts/ERC_20_abi.json';
+import { TAPT_API_ENDPOINT, V3_UNISWAP_ROUTER_ADDRESS } from '../utils/constants';
 import { fromReadableAmount } from '../utils/helpers';
 import { getProvider } from '../utils/providers';
-import {
-  ApiResponse,
-  ILimitOrder,
-  IToken,
-  ENetwork,
-  IUpdateOrderRequestBody,
-  TransactionState,
-  ETransactionType,
-  EOrderStatus,
-} from '../utils/types';
+import { ILimitOrder, IToken, ENetwork, IUpdateOrderRequestBody, TransactionState, ETransactionType, EOrderStatus } from '../utils/types';
 import { sendTransactionViaWallet } from '../utils/transactions';
 import { decrypt } from '../utils/crypto';
 import { handleError } from '../utils/responseHandler';
 import { createScheduleFunction } from '../utils/firebase-functions';
+import { makeNetworkRequest } from '../utils/networking';
 
 /**
  * Ideally, this function will be first function in the trading work flow.
@@ -34,15 +26,10 @@ import { createScheduleFunction } from '../utils/firebase-functions';
  *    [track_txn]
  *    (DONE)
  */
-async function submitApprovalTransactions() {
+export async function submitApprovalTransactions() {
   const url = `${TAPT_API_ENDPOINT}/orders/limit?orderStatus=${EOrderStatus.Submitted}`;
-  const resp = await fetch(url);
-  const jsonResp = (await resp.json()) as ApiResponse<ILimitOrder[]>;
-  if (!jsonResp.success || !jsonResp.data) {
-    throw new Error(`failed to make request. ${jsonResp.message}`);
-  }
+  const orders = await makeNetworkRequest<ILimitOrder[]>(url);
 
-  const orders = jsonResp.data;
   // additional params which will be shared between promises iterations
   const additionalParams: {
     orderId: number;
@@ -50,6 +37,7 @@ async function submitApprovalTransactions() {
     sellToken: IToken;
     wallet: ethers.Wallet;
   }[] = [];
+  logger.info('orders', orders);
   // getting allowance from the wallet
   const allowancePromises: Promise<BigNumber>[] = orders.map((order) => {
     const { orderId, sellAmount, sellToken, encryptedPrivateKey } = order;
@@ -126,13 +114,7 @@ async function submitApprovalTransactions() {
     }
     const { orderId } = additionalParams[idx];
     // TODO: Replace this with bulk_update instead of updating 1 by 1
-    return fetch(`${TAPT_API_ENDPOINT}/orders/${orderId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(reqBody),
-    });
+    return makeNetworkRequest(`${TAPT_API_ENDPOINT}/orders/${orderId}`, 'PATCH', reqBody as unknown as Record<string, unknown>);
   });
   return await Promise.allSettled(updateOrdersPromises);
 }

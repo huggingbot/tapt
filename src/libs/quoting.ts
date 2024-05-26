@@ -79,9 +79,15 @@ export const computeTokenPriceInUSD = async (contract: IWizContractProp, network
       }
       const pctNum = Number(targetPrice.trim().replace('%', ''));
       const variedVal = 1 + 1 / pctNum;
-      return variedVal.toString();
+      return {
+        quotedAmountInUSDCStr: variedVal.toString(),
+        quotedAmountInWETHStr: variedVal.toString(),
+      };
     }
-    return targetPrice || '1';
+    return {
+      quotedAmountInUSDCStr: targetPrice || '1',
+      quotedAmountInWETHStr: targetPrice || '1',
+    };
   }
 
   // compute token price in USD by converting ETH to USD
@@ -94,29 +100,40 @@ export const computeTokenPriceInUSD = async (contract: IWizContractProp, network
   console.log('quotedAmountInWETHStr', quotedAmountInWETHStr);
 
   const quotedAmountInUSDC = await quoteTokenPrice(wNativeToken, network, USDC_TOKEN, quotedAmountInWETHStr);
-  return ethers.utils.formatUnits(quotedAmountInUSDC, USDC_TOKEN.decimals);
+  const quotedAmountInUSDCStr = ethers.utils.formatUnits(quotedAmountInUSDC, USDC_TOKEN.decimals);
+  return { quotedAmountInUSDCStr, quotedAmountInWETHStr };
 };
 
-export const quoteTargetTokenPrice = async (contract: IWizContractProp, network: ENetwork, targetPrice: string) => {
-  const quotedAmountInUSDC = await computeTokenPriceInUSD(contract, network);
-  console.log('quotedAmountStr', quotedAmountInUSDC);
+export interface ITargetTokenPrice {
+  finalTargetPriceInUSD: string;
+  finalTargetPriceInETH: string;
+}
+export const quoteTargetTokenPrice = async (contract: IWizContractProp, network: ENetwork, triggerPrice: string): Promise<ITargetTokenPrice> => {
+  const { quotedAmountInUSDCStr, quotedAmountInWETHStr } = await computeTokenPriceInUSD(contract, network);
+  console.log('quotedAmountStr', quotedAmountInUSDCStr);
   const USDC_TOKEN = await createUSDCToken(network);
-  let quotedAmount = ethers.utils.parseUnits(quotedAmountInUSDC, USDC_TOKEN.decimals);
+  const wNativeToken = WRAPPED_NATIVE_TOKEN[network] as Required<Token>;
+  let quotedAmountUSDC = ethers.utils.parseUnits(quotedAmountInUSDCStr, USDC_TOKEN.decimals);
+  let quotedAmountInWETH = ethers.utils.parseUnits(quotedAmountInWETHStr, wNativeToken.decimals);
   // check if target price is percentage value
-  if (targetPrice.trim().endsWith('%')) {
-    const pctMatches = targetPrice.trim().match(/\d+/);
+  if (triggerPrice.trim().endsWith('%')) {
+    const pctMatches = triggerPrice.trim().match(/\d+/);
     if (!pctMatches?.[0]) {
       throw new Error('invalid percentage value');
     }
     const pctNumber = pctMatches[0];
-    const variationPercentage = quotedAmount.mul(ethers.BigNumber.from(pctNumber)).div(100);
-    if (targetPrice.trim().startsWith('-')) {
+    const variationPercentage = quotedAmountUSDC.mul(ethers.BigNumber.from(pctNumber)).div(100);
+    const variationPercentageEth = quotedAmountInWETH.mul(ethers.BigNumber.from(pctNumber)).div(100);
+    if (triggerPrice.trim().startsWith('-')) {
       // negative percentage
-      quotedAmount = quotedAmount.sub(variationPercentage);
+      quotedAmountUSDC = quotedAmountUSDC.sub(variationPercentage);
+      quotedAmountInWETH = quotedAmountInWETH.sub(variationPercentageEth);
     } else {
-      quotedAmount = quotedAmount.add(variationPercentage);
+      quotedAmountUSDC = quotedAmountUSDC.add(variationPercentage);
+      quotedAmountInWETH = quotedAmountInWETH.add(variationPercentageEth);
     }
   }
-  const finalTargetPrice = ethers.utils.formatUnits(quotedAmount, USDC_TOKEN.decimals);
-  return finalTargetPrice;
+  const finalTargetPriceInUSD = ethers.utils.formatUnits(quotedAmountUSDC, USDC_TOKEN.decimals);
+  const finalTargetPriceInETH = ethers.utils.formatUnits(quotedAmountInWETH, wNativeToken.decimals);
+  return { finalTargetPriceInUSD, finalTargetPriceInETH };
 };
