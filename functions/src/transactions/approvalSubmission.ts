@@ -4,7 +4,7 @@ import { logger } from 'firebase-functions';
 import ERC20_ABI from '../contracts/ERC_20_abi.json';
 import { TAPT_API_ENDPOINT, V3_UNISWAP_ROUTER_ADDRESS } from '../utils/constants';
 import { fromReadableAmount } from '../utils/helpers';
-import { getProvider } from '../utils/providers';
+import { fromChainIdToNetwork, getProvider } from '../utils/providers';
 import { ILimitOrder, IToken, ENetwork, IUpdateOrderRequestBody, TransactionState, ETransactionType, EOrderStatus } from '../utils/types';
 import { sendTransactionViaWallet } from '../utils/transactions';
 import { decrypt } from '../utils/crypto';
@@ -36,21 +36,24 @@ export async function submitApprovalTransactions() {
     sellAmount: string;
     sellToken: IToken;
     wallet: ethers.Wallet;
+    network: ENetwork;
   }[] = [];
   logger.info('orders', orders);
   // getting allowance from the wallet
   const allowancePromises: Promise<BigNumber>[] = orders.map((order) => {
-    const { orderId, sellAmount, sellToken, encryptedPrivateKey } = order;
-    const provider = getProvider(ENetwork.Local);
+    const { orderId, sellAmount, sellToken, encryptedPrivateKey, chainId } = order;
+
+    const network = fromChainIdToNetwork(chainId);
+    const provider = getProvider(network);
     // create wallet instance
     const privateKey = decrypt(encryptedPrivateKey);
     const wallet = new ethers.Wallet(privateKey, provider);
 
     // save to additionalParams to use the values for later in approval submition
-    additionalParams.push({ orderId, wallet, sellAmount, sellToken });
+    additionalParams.push({ orderId, wallet, sellAmount, sellToken, network });
 
     const tokenOutContract = new ethers.Contract(sellToken.contractAddress, ERC20_ABI, provider);
-    const allowance: Promise<BigNumber> = tokenOutContract.allowance(wallet.address, V3_UNISWAP_ROUTER_ADDRESS[ENetwork.Local]);
+    const allowance: Promise<BigNumber> = tokenOutContract.allowance(wallet.address, V3_UNISWAP_ROUTER_ADDRESS[network]);
     return allowance;
   });
   const allowanceResult = await Promise.allSettled(allowancePromises);
@@ -60,14 +63,14 @@ export async function submitApprovalTransactions() {
     if (result.status === 'rejected' || !result.value) {
       return undefined;
     }
-    const provider = getProvider(ENetwork.Local);
-    const { sellAmount, sellToken } = additionalParams[idx];
+    const { sellAmount, sellToken, network } = additionalParams[idx];
+    const provider = getProvider(network);
     const amountOut = ethers.utils.parseUnits(sellAmount, sellToken.decimalPlaces);
     const allowance = result.value;
     if (allowance.lt(amountOut)) {
       const tokenOutContract = new ethers.Contract(sellToken.contractAddress, ERC20_ABI, provider);
       return tokenOutContract.populateTransaction.approve(
-        V3_UNISWAP_ROUTER_ADDRESS[ENetwork.Local],
+        V3_UNISWAP_ROUTER_ADDRESS[network],
         fromReadableAmount(Number(sellAmount), sellToken.decimalPlaces).toString(),
       );
     }
@@ -85,8 +88,8 @@ export async function submitApprovalTransactions() {
       return result.value;
     }
     const tokenApproval = result.value;
-    const { wallet } = additionalParams[idx];
-    return sendTransactionViaWallet(wallet, ENetwork.Local, tokenApproval);
+    const { wallet, network } = additionalParams[idx];
+    return sendTransactionViaWallet(wallet, network, tokenApproval);
   });
   const approvalTxnResponsesResult = await Promise.allSettled(approvalRxnRespPromises);
 

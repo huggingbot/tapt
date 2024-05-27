@@ -34,7 +34,15 @@ export const getTransactions = async (params: Partial<ICreateTransactionParams>,
     return eb.and(filters);
   };
 
-  const transactions = await queryCreator.selectFrom('transaction').selectAll().where(buildExpression).execute();
+  const transactions = await queryCreator
+    .selectFrom('transaction')
+    .innerJoin(
+      (eb) => eb.selectFrom('wallet').select('wallet.chainId').as('wallet'),
+      (join) => join.onRef('transaction.walletId', '=', 'wallet.chainId'),
+    )
+    .selectAll()
+    .where(buildExpression)
+    .execute();
   return transactions;
 };
 

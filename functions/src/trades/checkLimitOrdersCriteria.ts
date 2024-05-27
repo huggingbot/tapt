@@ -7,7 +7,7 @@ import { computePoolAddress, FeeAmount } from '@uniswap/v3-sdk';
 import { ethers } from 'ethers';
 import { ENetwork, EOrderStatus, ILimitOrder, LimitOrderMode } from '../utils/types';
 import { TAPT_API_ENDPOINT, UNISWAP_QUOTER_ADDRESS, V3_UNISWAP_FACTORY_ADDRESS } from '../utils/constants';
-import { getProvider } from '../utils/providers';
+import { fromChainIdToNetwork, getProvider } from '../utils/providers';
 import { logger } from 'firebase-functions';
 import { handleError } from '../utils/responseHandler';
 import { createScheduleFunction } from '../utils/firebase-functions';
@@ -52,22 +52,25 @@ export async function checkLimitOrderCriteria() {
     tokenInput: Token;
     tokenOutput: Token;
     orderMode: LimitOrderMode;
+    network: ENetwork;
   }[] = [];
   // compute TokenPool Addr and get Tokens Details
   const tokensDetailsPromise = orders.map((order) => {
-    const { orderId, buyToken, sellToken, targetPrice, sellAmount, orderMode } = order;
-    const provider = getProvider(ENetwork.Local);
+    const { orderId, buyToken, sellToken, targetPrice, sellAmount, orderMode, chainId } = order;
+
+    const network = fromChainIdToNetwork(chainId);
+    const provider = getProvider(network);
     const tokenOutput = new Token(buyToken.chainId, buyToken.contractAddress, buyToken.decimalPlaces, buyToken.symbol);
     const tokenInput = new Token(sellToken.chainId, sellToken.contractAddress, sellToken.decimalPlaces, sellToken.symbol);
 
     const currentPoolAddress = computePoolAddress({
-      factoryAddress: V3_UNISWAP_FACTORY_ADDRESS[ENetwork.Local],
+      factoryAddress: V3_UNISWAP_FACTORY_ADDRESS[network],
       tokenA: tokenOutput,
       tokenB: tokenInput,
       fee: FeeAmount.MEDIUM,
     });
 
-    additionalParams.push({ orderId, targetPrice, sellAmount, tokenOutput, tokenInput, orderMode });
+    additionalParams.push({ orderId, targetPrice, sellAmount, tokenOutput, tokenInput, orderMode, network });
 
     const poolContract = new ethers.Contract(currentPoolAddress, IUniswapV3PoolABI.abi, provider);
     return Promise.all([poolContract.token0(), poolContract.token1(), poolContract.fee(), poolContract.liquidity(), poolContract.slot0()]);
@@ -79,9 +82,10 @@ export async function checkLimitOrderCriteria() {
     if (result.status === 'rejected' || !result.value) {
       return undefined;
     }
-    const provider = getProvider(ENetwork.Local);
-    const quoterContract = new ethers.Contract(UNISWAP_QUOTER_ADDRESS[ENetwork.Local], QuoterABI.abi, provider);
-    const { tokenInput, tokenOutput, orderMode } = additionalParams[idx];
+
+    const { tokenInput, tokenOutput, orderMode, network } = additionalParams[idx];
+    const provider = getProvider(network);
+    const quoterContract = new ethers.Contract(UNISWAP_QUOTER_ADDRESS[network], QuoterABI.abi, provider);
 
     const decimals = orderMode === 'buy' ? tokenInput.decimals : tokenOutput.decimals;
     const [token0, token1, fee] = result.value;

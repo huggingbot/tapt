@@ -4,12 +4,13 @@ import { logger } from 'firebase-functions';
 import { SwapRoute } from '@uniswap/smart-order-router';
 import { ethers } from 'ethers';
 import { TAPT_API_ENDPOINT } from '../utils/constants';
-import { getProvider } from '../utils/providers';
-import { EOrderStatus, ApiResponse, ILimitOrder, ENetwork, IUpdateOrderRequestBody, TransactionState, ETransactionType } from '../utils/types';
+import { fromChainIdToNetwork, getProvider } from '../utils/providers';
+import { EOrderStatus, ILimitOrder, ENetwork, IUpdateOrderRequestBody, TransactionState, ETransactionType } from '../utils/types';
 import { decrypt } from '../utils/crypto';
 import { generateRoute, executeRoute } from '../utils/routing';
 import { handleError } from '../utils/responseHandler';
 import { createScheduleFunction } from '../utils/firebase-functions';
+import { makeNetworkRequest } from '../utils/networking';
 
 /**
  * This function is responsible for executing the trade which met the trading criteria
@@ -25,41 +26,31 @@ import { createScheduleFunction } from '../utils/firebase-functions';
  * */
 export async function executeTrade() {
   const fetchReadyToExecuteOrderUrl = `${TAPT_API_ENDPOINT}/orders/limit?orderStatus=${EOrderStatus.ExecutionReady}`;
-  let orders: ILimitOrder[] = [];
-  try {
-    const resp = await fetch(fetchReadyToExecuteOrderUrl);
-    const jsonResp = (await resp.json()) as ApiResponse<ILimitOrder[]>;
-
-    if (!jsonResp.success || !jsonResp.data) {
-      throw new Error(`failed to make request. ${jsonResp.message}`);
-    }
-
-    orders = jsonResp.data;
-  } catch (e: unknown) {
-    throw new Error(`Failed to fetch orders from ${fetchReadyToExecuteOrderUrl}. Error: ${(e as Error).message}`);
-  }
+  const orders = await makeNetworkRequest<ILimitOrder[]>(fetchReadyToExecuteOrderUrl);
   logger.debug('orders to be executed', orders);
 
   // additional params which will be shared between promises iterations
   const additionalParams: {
     orderId: number;
     wallet: ethers.Wallet;
+    network: ENetwork;
     route?: SwapRoute;
   }[] = [];
 
   // generating routes
   const routeGenPromises = orders.map((order) => {
-    const provider = getProvider(ENetwork.Local);
-    const { orderId, sellAmount, sellToken, buyToken, encryptedPrivateKey } = order;
+    const { orderId, sellAmount, sellToken, buyToken, encryptedPrivateKey, chainId } = order;
 
+    const network = fromChainIdToNetwork(chainId);
+    const provider = getProvider(network);
     const tokenIn = new Token(buyToken.chainId, buyToken.contractAddress, buyToken.decimalPlaces, buyToken.symbol);
     const tokenOut = new Token(sellToken.chainId, sellToken.contractAddress, sellToken.decimalPlaces, sellToken.symbol);
     const privateKey = decrypt(encryptedPrivateKey);
     const wallet = new ethers.Wallet(privateKey, provider);
 
     // save to additional param for later use
-    additionalParams.push({ orderId, wallet });
-    return generateRoute(wallet, ENetwork.Local, { tokenIn, tokenOut, amount: Number(sellAmount) });
+    additionalParams.push({ orderId, wallet, network });
+    return generateRoute(wallet, network, { tokenIn, tokenOut, amount: Number(sellAmount) });
   });
   const routeGenResult = await Promise.allSettled(routeGenPromises);
 
@@ -69,8 +60,8 @@ export async function executeTrade() {
       return undefined;
     }
     additionalParams[idx] = { ...additionalParams[idx], route: result.value };
-    const { wallet } = additionalParams[idx];
-    return executeRoute(wallet, ENetwork.Local, result.value);
+    const { wallet, network } = additionalParams[idx];
+    return executeRoute(wallet, network, result.value);
   });
   const routeExecResult = await Promise.allSettled(routeExecPromises);
 
@@ -102,13 +93,7 @@ export async function executeTrade() {
         }
       }
       // TODO: replace with BULK_UPDATE instead of multiple updates
-      return fetch(`${TAPT_API_ENDPOINT}/orders/${orderId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      });
+      return makeNetworkRequest(`${TAPT_API_ENDPOINT}/orders/${orderId}`, 'PATCH', body as unknown as Record<string, unknown>);
     }),
   );
   return updateOrderResult;

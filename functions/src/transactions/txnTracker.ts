@@ -1,8 +1,8 @@
 /* eslint-disable max-len */
 import { logger } from 'firebase-functions';
 import { TAPT_API_ENDPOINT } from '../utils/constants';
-import { getProvider } from '../utils/providers';
-import { ENetwork, ETransactionStatus, ITransaction } from '../utils/types';
+import { fromChainIdToNetwork, getProvider } from '../utils/providers';
+import { ETransactionStatus, ITransaction } from '../utils/types';
 import { handleError } from '../utils/responseHandler';
 import { createScheduleFunction } from '../utils/firebase-functions';
 import { makeNetworkRequest } from '../utils/networking';
@@ -40,8 +40,9 @@ async function trackTransaction() {
   const additionalParams: IAdditionalTxnTrackerParams[] = [];
 
   const txnReceiptPromises = txns.map((txn) => {
-    const { transactionHash, orderId, transactionType, id: transactionId } = txn;
-    const provider = getProvider(ENetwork.Local);
+    const { transactionHash, orderId, transactionType, id: transactionId, chainId } = txn;
+    const network = fromChainIdToNetwork(chainId);
+    const provider = getProvider(network);
     additionalParams.push({ orderId, transactionId, transactionType });
     return provider.getTransactionReceipt(transactionHash);
   });

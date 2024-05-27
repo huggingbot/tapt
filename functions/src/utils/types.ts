@@ -27,6 +27,7 @@ export interface ILimitOrder {
   buyAmount: string;
   sellAmount: string;
   orderMode: LimitOrderMode;
+  chainId: number;
   expirationDate?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -38,6 +39,7 @@ export interface ITransaction {
   id: number;
   walletId: number;
   orderId: number;
+  chainId: number;
   fromAddress: string | null;
   toAddress: string | null;
   transactionHash: string;

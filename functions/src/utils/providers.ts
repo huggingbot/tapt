@@ -8,6 +8,15 @@ import { AppConfig } from './constants';
 const mainnetProvider = new ethers.providers.JsonRpcProvider(AppConfig[ENetwork.Mainnet].rpc);
 const polygonProvider = new ethers.providers.JsonRpcProvider(AppConfig[ENetwork.Polygon].rpc);
 
+export function fromChainIdToNetwork(chainId: number): ENetwork {
+  if (chainId === 1) {
+    return ENetwork.Mainnet;
+  } else if (chainId === 137) {
+    return ENetwork.Polygon;
+  }
+  return ENetwork.Local;
+}
+
 /* eslint-disable valid-jsdoc */
 export function getProvider(network: ENetwork): providers.BaseProvider {
   if (network === ENetwork.Local) {

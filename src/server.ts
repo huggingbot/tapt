@@ -1,6 +1,6 @@
 import compression from 'compression';
 import dotenv from 'dotenv';
-import express, { ErrorRequestHandler, NextFunction, RequestHandler } from 'express';
+import express, { RequestHandler } from 'express';
 import helmet from 'helmet';
 import { Server } from 'http';
 import log from 'loglevel';
@@ -57,7 +57,7 @@ export const startServer = async (): Promise<void> => {
   //   res.status(500).send('Something went wrong.');
   // }) as ErrorRequestHandler);
 
-  const port = process.env.PORT || 4040;
+  const port = process.env.PORT || 8080;
 
   http.listen(port, () => {
     log.info(`Node env: ${nodeEnv}`);
