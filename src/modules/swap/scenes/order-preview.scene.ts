@@ -134,7 +134,7 @@ export const createOrderPreviewScene = composeWizardScene(
           balance = BigInt(tokenBalance);
           balance = BigInt(toReadableAmount(balance.toString(), decimals));
         }
-        console.log(`wallet balance (${contract.name}):`, balance);
+
         const [mode, rawAmount] = action.split(/_(.+)/);
         let amountStr = rawAmount.replace(/_/g, '.');
         if (amountStr.endsWith('pct')) {

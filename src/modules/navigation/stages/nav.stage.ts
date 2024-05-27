@@ -11,7 +11,6 @@ import { createWalletNavScene } from '../scenes/wallet.nav.scene';
 export const navStage = [
   createMainNavScene(EScene.MainNav, async (ctx) => {
     const state = ctx.wizard.state;
-    console.log('MainNav');
     switch (state[EWizardProp.Action]) {
       case ENavAction.Wallet:
         ctx.scene.enter(EScene.WalletNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });

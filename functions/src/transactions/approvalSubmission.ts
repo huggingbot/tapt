@@ -52,8 +52,8 @@ export async function submitApprovalTransactions() {
     // save to additionalParams to use the values for later in approval submition
     additionalParams.push({ orderId, wallet, sellAmount, sellToken, network });
 
-    const tokenOutContract = new ethers.Contract(sellToken.contractAddress, ERC20_ABI, provider);
-    const allowance: Promise<BigNumber> = tokenOutContract.allowance(wallet.address, V3_UNISWAP_ROUTER_ADDRESS[network]);
+    const tokenInContract = new ethers.Contract(sellToken.contractAddress, ERC20_ABI, provider);
+    const allowance: Promise<BigNumber> = tokenInContract.allowance(wallet.address, V3_UNISWAP_ROUTER_ADDRESS[network]);
     return allowance;
   });
   const allowanceResult = await Promise.allSettled(allowancePromises);
@@ -68,8 +68,8 @@ export async function submitApprovalTransactions() {
     const amountOut = ethers.utils.parseUnits(sellAmount, sellToken.decimalPlaces);
     const allowance = result.value;
     if (allowance.lt(amountOut)) {
-      const tokenOutContract = new ethers.Contract(sellToken.contractAddress, ERC20_ABI, provider);
-      return tokenOutContract.populateTransaction.approve(
+      const tokenInContract = new ethers.Contract(sellToken.contractAddress, ERC20_ABI, provider);
+      return tokenInContract.populateTransaction.approve(
         V3_UNISWAP_ROUTER_ADDRESS[network],
         fromReadableAmount(Number(sellAmount), sellToken.decimalPlaces).toString(),
       );
@@ -80,7 +80,7 @@ export async function submitApprovalTransactions() {
   const approvalTxnResults = await Promise.allSettled(approvalTxnPromises);
 
   // Send `Approval` Txn
-  const approvalRxnRespPromises = approvalTxnResults.map((result, idx) => {
+  const approvalTxnRespPromises = approvalTxnResults.map((result, idx) => {
     if (result.status === 'rejected' || !result.value) {
       return undefined;
     }
@@ -91,7 +91,7 @@ export async function submitApprovalTransactions() {
     const { wallet, network } = additionalParams[idx];
     return sendTransactionViaWallet(wallet, network, tokenApproval);
   });
-  const approvalTxnResponsesResult = await Promise.allSettled(approvalRxnRespPromises);
+  const approvalTxnResponsesResult = await Promise.allSettled(approvalTxnRespPromises);
 
   // Check `Approval` TXN responses and update the database
   const updateOrdersPromises = approvalTxnResponsesResult.map((result, idx) => {

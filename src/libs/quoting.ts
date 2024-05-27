@@ -51,7 +51,6 @@ export const quoteTokenPrice = async (tokenOut: Token, network: ENetwork, tokenI
   const quoterContract = new ethers.Contract(UNISWAP_QUOTER_ADDRESS[network], Quoter.abi, provider);
   const amountToQuote = amount || '1';
   const immutables = await getPoolImmutables(poolContract);
-  console.log('immutables', immutables);
 
   // we will sell WETH
   if (sellToken.address === wNativeToken.address) {
@@ -97,7 +96,6 @@ export const computeTokenPriceInUSD = async (contract: IWizContractProp, network
   const wNativeToken = WRAPPED_NATIVE_TOKEN[network] as Required<Token>;
   const quotedAmountInWETH = await quoteTokenPrice(token, network, wNativeToken, targetPrice);
   const quotedAmountInWETHStr = ethers.utils.formatUnits(quotedAmountInWETH, wNativeToken.decimals);
-  console.log('quotedAmountInWETHStr', quotedAmountInWETHStr);
 
   const quotedAmountInUSDC = await quoteTokenPrice(wNativeToken, network, USDC_TOKEN, quotedAmountInWETHStr);
   const quotedAmountInUSDCStr = ethers.utils.formatUnits(quotedAmountInUSDC, USDC_TOKEN.decimals);
@@ -110,7 +108,6 @@ export interface ITargetTokenPrice {
 }
 export const quoteTargetTokenPrice = async (contract: IWizContractProp, network: ENetwork, triggerPrice: string): Promise<ITargetTokenPrice> => {
   const { quotedAmountInUSDCStr, quotedAmountInWETHStr } = await computeTokenPriceInUSD(contract, network);
-  console.log('quotedAmountStr', quotedAmountInUSDCStr);
   const USDC_TOKEN = await createUSDCToken(network);
   const wNativeToken = WRAPPED_NATIVE_TOKEN[network] as Required<Token>;
   let quotedAmountUSDC = ethers.utils.parseUnits(quotedAmountInUSDCStr, USDC_TOKEN.decimals);

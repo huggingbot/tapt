@@ -136,7 +136,6 @@ export const createBuyAndSellScene = composeWizardScene(
           const triggerPrice = (state[EWizardProp.TriggerPrice] as string) || (isBuyMode(action) ? '-1%' : '+1%');
           const network = ctx.session.prop[ESessionProp.Chain].network;
           const quotedTargetPrice = await quoteTargetTokenPrice(contract, network, triggerPrice);
-          console.log('quotedTargetPrice', quotedTargetPrice);
           ctx.wizard.state[EWizardProp.TargetPrice] = quotedTargetPrice;
         }
         done();
