@@ -4,6 +4,8 @@ WORKDIR /app
 
 COPY package*.json ./
 
+COPY zksync-web3-nova-* ./
+
 ENV NODE_OPTIONS --max-old-space-size=4096
 
 RUN apk add --no-cache --virtual .gyp \
