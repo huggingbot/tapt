@@ -8,6 +8,7 @@ import { Deunionize } from 'telegraf/typings/core/helpers/deunionize';
 
 import * as walletQueries from '@/database/queries/wallet';
 import { EScene } from '@/modules/bot/constants/bot-scene.constant';
+import { populateWallets } from '../utils';
 
 describe('Import wallet scene', function () {
   let scene: Scenes.WizardScene<IContext>;
@@ -25,7 +26,7 @@ describe('Import wallet scene', function () {
     sessionCtx = {
       prop: {
         chain: { network: ENetwork.Mainnet },
-        wallets: { [ENetwork.Local]: [], [ENetwork.Mainnet]: [], [ENetwork.EthereumSepolia]: [], [ENetwork.Polygon]: [] },
+        wallets: populateWallets(),
       },
       user: { id: 1 },
     };

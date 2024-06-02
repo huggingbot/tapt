@@ -10,6 +10,7 @@ import { AppConfig } from '@/libs/config';
 
 import * as walletQueries from '@/database/queries/wallet';
 import { EScene } from '@/modules/bot/constants/bot-scene.constant';
+import { populateWallets } from '../utils';
 
 describe('Create wallet scene', function () {
   let scene: Scenes.WizardScene<IContext>;
@@ -28,7 +29,7 @@ describe('Create wallet scene', function () {
     sessionCtx = {
       prop: {
         chain: { network: ENetwork.Mainnet },
-        wallets: { [ENetwork.Local]: [], [ENetwork.Mainnet]: [], [ENetwork.EthereumSepolia]: [], [ENetwork.Polygon]: [] },
+        wallets: populateWallets(),
       },
       user: { id: 1 },
     };

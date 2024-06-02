@@ -8,6 +8,7 @@ import { Deunionize } from 'telegraf/typings/core/helpers/deunionize';
 import { getProvider } from '@/libs/providers';
 import { Wallet } from 'ethers';
 import { parseEther } from 'ethers/lib/utils';
+import { populateWallets } from '../utils';
 
 const mockEthersWallet = (address?: string) => ({
   connect: jest.fn().mockImplementation(() => ({
@@ -53,7 +54,7 @@ describe('Fund from single wallet scene', function () {
     sessionCtx = {
       prop: {
         chain: { network: ENetwork.Mainnet },
-        wallets: { [ENetwork.Local]: [], [ENetwork.Mainnet]: [], [ENetwork.EthereumSepolia]: [], [ENetwork.Polygon]: [] },
+        wallets: populateWallets(),
       },
     };
     sceneCtx = { session: { cursor: 0 }, state: {}, enter: jest.fn(), leave: jest.fn() };

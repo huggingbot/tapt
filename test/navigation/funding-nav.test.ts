@@ -10,6 +10,7 @@ import { NATIVE_CURRENCY } from '@/libs/constants';
 import { ENavAction } from '@/modules/bot/constants/bot-action.constant';
 import { EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
 import { EScene } from '@/modules/bot/constants/bot-scene.constant';
+import { populateWallets } from '../utils';
 
 describe('Funding nav scene', function () {
   let scene: Scenes.WizardScene<IContext>;
@@ -27,7 +28,7 @@ describe('Funding nav scene', function () {
     sessionCtx = {
       prop: {
         chain: { network: ENetwork.Mainnet },
-        wallets: { [ENetwork.Local]: [], [ENetwork.Mainnet]: [], [ENetwork.EthereumSepolia]: [], [ENetwork.Polygon]: [] },
+        wallets: populateWallets(),
       },
       user: { id: 1 },
     };

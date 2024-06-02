@@ -6,6 +6,7 @@ import { Deunionize } from 'telegraf/typings/core/helpers/deunionize';
 import { Update, UserFromGetMe } from 'telegraf/types';
 import { Wallet } from 'ethers';
 import { encryptPrivateKey } from '@/utils/crypto';
+import { populateWallets } from '../utils';
 
 describe('Count wallet scene', function () {
   let scene: Scenes.WizardScene<IContext>;
@@ -22,7 +23,7 @@ describe('Count wallet scene', function () {
     sessionCtx = {
       prop: {
         chain: { network: ENetwork.Mainnet },
-        wallets: { [ENetwork.Local]: [], [ENetwork.Mainnet]: [], [ENetwork.EthereumSepolia]: [], [ENetwork.Polygon]: [] },
+        wallets: populateWallets(),
       },
     };
     sceneCtx = { session: { cursor: 0 }, state: {}, enter: jest.fn(), leave: jest.fn() };
