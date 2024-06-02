@@ -1,5 +1,6 @@
+import { ENetwork } from '@/libs/config';
 import { ENavAction } from '@/modules/bot/constants/bot-action.constant';
-import { EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
+import { ESessionProp, EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
 import { EScene } from '@/modules/bot/constants/bot-scene.constant';
 
 import { createBridgeNavScene } from '../scenes/bridge.nav.scene';
@@ -12,6 +13,23 @@ import { createWalletNavScene } from '../scenes/wallet.nav.scene';
 export const navStage = [
   createMainNavScene(EScene.MainNav, async (ctx) => {
     const state = ctx.wizard.state;
+
+    const { network } = ctx.session.prop[ESessionProp.Chain];
+
+    // only allow bridging from local, mainnet and sepolia
+    if (state[EWizardProp.Action] === ENavAction.Bridge && ![ENetwork.Local, ENetwork.Mainnet, ENetwork.EthereumSepolia].includes(network)) {
+      ctx.reply('This feature is only available on mainnet and sepolia network.');
+      ctx.scene.reenter();
+      return;
+    }
+
+    // disable swap module for zk link
+    if (state[EWizardProp.Action] === ENavAction.Swap && [ENetwork.ZkLink].includes(network)) {
+      ctx.reply(`This feature is unavailable on ${network}.`);
+      ctx.scene.reenter();
+      return;
+    }
+
     switch (state[EWizardProp.Action]) {
       case ENavAction.Wallet:
         ctx.scene.enter(EScene.WalletNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });

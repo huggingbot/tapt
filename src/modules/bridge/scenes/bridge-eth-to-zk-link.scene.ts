@@ -3,7 +3,6 @@ import { parseUnits } from 'ethers/lib/utils';
 import log from 'loglevel';
 import { message } from 'telegraf/filters';
 
-import { ENetwork } from '@/libs/config';
 import { WRAPPED_NATIVE_TOKEN } from '@/libs/constants';
 import { fromReadableAmount } from '@/libs/conversion';
 import { getProvider } from '@/libs/providers';
@@ -14,14 +13,7 @@ import { commitTransaction, getEthTransactionFee, getL1Signer } from '@/utils/zk
 import { ETH_ADDRESS, ZkLinkProviderUrl } from '@/utils/zk-link-bridge/constants';
 
 export const createBridgeEthToZkLinkScene = composeWizardScene(
-  async (ctx, done) => {
-    const { network } = ctx.session.prop[ESessionProp.Chain];
-
-    if (![ENetwork.Local, ENetwork.Mainnet, ENetwork.EthereumSepolia].includes(network)) {
-      ctx.reply('This feature is only available on mainnet and sepolia network.');
-      return done();
-    }
-
+  async (ctx) => {
     ctx.reply(
       `Enter the sending wallet address with the amount of ETH to bridge
 
