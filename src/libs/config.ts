@@ -5,6 +5,7 @@ export enum ENetwork {
   Mainnet = 'mainnet',
   EthereumSepolia = 'ethereum sepolia',
   Polygon = 'polygon',
+  ZkLink = 'zk link',
 }
 
 export interface IAppConfig {
@@ -24,9 +25,14 @@ export interface IAppConfig {
     chainId: number;
     rpc: string;
   };
+  [ENetwork.ZkLink]: {
+    chainId: number;
+    rpc: string;
+  };
 }
 
 const LOCAL_FORKED_RPC_URL = process.env.LOCAL_FORKED_RPC_URL || 'https://f018-103-100-175-160.ngrok-free.app';
+
 export const AppConfig: IAppConfig = {
   [ENetwork.Local]: {
     chainId: SupportedChainId.MAINNET,
@@ -43,5 +49,9 @@ export const AppConfig: IAppConfig = {
   [ENetwork.Polygon]: {
     chainId: SupportedChainId.POLYGON,
     rpc: 'https://polygon-mainnet.g.alchemy.com/v2/wPrQvdrfzHVq-S7smKWTCANvAhM6SiZW',
+  },
+  [ENetwork.ZkLink]: {
+    chainId: 810180,
+    rpc: 'https://rpc.zklink.io',
   },
 };

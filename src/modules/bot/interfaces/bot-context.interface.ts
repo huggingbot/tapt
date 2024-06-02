@@ -20,6 +20,7 @@ export interface ExtendedSession extends Scenes.WizardSession<SceneSession> {
       [ENetwork.Mainnet]: TWallet[];
       [ENetwork.EthereumSepolia]: TWallet[];
       [ENetwork.Polygon]: TWallet[];
+      [ENetwork.ZkLink]: TWallet[];
     };
     [ESessionProp.Chain]: { network: ENetwork };
   };

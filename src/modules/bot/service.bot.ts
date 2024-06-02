@@ -54,7 +54,13 @@ export class BotService extends BaseService {
   private getDefaultSession(): ExtendedSession {
     return {
       prop: {
-        [ESessionProp.Wallets]: { [ENetwork.Local]: [], [ENetwork.Mainnet]: [], [ENetwork.EthereumSepolia]: [], [ENetwork.Polygon]: [] },
+        [ESessionProp.Wallets]: {
+          [ENetwork.Local]: [],
+          [ENetwork.Mainnet]: [],
+          [ENetwork.EthereumSepolia]: [],
+          [ENetwork.Polygon]: [],
+          [ENetwork.ZkLink]: [],
+        },
         [ESessionProp.Chain]: { network: ENetwork.Mainnet },
       },
       user: { id: 0, username: '' },
