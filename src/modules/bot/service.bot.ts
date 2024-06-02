@@ -21,6 +21,10 @@ export class BotService extends BaseService {
   private bot: Telegraf<IContext>;
 
   constructor() {
+    if (process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN?.trim().length === 0) {
+      throw new Error('missing token!');
+    }
+
     super('BotService');
     this.bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN as string, {
       telegram: { agent: new Agent({ keepAlive: true, family: 4 }), webhookReply: false },
