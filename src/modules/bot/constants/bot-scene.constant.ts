@@ -21,4 +21,8 @@ export enum EScene {
 
   GetCurrentChain = 'GetCurrentChain',
   SwitchChain = 'SwitchChain',
+
+  // Limit scene
+  SubmitLimitOrder = 'SubmitLimitOrder',
+  PreviewOrder = 'PreviewOrder',
 }

@@ -24,3 +24,4 @@ yarn-error.log*
 documentation/
 
 .eslintrc.js
+functions/

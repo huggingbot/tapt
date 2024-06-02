@@ -1,8 +1,9 @@
 import { V3_UNISWAP_ROUTER_ADDRESS } from '@/libs/constants';
 import { EOrderStatus, EOrderType, ETransactionStatus, ETransactionType, IBasicWallet } from '@/types';
+import { isNumber } from '@/utils/common';
 
 import { db } from '../db';
-import { createOrder, ICreateOrderParams } from './order';
+import { createOrder, ELimitOrderMode, ICreateLimitOrderParams, ICreateOrderParams } from './order';
 import { createTokens, ICreateTokenParams } from './token';
 import { createTransaction, ICreateTransactionParams } from './transaction';
 import { getWallet } from './wallet';
@@ -28,13 +29,14 @@ export const placeSwapOrder = async (basicWallet: IBasicWallet, params: IPlaceSw
     }
     const [inputToken, outputToken] = tokens;
 
-    const completeOrderParam = {
+    const completeOrderParam: ICreateOrderParams = {
       ...orderParam,
       walletId: wallet.id,
       buyTokenId: inputToken.id,
       sellTokenId: outputToken.id,
       orderType: EOrderType.Market,
       orderStatus: EOrderStatus.Active,
+      orderMode: null,
     };
     const order = await createOrder(completeOrderParam, trx);
     if (!order) {
@@ -59,8 +61,62 @@ export const placeSwapOrder = async (basicWallet: IBasicWallet, params: IPlaceSw
   });
 };
 
-export const placeLimitOrder = async () => {
-  // TODO: Implement this function
+export const placeLimitOrder = async (params: {
+  tokenToSell: ICreateTokenParams; // sell token
+  tokenToBuy: ICreateTokenParams; // buy token
+  wallet: IBasicWallet;
+  tradeParam: {
+    buyAmount: number;
+    sellAmount: number;
+    targetPrice: string;
+    expirationDate?: string;
+    orderMode: ELimitOrderMode;
+  };
+}) => {
+  const { tokenToSell, tokenToBuy, wallet, tradeParam } = params;
+  const { buyAmount, sellAmount, targetPrice, expirationDate, orderMode } = tradeParam;
+  if (!isNumber(targetPrice)) {
+    throw new Error('invalid target price');
+  }
+
+  return await db.transaction().execute(async (txn) => {
+    // wallet valiation
+    const w = await getWallet(wallet, txn);
+    if (!w) {
+      throw new Error('Wallet not found');
+    }
+
+    const tokens = await createTokens([tokenToSell, tokenToBuy], txn);
+    if (tokens.length !== 2) {
+      throw new Error('Failed to create tokens');
+    }
+    // in below, we need to re:find the correct token from the `tokens array` we got from `createTokens` func
+    // since `createTokens` func doesn't preserve the input orders, we can't do list destructuring
+    const buyToken = tokens.find((token) => token.contractAddress === tokenToBuy.contractAddress);
+    const sellToken = tokens.find((token) => token.contractAddress === tokenToSell.contractAddress);
+    if (!buyToken || !sellToken) {
+      throw new Error('Failed to get tokens');
+    }
+
+    const newOrder: ICreateLimitOrderParams = {
+      orderType: EOrderType.Limit,
+      orderStatus: EOrderStatus.Submitted,
+      walletId: w.id,
+      buyTokenId: buyToken.id,
+      sellTokenId: sellToken.id,
+      targetPrice: Number(tradeParam.targetPrice),
+      buyAmount,
+      sellAmount,
+      expirationDate,
+      orderMode,
+    };
+    const order = await createOrder(newOrder, txn);
+    if (!order) {
+      throw new Error('failed to create order');
+    }
+
+    return { wallet: w, order };
+  });
 };
 
 export const placeDcaOrder = async () => {

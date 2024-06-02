@@ -1,9 +1,7 @@
-import type { ColumnType } from "kysely";
-import type { IPostgresInterval } from "postgres-interval";
+import type { ColumnType } from 'kysely';
+import type { IPostgresInterval } from 'postgres-interval';
 
-export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
-  ? ColumnType<S, I | undefined, U>
-  : ColumnType<T, T | undefined, T>;
+export type Generated<T> = T extends ColumnType<infer S, infer I, infer U> ? ColumnType<S, I | undefined, U> : ColumnType<T, T | undefined, T>;
 
 export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
 
@@ -23,6 +21,7 @@ export interface Order {
   interval: Interval | null;
   maxPrice: Numeric | null;
   minPrice: Numeric | null;
+  orderMode: string | null;
   orderStatus: string;
   orderType: string;
   sellAmount: Numeric;

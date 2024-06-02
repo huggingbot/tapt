@@ -26,5 +26,5 @@ module.exports = {
     'simple-import-sort/imports': 'warn',
     'simple-import-sort/exports': 'warn',
   },
-  ignorePatterns: ['dist', 'node_modules', 'test'],
+  ignorePatterns: ['dist', 'node_modules', 'test', 'functions'],
 };

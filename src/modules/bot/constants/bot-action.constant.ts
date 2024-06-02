@@ -29,6 +29,10 @@ export enum ENavAction {
   // Chain navigation
   GetCurrentChain = 'Get current chain',
   SwitchChain = 'Switch chain',
+
+  // Order
+  PreviewOrder = 'Preview Order',
+  SubmitOrder = 'Submit Order',
 }
 
 export enum EWalletAction {
@@ -61,4 +65,15 @@ export enum ESwapAction {
   Sell_100 = 'Sell_100pct',
   Sell_X = 'Sell_X',
   ConfirmSwap = 'ConfirmSwap',
+}
+
+export enum EOrderDetails {
+  TriggerPrice = 'Trigger Price',
+  Expiry = 'Expiry',
+}
+
+export enum EOrderType {
+  SwapOrderType = 'Swap',
+  LimitOrderType = 'Limit',
+  DCAOrderType = 'DCA',
 }

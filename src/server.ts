@@ -1,6 +1,6 @@
 import compression from 'compression';
 import dotenv from 'dotenv';
-import express, { ErrorRequestHandler, RequestHandler } from 'express';
+import express, { RequestHandler } from 'express';
 import helmet from 'helmet';
 import { Server } from 'http';
 import log from 'loglevel';
@@ -13,10 +13,11 @@ dotenv.config({
   path: envPath,
 });
 
+import { errors } from 'celebrate';
+
 import apiMiddlewareRouter from './middlewares/api.middleware';
 import { BotService } from './modules/bot';
 import routes from './routes';
-import defaultRoutes from './routes/default';
 
 const nodeEnv = process.env.NODE_ENV || 'development';
 
@@ -43,18 +44,20 @@ export const startServer = async (): Promise<void> => {
   app.use(express.urlencoded({ extended: false })); // parses body
   app.use(express.json()); // parses json
 
-  app.use('/', defaultRoutes);
+  app.use('/', routes);
   app.use('/api', apiMiddlewareRouter);
-  app.use('/api', routes);
 
-  app.use(((err, _req, res) => {
-    if (err instanceof Error) {
-      log.error(err.stack);
-    }
-    res.status(500).send('Something went wrong.');
-  }) as ErrorRequestHandler);
+  app.use(errors());
 
-  const port = process.env.PORT || 4040;
+  // // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // app.use(((err, _req, res, _next: NextFunction) => {
+  //   if (err instanceof Error) {
+  //     log.error(err.stack);
+  //   }
+  //   res.status(500).send('Something went wrong.');
+  // }) as ErrorRequestHandler);
+
+  const port = process.env.PORT || 8080;
 
   http.listen(port, () => {
     log.info(`Node env: ${nodeEnv}`);

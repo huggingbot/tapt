@@ -1,6 +1,6 @@
 import { message } from 'telegraf/filters';
 
-import { ENavAction } from '@/modules/bot/constants/bot-action.constant';
+import { ENavAction, EOrderType } from '@/modules/bot/constants/bot-action.constant';
 import { EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
 import { EScene } from '@/modules/bot/constants/bot-scene.constant';
 import { IWizContractProp } from '@/modules/bot/interfaces/bot-prop.interface';
@@ -8,6 +8,7 @@ import { IWizContractProp } from '@/modules/bot/interfaces/bot-prop.interface';
 import { createBuyAndSellScene } from '../scenes/buy-and-sell.scene';
 import { createExecuteSwapScene } from '../scenes/execute-swap.scene';
 import { createGetSwapTokenScene } from '../scenes/get-swap-token';
+import { createOrderPreviewScene } from '../scenes/order-preview.scene';
 
 export const swapStage = [
   createGetSwapTokenScene(EScene.GetSwapToken, async (ctx) => {
@@ -18,7 +19,7 @@ export const swapStage = [
     if (isStart) {
       ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
     } else if (contract) {
-      ctx.scene.enter(EScene.BuyAndSell, { [EWizardProp.Msg]: state[EWizardProp.Msg], [EWizardProp.Contract]: state[EWizardProp.Contract] });
+      ctx.scene.enter(EScene.BuyAndSell, { ...state });
     } else {
       ctx.scene.enter(EScene.SwapNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
     }
@@ -26,20 +27,35 @@ export const swapStage = [
   createBuyAndSellScene(EScene.BuyAndSell, async (ctx) => {
     const state = ctx.wizard.state;
     const isStart = ctx.has(message('text')) && ctx.message?.text === String(ENavAction.Start);
-
     const contract = state[EWizardProp.Contract] as IWizContractProp;
     const action = state[EWizardProp.Action];
     const activeAddress = state[EWizardProp.ActiveAddress];
+    const orderType = state[EWizardProp.OrderType];
+    const reenterTheScene = state[EWizardProp.ReEnterTheScene];
+    const tokenPriceInUSD = state[EWizardProp.TokenPriceInUSD];
 
     if (isStart) {
       ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
-    } else if (contract && action && activeAddress) {
-      ctx.scene.enter(EScene.ExecuteSwap, {
+    } else if (reenterTheScene) {
+      ctx.scene.enter(EScene.BuyAndSell, {
         [EWizardProp.Msg]: state[EWizardProp.Msg],
         [EWizardProp.Contract]: contract,
         [EWizardProp.Action]: action,
         [EWizardProp.ActiveAddress]: activeAddress,
+        [EWizardProp.OrderType]: orderType,
+        [EWizardProp.TriggerPrice]: state[EWizardProp.TriggerPrice],
+        [EWizardProp.Expiry]: state[EWizardProp.Expiry],
+        [EWizardProp.TokenPriceInUSD]: tokenPriceInUSD,
       });
+    } else if (contract && action && activeAddress) {
+      switch (orderType) {
+        case EOrderType.LimitOrderType:
+          ctx.scene.enter(EScene.PreviewOrder, state);
+          break;
+        case EOrderType.SwapOrderType:
+        default:
+          ctx.scene.enter(EScene.ExecuteSwap, state);
+      }
     } else {
       ctx.scene.enter(EScene.SwapNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
     }
@@ -52,6 +68,21 @@ export const swapStage = [
       ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
     } else {
       ctx.scene.enter(EScene.SwapNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+    }
+  }),
+  createOrderPreviewScene(EScene.PreviewOrder, async (ctx) => {
+    const state = ctx.wizard.state;
+    const isStart = ctx.has(message('text')) && ctx.message?.text === String(ENavAction.Start);
+    const contract = state[EWizardProp.Contract] as IWizContractProp;
+    const action = state[EWizardProp.Action];
+    const activeAddress = state[EWizardProp.ActiveAddress];
+    const orderType = state[EWizardProp.OrderType];
+    if (isStart) {
+      ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+    } else if (contract && action && activeAddress && orderType) {
+      ctx.scene.enter(EScene.BuyAndSell, state);
+    } else {
+      ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
     }
   }),
 ];

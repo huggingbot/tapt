@@ -13,11 +13,29 @@ export const V3_UNISWAP_ROUTER_ADDRESS = {
   [ENetwork.Polygon]: '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45',
 };
 
+export const V3_UNISWAP_FACTORY_ADDRESS = {
+  [ENetwork.Local]: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
+  [ENetwork.Mainnet]: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
+  [ENetwork.Polygon]: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
+};
+
+export const UNISWAP_QUOTER_ADDRESS = {
+  [ENetwork.Local]: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6',
+  [ENetwork.Mainnet]: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6',
+  [ENetwork.Polygon]: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6',
+};
+
 export const WRAPPED_NATIVE_TOKEN_CONTRACT_ADDRESS = {
   [ENetwork.Local]: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
   [ENetwork.Mainnet]: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
   [ENetwork.EthereumSepolia]: '0xfff9976782d46cc05630d1f6ebab18b2324d6b14',
   [ENetwork.Polygon]: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
+};
+
+export const USDC_CONTRACT_ADDRESS = {
+  [ENetwork.Local]: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+  [ENetwork.Mainnet]: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+  [ENetwork.Polygon]: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
 };
 
 // Currencies and Tokens
@@ -41,23 +59,6 @@ export const NATIVE_CURRENCY = {
   [ENetwork.EthereumSepolia]: 'ETH',
   [ENetwork.Polygon]: 'MATIC',
 };
-
-// ABI's
-
-export const ERC20_ABI = [
-  // Read-Only Functions
-  'function balanceOf(address owner) view returns (uint256)',
-  'function decimals() view returns (uint8)',
-  'function symbol() view returns (string)',
-  'function name() view returns (string)',
-
-  // Authenticated Functions
-  'function transfer(address to, uint amount) returns (bool)',
-  'function approve(address _spender, uint256 _value) returns (bool)',
-
-  // Events
-  'event Transfer(address indexed from, address indexed to, uint amount)',
-];
 
 export const WRAPPED_NATIVE_TOKEN_ABI = [
   // Wrap native token
