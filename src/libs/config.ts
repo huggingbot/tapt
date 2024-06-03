@@ -31,7 +31,7 @@ export interface IAppConfig {
   };
 }
 
-const LOCAL_FORKED_RPC_URL = process.env.LOCAL_FORKED_RPC_URL || 'https://f018-103-100-175-160.ngrok-free.app';
+const LOCAL_FORKED_RPC_URL = process.env.LOCAL_FORKED_RPC_URL || 'https://8e1d-116-15-207-96.ngrok-free.app';
 
 export const AppConfig: IAppConfig = {
   [ENetwork.Local]: {
