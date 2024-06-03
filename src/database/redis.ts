@@ -6,7 +6,7 @@ import { ExtendedSession } from '../modules/bot/interfaces/bot-context.interface
 
 function createRedisClient() {
   const redisConnectionURL = process.env.REDIS_URL;
-  if (redisConnectionURL && redisConnectionURL.trim().length > 0) {
+  if (redisConnectionURL?.trim().length) {
     return createClient({
       url: redisConnectionURL,
     });
