@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM --platform=linux/amd64 node:20-alpine
 
 WORKDIR /app
 
@@ -15,5 +15,7 @@ RUN apk add --no-cache --virtual .gyp \
         && npm install && apk del .gyp
 
 COPY . .
+
+EXPOSE 8080
 
 CMD npm run build && npm run prod
