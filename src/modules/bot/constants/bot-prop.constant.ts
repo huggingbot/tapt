@@ -18,6 +18,10 @@ export enum EWizardProp {
   OrderDetailsAction = 'orderDetailsAction',
   ReEnterTheScene = 'reEnterTheScene',
   TradeAmount = 'tradeAmount',
+  DcaDuration = 'dcaDuration',
+  DcaInterval = 'dcaInterval',
+  DcaMinPrice = 'dcaMinPrice',
+  DcaMaxPrice = 'dcaMaxPrice',
 }
 
 export enum EOrderExpiryUnit {

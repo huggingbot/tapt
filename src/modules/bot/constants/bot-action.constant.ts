@@ -72,8 +72,24 @@ export enum EOrderDetails {
   Expiry = 'Expiry',
 }
 
+export enum EDcaOrderKeyboardData {
+  Interval = 'Interval',
+  Duration = 'Duration',
+  MinPrice = 'Min Price',
+  MaxPrice = 'Max Price',
+}
+
 export enum EOrderType {
   SwapOrderType = 'Swap',
   LimitOrderType = 'Limit',
   DCAOrderType = 'DCA',
 }
+
+// default value for trading options (e.g. Expiry, MinPrice, MaxPrice, Duration)
+export const DEFAULT_TRADE_OPTIONS = {
+  DcaDuration: '4d',
+  DcaInterval: '1d',
+  DcaMinPrice: '-1%',
+  DcaMaxPrice: '+1%',
+  LimitExpiry: '1d',
+};

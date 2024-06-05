@@ -52,7 +52,6 @@ export const commitTransaction = async (
       overrides,
     });
 
-    console.log('hash', depositResponse.hash);
     return depositResponse;
   } catch (err) {
     console.error(err);

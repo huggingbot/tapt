@@ -19,7 +19,7 @@ export const swapStage = [
     if (isStart) {
       ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
     } else if (contract) {
-      ctx.scene.enter(EScene.BuyAndSell, { ...state });
+      ctx.scene.enter(EScene.BuyAndSell, state);
     } else {
       ctx.scene.enter(EScene.SwapNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
     }
@@ -32,21 +32,11 @@ export const swapStage = [
     const activeAddress = state[EWizardProp.ActiveAddress];
     const orderType = state[EWizardProp.OrderType];
     const reenterTheScene = state[EWizardProp.ReEnterTheScene];
-    const tokenPriceInUSD = state[EWizardProp.TokenPriceInUSD];
 
     if (isStart) {
       ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
     } else if (reenterTheScene) {
-      ctx.scene.enter(EScene.BuyAndSell, {
-        [EWizardProp.Msg]: state[EWizardProp.Msg],
-        [EWizardProp.Contract]: contract,
-        [EWizardProp.Action]: action,
-        [EWizardProp.ActiveAddress]: activeAddress,
-        [EWizardProp.OrderType]: orderType,
-        [EWizardProp.TriggerPrice]: state[EWizardProp.TriggerPrice],
-        [EWizardProp.Expiry]: state[EWizardProp.Expiry],
-        [EWizardProp.TokenPriceInUSD]: tokenPriceInUSD,
-      });
+      ctx.scene.enter(EScene.BuyAndSell, state);
     } else if (contract && action && activeAddress) {
       switch (orderType) {
         case EOrderType.LimitOrderType:
