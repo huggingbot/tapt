@@ -16,6 +16,6 @@ RUN apk add --no-cache --virtual .gyp \
 
 COPY . .
 
-EXPOSE 8080
+EXPOSE 80
 
 CMD npm run build && npm run prod

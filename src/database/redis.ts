@@ -9,6 +9,9 @@ function createRedisClient() {
   if (redisConnectionURL?.trim().length) {
     return createClient({
       url: redisConnectionURL,
+      socket: {
+        connectTimeout: 30000, // 30s
+      },
     });
   }
   return createClient({
