@@ -17,7 +17,8 @@ import { errors } from 'celebrate';
 
 import apiMiddlewareRouter from './middlewares/api.middleware';
 import { BotService } from './modules/bot';
-import routes from './routes';
+import apiRoutes from './routes/api';
+import defaultRoute from './routes/default';
 
 const nodeEnv = process.env.NODE_ENV || 'development';
 
@@ -44,8 +45,9 @@ export const startServer = async (): Promise<void> => {
   app.use(express.urlencoded({ extended: false })); // parses body
   app.use(express.json()); // parses json
 
-  app.use('/', routes);
+  app.use('/', defaultRoute);
   app.use('/api', apiMiddlewareRouter);
+  app.use('/api', apiRoutes);
 
   app.use(errors());
 
