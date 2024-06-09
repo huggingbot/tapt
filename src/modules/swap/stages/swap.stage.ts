@@ -40,6 +40,7 @@ export const swapStage = [
     } else if (contract && action && activeAddress) {
       switch (orderType) {
         case EOrderType.LimitOrderType:
+        case EOrderType.DCAOrderType:
           ctx.scene.enter(EScene.PreviewOrder, state);
           break;
         case EOrderType.SwapOrderType:

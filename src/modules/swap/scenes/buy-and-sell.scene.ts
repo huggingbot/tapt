@@ -4,7 +4,14 @@ import { callbackQuery, message } from 'telegraf/filters';
 import { InlineKeyboardButton, Message } from 'telegraf/typings/core/types/typegram';
 
 import { quoteTargetTokenPrice } from '@/libs/quoting';
-import { EDcaOrderKeyboardData, ENavAction, EOrderDetails, EOrderType, ESwapAction } from '@/modules/bot/constants/bot-action.constant';
+import {
+  DEFAULT_TRADE_OPTIONS,
+  EDcaOrderKeyboardData,
+  ENavAction,
+  EOrderDetails,
+  EOrderType,
+  ESwapAction,
+} from '@/modules/bot/constants/bot-action.constant';
 import { ESessionProp, EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
 import { IWizContractProp } from '@/modules/bot/interfaces/bot-prop.interface';
 import { composeWizardScene } from '@/modules/bot/utils/scene-factory';
@@ -17,7 +24,7 @@ import {
   presentDcaOrderDetailsQuestion,
   presentLimitOrderDetailsQuestion,
 } from '@/modules/bot/utils/trade-scene-factory';
-import { formatKeyboard, isBuyMode, isDCAOrder, isLimitOrder, isNumber, isSwapOrder, populateBuyModeKeyboardData } from '@/utils/common';
+import { formatKeyboard, isBuyMode, isDCAOrder, isLimitOrder, isSwapOrder, populateBuyModeKeyboardData } from '@/utils/common';
 
 export const createBuyAndSellScene = composeWizardScene(
   async (ctx) => {
@@ -109,6 +116,16 @@ export const createBuyAndSellScene = composeWizardScene(
           const quotedTargetPrice = await quoteTargetTokenPrice(contract, network, triggerPrice);
           ctx.wizard.state[EWizardProp.TargetPrice] = quotedTargetPrice;
         }
+        if (orderType === String(EOrderType.DCAOrderType)) {
+          const contract = state[EWizardProp.Contract] as IWizContractProp;
+          const network = ctx.session.prop[ESessionProp.Chain].network;
+          const minPrice = (state[EWizardProp.DcaMinPrice] as string) || DEFAULT_TRADE_OPTIONS.DcaMinPrice;
+          const finalMinPrice = await quoteTargetTokenPrice(contract, network, minPrice);
+          ctx.wizard.state[EWizardProp.DcaMinPrice] = finalMinPrice;
+          const maxPrice = (state[EWizardProp.DcaMaxPrice] as string) || DEFAULT_TRADE_OPTIONS.DcaMaxPrice;
+          const finalMaxPrice = await quoteTargetTokenPrice(contract, network, maxPrice);
+          ctx.wizard.state[EWizardProp.DcaMaxPrice] = finalMaxPrice;
+        }
         done();
       } else if (ctx.has(callbackQuery('data'))) {
         const cbData = ctx.callbackQuery.data;
@@ -192,7 +209,6 @@ export const createBuyAndSellScene = composeWizardScene(
         ctx.wizard.state[EWizardProp.ReEnterTheScene] = true;
         ctx.wizard.state[EWizardProp.OrderDetailsAction] = undefined;
         ctx.wizard.state[EWizardProp.DoNothing] = undefined;
-        console.log('ctx.wizard.state', ctx.wizard.state);
         // delete the question message and reply after getting details
         ctx.deleteMessage(ctx.message.reply_to_message.message_id);
         ctx.deleteMessage(ctx.message.message_id);

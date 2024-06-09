@@ -103,8 +103,8 @@ export const computeTokenPriceInUSD = async (contract: IWizContractProp, network
 };
 
 export interface ITargetTokenPrice {
-  finalTargetPriceInUSD: string;
-  finalTargetPriceInETH: string;
+  priceInUSD: string;
+  priceInETH: string;
 }
 export const quoteTargetTokenPrice = async (contract: IWizContractProp, network: ENetwork, triggerPrice: string): Promise<ITargetTokenPrice> => {
   const { quotedAmountInUSDCStr, quotedAmountInWETHStr } = await computeTokenPriceInUSD(contract, network);
@@ -130,7 +130,7 @@ export const quoteTargetTokenPrice = async (contract: IWizContractProp, network:
       quotedAmountInWETH = quotedAmountInWETH.add(variationPercentageEth);
     }
   }
-  const finalTargetPriceInUSD = ethers.utils.formatUnits(quotedAmountUSDC, USDC_TOKEN.decimals);
-  const finalTargetPriceInETH = ethers.utils.formatUnits(quotedAmountInWETH, wNativeToken.decimals);
-  return { finalTargetPriceInUSD, finalTargetPriceInETH };
+  const priceInUSD = ethers.utils.formatUnits(quotedAmountUSDC, USDC_TOKEN.decimals);
+  const priceInETH = ethers.utils.formatUnits(quotedAmountInWETH, wNativeToken.decimals);
+  return { priceInUSD, priceInETH };
 };

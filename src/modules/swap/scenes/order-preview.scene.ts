@@ -3,7 +3,7 @@ import { Wallet } from 'ethers';
 import log from 'loglevel';
 import { callbackQuery } from 'telegraf/filters';
 
-import { placeLimitOrder } from '@/database/queries/common';
+import { placeDcaOrder, placeLimitOrder } from '@/database/queries/common';
 import { ELimitOrderMode } from '@/database/queries/order';
 import { ICreateTokenParams } from '@/database/queries/token';
 import { AppConfig } from '@/libs/config';
@@ -12,13 +12,13 @@ import { getErc20CommonProps, getErc20Contract } from '@/libs/contracts';
 import { toReadableAmount } from '@/libs/conversion';
 import { getProvider } from '@/libs/providers';
 import { ITargetTokenPrice } from '@/libs/quoting';
-import { ENavAction } from '@/modules/bot/constants/bot-action.constant';
+import { DEFAULT_TRADE_OPTIONS, ENavAction, EOrderType } from '@/modules/bot/constants/bot-action.constant';
 import { EOrderExpiryUnit, ESessionProp, EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
 import { IContext } from '@/modules/bot/interfaces/bot-context.interface';
 import { IWizContractProp } from '@/modules/bot/interfaces/bot-prop.interface';
 import { composeWizardScene } from '@/modules/bot/utils/scene-factory';
 import { IBasicWallet } from '@/types';
-import { computeOrderExpiryDate, formatKeyboard, isBuyMode, isNumber, resetScene } from '@/utils/common';
+import { computeFinalDateFromInterval, computeMinutesFromIntervalString, formatKeyboard, isBuyMode, isNumber, resetScene } from '@/utils/common';
 import { decryptPrivateKey } from '@/utils/crypto';
 
 export const createOrderPreviewScene = composeWizardScene(
@@ -34,12 +34,23 @@ export const createOrderPreviewScene = composeWizardScene(
     const wallet = state[EWizardProp.ActiveAddress] as string;
     const orderType = state[EWizardProp.OrderType] as string;
     const contract = state[EWizardProp.Contract] as IWizContractProp;
-    const triggerPrice = (state[EWizardProp.TriggerPrice] as string) || (isBuyMode(action) ? '-1%' : '+1%');
-    const orderExpiry = (state[EWizardProp.Expiry] as string) || `1${EOrderExpiryUnit.Day}`;
 
-    const { finalTargetPriceInUSD } = ctx.wizard.state[EWizardProp.TargetPrice] as ITargetTokenPrice;
+    let previewObj;
+    if (orderType === String(EOrderType.LimitOrderType)) {
+      const triggerPrice = (state[EWizardProp.TriggerPrice] as string) || (isBuyMode(action) ? '-1%' : '+1%');
+      const orderExpiry = (state[EWizardProp.Expiry] as string) || `1${EOrderExpiryUnit.Day}`;
 
-    const previewObj = { action, wallet, orderType, targetPrice: `$${finalTargetPriceInUSD} (${triggerPrice})`, orderExpiry, amount: '0' };
+      const { priceInUSD } = ctx.wizard.state[EWizardProp.TargetPrice] as ITargetTokenPrice;
+
+      previewObj = { action, wallet, orderType, targetPrice: `$${priceInUSD} (${triggerPrice})`, orderExpiry, amount: '0' };
+    } else {
+      const interval = (state[EWizardProp.DcaInterval] as string) || DEFAULT_TRADE_OPTIONS.DcaInterval;
+      const duration = (state[EWizardProp.DcaDuration] as string) || DEFAULT_TRADE_OPTIONS.DcaDuration;
+      const { priceInUSD: maxPrice } = state[EWizardProp.DcaMaxPrice] as ITargetTokenPrice;
+      const { priceInUSD: minPrice } = state[EWizardProp.DcaMinPrice] as ITargetTokenPrice;
+      previewObj = { action, wallet, orderType, maxPrice, minPrice, interval, duration, amount: '0' };
+    }
+
     const [mode, rawAmount] = action.split(/_(.+)/);
     const amountStr = rawAmount.replace(/_/g, '.');
     let amount = NaN;
@@ -106,8 +117,6 @@ export const createOrderPreviewScene = composeWizardScene(
         const action = state[EWizardProp.Action] as string;
         const contract = state[EWizardProp.Contract] as IWizContractProp;
         const activeAddress = state[EWizardProp.ActiveAddress] as string;
-        const { finalTargetPriceInETH } = state[EWizardProp.TargetPrice] as ITargetTokenPrice;
-        const orderExpiry = (state[EWizardProp.Expiry] as string) || `1${EOrderExpiryUnit.Day}`;
 
         const network = ctx.session.prop[ESessionProp.Chain].network;
         const wallets = ctx.session.prop[ESessionProp.Wallets][network];
@@ -124,6 +133,7 @@ export const createOrderPreviewScene = composeWizardScene(
         const selectedWallet = new Wallet(privateKey);
         const provider = getProvider(network);
         let balance: bigint;
+
         if (isBuyMode(action)) {
           const rawBalance = await provider.getBalance(selectedWallet.address);
           balance = rawBalance.toBigInt();
@@ -134,7 +144,6 @@ export const createOrderPreviewScene = composeWizardScene(
           balance = BigInt(tokenBalance);
           balance = BigInt(toReadableAmount(balance.toString(), decimals));
         }
-
         const [mode, rawAmount] = action.split(/_(.+)/);
         let amountStr = rawAmount.replace(/_/g, '.');
         if (amountStr.endsWith('pct')) {
@@ -167,9 +176,6 @@ export const createOrderPreviewScene = composeWizardScene(
         // which is the amount that will enter my wallet.
         const amountOut = 0;
         const orderMode = _isBuyMode ? ELimitOrderMode.BUY : ELimitOrderMode.SELL;
-        const orderExpiryDate = computeOrderExpiryDate(orderExpiry);
-        const expirationDate = orderExpiryDate.toISOString();
-        const tradeParam = { sellAmount: amountIn, buyAmount: amountOut, targetPrice: finalTargetPriceInETH, orderMode, expirationDate };
 
         const { name, address, decimals, symbol } = contract;
         const targetToken: ICreateTokenParams = { name, contractAddress: address, symbol, decimalPlaces: decimals, chainId };
@@ -187,9 +193,35 @@ export const createOrderPreviewScene = composeWizardScene(
         const tokenToBuy = _isBuyMode ? targetToken : baseToken;
         const tokenToSell = _isBuyMode ? baseToken : targetToken;
 
-        // save limit order details in db
-        await placeLimitOrder({ tokenToBuy, tokenToSell, tradeParam, wallet: walletParam });
-        await ctx.reply('Limit order submitted successfully!');
+        const orderType = state[EWizardProp.OrderType] as string;
+        if (orderType === String(EOrderType.LimitOrderType)) {
+          const { priceInETH } = state[EWizardProp.TargetPrice] as ITargetTokenPrice;
+          const orderExpiry = (state[EWizardProp.Expiry] as string) || `1${EOrderExpiryUnit.Day}`;
+          const orderExpiryDate = computeFinalDateFromInterval(orderExpiry);
+          const expirationDate = orderExpiryDate.toISOString();
+          const tradeParam = { sellAmount: amountIn, buyAmount: amountOut, targetPrice: priceInETH, orderMode, expirationDate };
+          // save limit order details in db
+          await placeLimitOrder({ tokenToBuy, tokenToSell, tradeParam, wallet: walletParam });
+          await ctx.reply('Limit order submitted successfully!');
+        } else {
+          const { priceInETH: minPriceInETH } = state[EWizardProp.DcaMinPrice] as ITargetTokenPrice;
+          const { priceInETH: maxPriceInETH } = state[EWizardProp.DcaMaxPrice] as ITargetTokenPrice;
+          const interval = computeMinutesFromIntervalString((state[EWizardProp.DcaInterval] as string) || DEFAULT_TRADE_OPTIONS.DcaInterval);
+          const duration = computeMinutesFromIntervalString((state[EWizardProp.DcaDuration] as string) || DEFAULT_TRADE_OPTIONS.DcaDuration);
+          const tradeParam = {
+            sellAmount: amountIn,
+            buyAmount: amountOut,
+            minPrice: Number(minPriceInETH),
+            maxPrice: Number(maxPriceInETH),
+            interval,
+            duration,
+            orderMode,
+          };
+          // save limit order details in db
+          await placeDcaOrder({ tokenToBuy, tokenToSell, tradeParam, wallet: walletParam });
+          await ctx.reply('Limit order submitted successfully!');
+        }
+
         resetScene(ctx);
       } catch (e: unknown) {
         log.error(`error submitting limit order: ${(e as Error).message}`);

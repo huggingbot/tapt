@@ -2,7 +2,7 @@
 
 import { message } from 'telegraf/filters';
 
-import { isDcaPriceThresholdValid, isNumber, isTargetPriceValid, isValidTimeValue } from '@/utils/common';
+import { compareTimeUnitValue, isDcaPriceThresholdValid, isNumber, isTargetPriceValid, isValidTimeValue } from '@/utils/common';
 
 import { DEFAULT_TRADE_OPTIONS, EDcaOrderKeyboardData, EOrderDetails, ESwapAction } from '../constants/bot-action.constant';
 import { EWizardProp } from '../constants/bot-prop.constant';
@@ -35,7 +35,7 @@ export function presentLimitOrderDetailsQuestion(ctx: IContext, callbackData: st
 // Reply user to enter selected trade option
 export function presentDcaOrderDetailsQuestion(ctx: IContext, callbackData: string) {
   // Receive DCA Order details from user
-  const action = callbackData || ESwapAction.BuyMode;
+  const action = ctx.wizard.state[EWizardProp.Action] || ESwapAction.BuyMode;
   const mode = action === String(ESwapAction.Buy_X) ? 'buy' : 'sell';
   let txt = '';
   switch (callbackData) {
@@ -89,6 +89,8 @@ export function getDcaOrderOptionDataFromUserReply(ctx: IContext, action: ESwapA
     return;
   }
   const repliedData = ctx.message.text.toString();
+  const interval = (ctx.wizard.state[EWizardProp.DcaInterval] as string) || DEFAULT_TRADE_OPTIONS.DcaInterval;
+  const duration = (ctx.wizard.state[EWizardProp.DcaDuration] as string) || DEFAULT_TRADE_OPTIONS.DcaDuration;
   const maxPrice = (ctx.wizard.state[EWizardProp.DcaMaxPrice] as string) || DEFAULT_TRADE_OPTIONS.DcaMaxPrice;
   const minPrice = (ctx.wizard.state[EWizardProp.DcaMinPrice] as string) || DEFAULT_TRADE_OPTIONS.DcaMinPrice;
   switch (orderDetailsAction as string) {
@@ -96,12 +98,17 @@ export function getDcaOrderOptionDataFromUserReply(ctx: IContext, action: ESwapA
       if (!isValidTimeValue(repliedData, /(m|h|d)$/)) {
         throw new Error(`Invalid Dca Duration value: ${repliedData}`);
       }
+      if (compareTimeUnitValue(repliedData, interval) < 1) {
+        throw new Error(`Invalid Dca Interval value: ${repliedData}. Duration value must be larger than DCA interval, ${interval}`);
+      }
       ctx.wizard.state[EWizardProp.DcaDuration] = repliedData;
       break;
     case String(EDcaOrderKeyboardData.Interval):
-      console.log('repliedData', repliedData);
       if (!isValidTimeValue(repliedData, /(m|h|d)$/)) {
         throw new Error(`Invalid Dca Interval value: ${repliedData}`);
+      }
+      if (compareTimeUnitValue(repliedData, duration) > 0) {
+        throw new Error(`Invalid Dca Interval value: ${repliedData}. Interval value cannot be larger than or equal to DCA Duration, ${duration}`);
       }
       ctx.wizard.state[EWizardProp.DcaInterval] = repliedData;
       break;

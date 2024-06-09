@@ -170,16 +170,16 @@ export const isValidTimeValue = (rawOrderExpiry: string, allowedTimeUnit?: RegEx
   return finalRgx.test(rawOrderExpiry.trim());
 };
 
-export const computeOrderExpiryDate = (orderExpiryShort: string): Date => {
-  if (!isValidTimeValue(orderExpiryShort)) {
-    throw new Error(`Invalid order expiry value, ${orderExpiryShort}`);
+export const computeFinalDateFromInterval = (interval: string): Date => {
+  if (!isValidTimeValue(interval)) {
+    throw new Error(`Invalid time value, ${interval}`);
   }
   // trim any leading/trailing whitespaces
-  const trimmedOrderExpiryShort = orderExpiryShort.trim();
+  const trimmedOrderExpiryShort = interval.trim();
   const timeUnit = trimmedOrderExpiryShort.slice(-(trimmedOrderExpiryShort.length - 1));
   const timeValue = Number(trimmedOrderExpiryShort.replace(/\D/, ''));
   if (isNaN(timeValue)) {
-    throw new Error(`Invalid order expiry time value, ${orderExpiryShort}`);
+    throw new Error(`Invalid time value, ${interval}`);
   }
   const orderExpiryDate = new Date();
 
@@ -200,8 +200,43 @@ export const computeOrderExpiryDate = (orderExpiryShort: string): Date => {
       orderExpiryDate.setMonth(orderExpiryDate.getMonth() + timeValue);
       break;
     default:
-      throw new Error(`Invalid order expiry value, ${orderExpiryShort}`);
+      throw new Error(`Invalid time value, ${interval}`);
   }
 
   return orderExpiryDate;
+};
+
+export const computeMinutesFromIntervalString = (interval: string): number => {
+  if (!isValidTimeValue(interval)) {
+    throw new Error(`Invalid time value, ${interval}`);
+  }
+
+  // trim any leading/trailing whitespaces
+  const trimmedOrderExpiryShort = interval.trim();
+  const timeUnit = trimmedOrderExpiryShort.slice(-1);
+  const timeValue = Number(trimmedOrderExpiryShort.replace(/\D/g, ''));
+  if (isNaN(timeValue)) {
+    throw new Error(`Invalid time value, ${interval}`);
+  }
+
+  switch (timeUnit) {
+    case String(EOrderExpiryUnit.Minute):
+      return timeValue;
+    case String(EOrderExpiryUnit.Hour):
+      return timeValue * 60;
+    case String(EOrderExpiryUnit.Day):
+      return timeValue * 1440;
+    default:
+      throw new Error(`Invalid time value, ${interval}`);
+  }
+};
+
+export const compareTimeUnitValue = (val1: string, val2: string): -1 | 0 | 1 => {
+  const minuteVal1 = computeMinutesFromIntervalString(val1);
+  const minuteVal2 = computeMinutesFromIntervalString(val2);
+
+  if (minuteVal1 === minuteVal2) {
+    return 0;
+  }
+  return minuteVal1 > minuteVal2 ? 1 : -1;
 };
