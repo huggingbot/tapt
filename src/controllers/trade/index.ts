@@ -9,6 +9,7 @@ export async function getAllOrders(req: Request, res: Response) {
     const { orderType, orderStatus } = req.query;
 
     const getOrderFilters: GetOrdersFilters = {};
+
     if (orderType) {
       getOrderFilters.orderType = orderType as string;
     }
