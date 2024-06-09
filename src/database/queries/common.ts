@@ -35,7 +35,7 @@ export const placeSwapOrder = async (basicWallet: IBasicWallet, params: IPlaceSw
       buyTokenId: inputToken.id,
       sellTokenId: outputToken.id,
       orderType: EOrderType.Market,
-      orderStatus: EOrderStatus.Active,
+      orderStatus: EOrderStatus.Completed,
       orderMode: null,
     };
     const order = await createOrder(completeOrderParam, trx);
@@ -159,7 +159,7 @@ export const placeDcaOrder = async (params: {
       buyTokenId: buyToken.id,
       sellTokenId: sellToken.id,
       orderType: EOrderType.Dca,
-      orderStatus: EOrderStatus.Active,
+      orderStatus: EOrderStatus.Submitted,
       orderMode: null,
     };
 

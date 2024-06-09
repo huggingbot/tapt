@@ -5,7 +5,7 @@ import IUniswapV3PoolABI from '@uniswap/v3-core/artifacts/contracts/interfaces/I
 import QuoterABI from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json';
 import { computePoolAddress, FeeAmount } from '@uniswap/v3-sdk';
 import { ethers } from 'ethers';
-import { ENetwork, EOrderStatus, ILimitOrder, LimitOrderMode } from '../utils/types';
+import { ENetwork, EOrderStatus, ILimitOrder, TradeMode } from '../utils/types';
 import { TAPT_API_ENDPOINT, UNISWAP_QUOTER_ADDRESS, V3_UNISWAP_FACTORY_ADDRESS } from '../utils/constants';
 import { fromChainIdToNetwork, getProvider } from '../utils/providers';
 import { logger } from 'firebase-functions';
@@ -15,12 +15,12 @@ import { makeNetworkRequest } from '../utils/networking';
 
 /**
  * Check if the trade criteria met with the current price and target price
- * @param {LimitOrderMode} orderMode - 'buy' | 'sell'
+ * @param {TradeMode} orderMode - 'buy' | 'sell'
  * @param {number} amountIn - current market price of the token
  * @param {number} targetPrice - targetted price to exectue the trade if met
  * @return {boolean} True if limit order criteria met, otherwise false
  */
-export function isLimitOrderCriteriaMet(orderMode: LimitOrderMode, amountIn: number, targetPrice: number): boolean {
+export function isLimitOrderCriteriaMet(orderMode: TradeMode, amountIn: number, targetPrice: number): boolean {
   return (orderMode === 'buy' && amountIn <= targetPrice) || (orderMode === 'sell' && amountIn >= targetPrice);
 }
 
@@ -51,7 +51,7 @@ export async function checkLimitOrderCriteria() {
     sellAmount: string;
     tokenInput: Token;
     tokenOutput: Token;
-    orderMode: LimitOrderMode;
+    orderMode?: TradeMode;
     network: ENetwork;
   }[] = [];
   // compute TokenPool Addr and get Tokens Details
@@ -107,7 +107,7 @@ export async function checkLimitOrderCriteria() {
       logger.debug(`1 ${baseSymbol} can be swapped for ${amountOut} ${targetSymbol}`);
       logger.debug('=====================');
 
-      if (isLimitOrderCriteriaMet(orderMode, Number(amountOut), targetPrice)) {
+      if (isLimitOrderCriteriaMet(orderMode || 'buy', Number(amountOut), targetPrice)) {
         // send for approval
         logger.debug(`Limit order condition met for order with id, ${orderId}`);
         ordersToBePrcessed.push(orderId);

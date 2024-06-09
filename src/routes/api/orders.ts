@@ -2,8 +2,11 @@ import { celebrate, Joi, Segments } from 'celebrate';
 import { RequestHandler, Router } from 'express';
 
 import { bulkUpdateOrderStatus, getAllActiveLimitOrdersHandler, updateOrderByIdHandler } from '@/controllers/orders';
+import { getAllOrders } from '@/controllers/trade';
 
 const router = Router();
+
+router.get('/', getAllOrders as RequestHandler);
 
 router.get('/limit', getAllActiveLimitOrdersHandler as RequestHandler);
 
