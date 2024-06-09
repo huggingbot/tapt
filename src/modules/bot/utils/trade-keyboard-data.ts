@@ -41,7 +41,6 @@ export function addTradeRelatedKeyboardData(state: TWizardState, existingKeyboar
   } else if (isDCAOrder(orderType)) {
     tradeRelatedKeyboardAction = addDcaOrderKeyboardData(state);
   }
-
   // insert limit order keyboard action (target price and expiry) into keyboard actions array at index 5
   const insertLocation = 5;
   // number of elements to be removed in order to insert limit order keyboard action

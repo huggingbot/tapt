@@ -10,6 +10,7 @@ import { IWizContractProp } from '@/modules/bot/interfaces/bot-prop.interface';
 import { composeWizardScene } from '@/modules/bot/utils/scene-factory';
 import { addTradeRelatedKeyboardData, getWalletKeyboardData } from '@/modules/bot/utils/trade-keyboard-data';
 import {
+  getCustomOrderPriceFromUserReply,
   getDcaOrderOptionDataFromUserReply,
   getLimitOrderOptionDataFromUserReply,
   presentCustomTradeAmountQuestion,
@@ -175,42 +176,35 @@ export const createBuyAndSellScene = composeWizardScene(
     }
   },
   async (ctx, done) => {
-    if (ctx.has(message('reply_to_message', 'text'))) {
-      const orderDetailsAction = ctx.wizard.state[EWizardProp.OrderDetailsAction] as string;
-      const action = (ctx.wizard.state[EWizardProp.Action] as ESwapAction) || ESwapAction.BuyMode;
-      if (orderDetailsAction) {
-        try {
+    try {
+      if (ctx.has(message('reply_to_message', 'text'))) {
+        const orderDetailsAction = ctx.wizard.state[EWizardProp.OrderDetailsAction] as string;
+        const action = (ctx.wizard.state[EWizardProp.Action] as ESwapAction) || ESwapAction.BuyMode;
+        if (orderDetailsAction) {
           if ((Object.values(EOrderDetails) as string[]).includes(orderDetailsAction)) {
             getLimitOrderOptionDataFromUserReply(ctx, action, orderDetailsAction);
           } else if ((Object.values(EDcaOrderKeyboardData) as string[]).includes(orderDetailsAction)) {
             getDcaOrderOptionDataFromUserReply(ctx, action, orderDetailsAction);
           }
-        } catch (e: unknown) {
-          const errMsg = (e as Error).message || 'Something went wrong!';
-          ctx.reply(errMsg);
-          done();
-          return;
-        }
-      } else {
-        const action = ctx.wizard.state[EWizardProp.Action] as string;
-        const customBuySellAmount = ctx.message.text.toLowerCase();
-        if (!isNumber(customBuySellAmount)) {
-          ctx.reply(`Invalid amount, ${customBuySellAmount} entered.`);
-          done();
-          return;
         } else {
-          const [swapMode] = action.split(/_(.+)/);
-          ctx.wizard.state[EWizardProp.Action] = `${swapMode}_${ctx.message.text.toLowerCase()}`;
+          getCustomOrderPriceFromUserReply(ctx);
         }
+        ctx.wizard.state[EWizardProp.ReEnterTheScene] = true;
+        ctx.wizard.state[EWizardProp.OrderDetailsAction] = undefined;
+        ctx.wizard.state[EWizardProp.DoNothing] = undefined;
+        console.log('ctx.wizard.state', ctx.wizard.state);
+        // delete the question message and reply after getting details
+        ctx.deleteMessage(ctx.message.reply_to_message.message_id);
+        ctx.deleteMessage(ctx.message.message_id);
+        done();
+      } else {
+        done();
       }
+    } catch (e: unknown) {
       ctx.wizard.state[EWizardProp.ReEnterTheScene] = true;
-      ctx.wizard.state[EWizardProp.OrderDetailsAction] = undefined;
-      ctx.wizard.state[EWizardProp.DoNothing] = undefined;
-      // delete the question message and reply after getting details
-      ctx.deleteMessage(ctx.message.reply_to_message.message_id);
-      ctx.deleteMessage(ctx.message.message_id);
-      done();
-    } else {
+      ctx.wizard.state[EWizardProp.DoNothing] = true;
+      const errMsg = (e as Error).message || 'Something went wrong!';
+      ctx.reply(errMsg);
       done();
     }
   },

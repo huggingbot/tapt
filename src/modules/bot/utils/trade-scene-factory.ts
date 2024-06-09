@@ -2,9 +2,9 @@
 
 import { message } from 'telegraf/filters';
 
-import { isOrderExpiryValid, isTargetPriceValid } from '@/utils/common';
+import { isDcaPriceThresholdValid, isNumber, isTargetPriceValid, isValidTimeValue } from '@/utils/common';
 
-import { EDcaOrderKeyboardData, EOrderDetails, ESwapAction } from '../constants/bot-action.constant';
+import { DEFAULT_TRADE_OPTIONS, EDcaOrderKeyboardData, EOrderDetails, ESwapAction } from '../constants/bot-action.constant';
 import { EWizardProp } from '../constants/bot-prop.constant';
 import { ORDER_EXPIRY_UNITS_TEXT } from '../constants/bot-reply-constant';
 import { IContext } from '../interfaces/bot-context.interface';
@@ -47,11 +47,11 @@ export function presentDcaOrderDetailsQuestion(ctx: IContext, callbackData: stri
       break;
     case String(EDcaOrderKeyboardData.MinPrice):
       txt = `Enter the minimum price threshold at which to ${mode} the token.`;
-      txt += 'Valid options are % of current price (e.g. -5% or 5%) or a specific price or market cap (e.g. 5.5M mc or 15000 mcap).';
+      txt += 'Valid options are % of current price (e.g. -5% or 5%) or a specific price.';
       break;
     case String(EDcaOrderKeyboardData.MaxPrice):
       txt = `Enter the maximum price threshold at which to ${mode} the token.`;
-      txt += 'Valid options are % of current price (e.g. -5% or 5%) or a specific price or market cap (e.g. 5.5M mc or 15000 mcap).';
+      txt += 'Valid options are % of current price (e.g. -5% or 5%) or a specific price.';
       break;
     default:
       throw new Error(`Invalid DCA Order option: ${callbackData}`);
@@ -62,13 +62,13 @@ export function presentDcaOrderDetailsQuestion(ctx: IContext, callbackData: stri
   ctx.wizard.next();
 }
 
-export async function getLimitOrderOptionDataFromUserReply(ctx: IContext, action: ESwapAction, orderDetailsAction: unknown) {
+export function getLimitOrderOptionDataFromUserReply(ctx: IContext, action: ESwapAction, orderDetailsAction: unknown) {
   if (!ctx.has(message('reply_to_message', 'text'))) {
     return;
   }
   if (orderDetailsAction === String(EOrderDetails.Expiry)) {
     const orderExpiry = ctx.message.text.toString();
-    if (!isOrderExpiryValid(orderExpiry)) {
+    if (!isValidTimeValue(orderExpiry)) {
       throw new Error(`Invalid order expiry, ${orderExpiry}`);
     } else {
       ctx.wizard.state[EWizardProp.Expiry] = ctx.message.text.toString();
@@ -84,25 +84,53 @@ export async function getLimitOrderOptionDataFromUserReply(ctx: IContext, action
   }
 }
 
-export async function getDcaOrderOptionDataFromUserReply(ctx: IContext, action: ESwapAction, orderDetailsAction: unknown) {
+export function getDcaOrderOptionDataFromUserReply(ctx: IContext, action: ESwapAction, orderDetailsAction: unknown) {
   if (!ctx.has(message('reply_to_message', 'text'))) {
     return;
   }
   const repliedData = ctx.message.text.toString();
+  const maxPrice = (ctx.wizard.state[EWizardProp.DcaMaxPrice] as string) || DEFAULT_TRADE_OPTIONS.DcaMaxPrice;
+  const minPrice = (ctx.wizard.state[EWizardProp.DcaMinPrice] as string) || DEFAULT_TRADE_OPTIONS.DcaMinPrice;
   switch (orderDetailsAction as string) {
     case String(EDcaOrderKeyboardData.Duration):
+      if (!isValidTimeValue(repliedData, /(m|h|d)$/)) {
+        throw new Error(`Invalid Dca Duration value: ${repliedData}`);
+      }
       ctx.wizard.state[EWizardProp.DcaDuration] = repliedData;
       break;
     case String(EDcaOrderKeyboardData.Interval):
+      console.log('repliedData', repliedData);
+      if (!isValidTimeValue(repliedData, /(m|h|d)$/)) {
+        throw new Error(`Invalid Dca Interval value: ${repliedData}`);
+      }
       ctx.wizard.state[EWizardProp.DcaInterval] = repliedData;
       break;
     case String(EDcaOrderKeyboardData.MinPrice):
+      if (!isDcaPriceThresholdValid(repliedData, maxPrice)) {
+        throw new Error(`Invalid Dca minimum price: ${repliedData}`);
+      }
       ctx.wizard.state[EWizardProp.DcaMinPrice] = repliedData;
       break;
     case String(EDcaOrderKeyboardData.MaxPrice):
+      if (!isDcaPriceThresholdValid(minPrice, repliedData)) {
+        throw new Error(`Invalid Dca maximum price: ${repliedData}`);
+      }
       ctx.wizard.state[EWizardProp.DcaMaxPrice] = repliedData;
       break;
     default:
       throw new Error(`Invalid Dca Order Option: ${orderDetailsAction as string}`);
   }
+}
+
+export function getCustomOrderPriceFromUserReply(ctx: IContext) {
+  if (!ctx.has(message('reply_to_message', 'text'))) {
+    return;
+  }
+  const action = ctx.wizard.state[EWizardProp.Action] as string;
+  const customBuySellAmount = ctx.message.text.toLowerCase();
+  if (!isNumber(customBuySellAmount)) {
+    throw new Error(`Invalid amount, ${customBuySellAmount} entered.`);
+  }
+  const [swapMode] = action.split(/_(.+)/);
+  ctx.wizard.state[EWizardProp.Action] = `${swapMode}_${ctx.message.text.toLowerCase()}`;
 }

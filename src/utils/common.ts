@@ -134,6 +134,23 @@ export const isTargetPriceValid = (action: unknown, targetPrice: string): boolea
   return num > 0;
 };
 
+export const isDcaPriceThresholdValid = (minPrice: string, maxPrice: string) => {
+  if (!isValidPercentageValue(minPrice) && !isNumber(minPrice)) {
+    return false;
+  }
+
+  if (!isValidPercentageValue(maxPrice) && !isNumber(maxPrice)) {
+    return false;
+  }
+
+  const min = Number(minPrice.trim().replace('%', ''));
+  const max = Number(maxPrice.trim().replace('%', ''));
+  if (min > max) {
+    throw new Error(`Maximum price, ${maxPrice} cannot be lower than minimum price, ${minPrice}`);
+  }
+  return true;
+};
+
 /**
  * verify if the order expiry value from user input is valid
  * valid units
@@ -143,16 +160,18 @@ export const isTargetPriceValid = (action: unknown, targetPrice: string): boolea
  *  - w (week)
  *  - M (month)
  * @param {string} rawOrderExpiry - order expiry raw input
+ * @param {RegExp} allowedTimeUnit - regex to validate timeunit
  * @return {boolean}
  */
-export const isOrderExpiryValid = (rawOrderExpiry: string): boolean => {
+export const isValidTimeValue = (rawOrderExpiry: string, allowedTimeUnit?: RegExp): boolean => {
+  const timeUnitRgx = allowedTimeUnit ?? /(m|h|d|w|M)$/;
+  const finalRgx = new RegExp(/^[0-9]+/.source + timeUnitRgx.source);
   // regex pattern to validate the raw input
-  const rgx = /^[0-9]+(m|h|d|w|M)$/;
-  return rgx.test(rawOrderExpiry.trim());
+  return finalRgx.test(rawOrderExpiry.trim());
 };
 
 export const computeOrderExpiryDate = (orderExpiryShort: string): Date => {
-  if (!isOrderExpiryValid(orderExpiryShort)) {
+  if (!isValidTimeValue(orderExpiryShort)) {
     throw new Error(`Invalid order expiry value, ${orderExpiryShort}`);
   }
   // trim any leading/trailing whitespaces
