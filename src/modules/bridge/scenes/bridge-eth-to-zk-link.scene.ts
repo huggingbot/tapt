@@ -1,5 +1,5 @@
 import { ethers, Wallet } from 'ethers';
-import { parseUnits } from 'ethers/lib/utils';
+import { formatEther, parseUnits } from 'ethers/lib/utils';
 import log from 'loglevel';
 import { message } from 'telegraf/filters';
 
@@ -82,7 +82,7 @@ export const createBridgeEthToZkLinkScene = composeWizardScene(
             const fee = await getEthTransactionFee(l1Signer, wrapperProvider);
             // // fee.l1GasLimit = fee.l1GasLimit.mul(2); // for ERC20 gasLimit mul 2
 
-            ctx.reply(`Bridging ${transferAmount} ETH to ${l2Receiver} in the zkLink network...`);
+            ctx.reply(`Bridging ${formatEther(transferAmount.toString())} ETH to ${l2Receiver} in the zkLink network...`);
 
             const tx = await commitTransaction(
               l1Signer,
@@ -95,7 +95,7 @@ export const createBridgeEthToZkLinkScene = composeWizardScene(
               fee,
             );
 
-            ctx.reply(`Successfully bridged to the zkLink network. Transaction hash: ${tx?.hash}`);
+            ctx.reply(`Bridging to the zkLink network. Transaction hash: ${tx?.hash}`);
           }
         } catch (err) {
           log.error(`Error in createBridgeEthToZkLinkScene: ${String(err)}`);
