@@ -3,7 +3,7 @@ import log from 'loglevel';
 import { callbackQuery, message } from 'telegraf/filters';
 import { InlineKeyboardButton, Message } from 'telegraf/typings/core/types/typegram';
 
-import { quoteTargetTokenPrice } from '@/libs/quoting';
+import { ITargetTokenPrice, quoteTargetTokenPrice } from '@/libs/quoting';
 import {
   DEFAULT_TRADE_OPTIONS,
   EDcaOrderKeyboardData,
@@ -31,7 +31,7 @@ export const createBuyAndSellScene = composeWizardScene(
     const state = ctx.wizard.state;
     const msg = state[EWizardProp.Msg] as Message.TextMessage | undefined;
     const contract = state[EWizardProp.Contract] as IWizContractProp;
-    const tokenPriceInUSD = (state[EWizardProp.TokenPriceInUSD] as string) || '_unknown_';
+    const targetTokenPrice = state[EWizardProp.TokenPrice] as ITargetTokenPrice;
 
     const shouldDoNothing = state[EWizardProp.DoNothing];
 
@@ -88,7 +88,8 @@ export const createBuyAndSellScene = composeWizardScene(
       }
     } else {
       ctx.reply(
-        `${contract?.name} ($${tokenPriceInUSD})\n----------------------------------------------------------------------------------------------------`,
+        `${contract?.name} ($${targetTokenPrice.priceInUSD})\n1 ${contract.symbol} = ${targetTokenPrice.priceInETH} ETH
+        \n----------------------------------------------------------------------------------------------------`,
         formatKeyboard(keyboardData),
       );
       ctx.wizard.next();
@@ -219,6 +220,7 @@ export const createBuyAndSellScene = composeWizardScene(
     } catch (e: unknown) {
       ctx.wizard.state[EWizardProp.ReEnterTheScene] = true;
       ctx.wizard.state[EWizardProp.DoNothing] = true;
+      ctx.wizard.state[EWizardProp.OrderDetailsAction] = undefined;
       const errMsg = (e as Error).message || 'Something went wrong!';
       ctx.reply(errMsg);
       done();

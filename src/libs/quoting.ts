@@ -68,38 +68,26 @@ export const computeTokenPriceInUSD = async (contract: IWizContractProp, network
   const chainId = AppConfig[network].chainId;
   const token = new Token(chainId, contract.address, contract.decimals, contract.symbol, contract.name);
   const USDC_TOKEN = await createUSDCToken(network);
-
-  // if target contract is already USDC and we're just looking for USD value of 1 USDC,
-  // we can just return the amount, since USDC has 1:1 with US Dollars
-  if (USDC_TOKEN.address === token.address) {
-    if (targetPrice?.trim().endsWith('%')) {
-      if (!isValidPercentageValue(targetPrice)) {
-        throw new Error(`Invalid target price, ${targetPrice}`);
-      }
-      const pctNum = Number(targetPrice.trim().replace('%', ''));
-      const variedVal = 1 + 1 / pctNum;
-      return {
-        quotedAmountInUSDCStr: variedVal.toString(),
-        quotedAmountInWETHStr: variedVal.toString(),
-      };
-    }
-    return {
-      quotedAmountInUSDCStr: targetPrice || '1',
-      quotedAmountInWETHStr: targetPrice || '1',
-    };
-  }
+  const wNativeToken = WRAPPED_NATIVE_TOKEN[network] as Required<Token>;
 
   // compute token price in USD by converting ETH to USD
   // for e.g. if we want to know WTBC token price in USD
   //    WBTC -> WETH = 21.56 WETH
   //   21.56 WETH -> USDC = ???
-  const wNativeToken = WRAPPED_NATIVE_TOKEN[network] as Required<Token>;
   const quotedAmountInWETH = await quoteTokenPrice(token, network, wNativeToken, targetPrice);
   const quotedAmountInWETHStr = ethers.utils.formatUnits(quotedAmountInWETH, wNativeToken.decimals);
 
-  const quotedAmountInUSDC = await quoteTokenPrice(wNativeToken, network, USDC_TOKEN, quotedAmountInWETHStr);
-  const quotedAmountInUSDCStr = ethers.utils.formatUnits(quotedAmountInUSDC, USDC_TOKEN.decimals);
-  return { quotedAmountInUSDCStr, quotedAmountInWETHStr };
+  // if target contract is already USDC and we're just looking for USD value of 1 USDC,
+  // we can just return the amount, since USDC has 1:1 with US Dollars
+  let quotedAmountInUSDCStr;
+  if (USDC_TOKEN.address === token.address) {
+    quotedAmountInUSDCStr = targetPrice || '1';
+  } else {
+    const quotedAmountInUSDC = await quoteTokenPrice(wNativeToken, network, USDC_TOKEN, quotedAmountInWETHStr);
+    quotedAmountInUSDCStr = ethers.utils.formatUnits(quotedAmountInUSDC, USDC_TOKEN.decimals);
+  }
+
+  return { priceInUSD: quotedAmountInUSDCStr, priceInETH: quotedAmountInWETHStr };
 };
 
 export interface ITargetTokenPrice {
@@ -107,7 +95,7 @@ export interface ITargetTokenPrice {
   priceInETH: string;
 }
 export const quoteTargetTokenPrice = async (contract: IWizContractProp, network: ENetwork, triggerPrice: string): Promise<ITargetTokenPrice> => {
-  const { quotedAmountInUSDCStr, quotedAmountInWETHStr } = await computeTokenPriceInUSD(contract, network);
+  const { priceInUSD: quotedAmountInUSDCStr, priceInETH: quotedAmountInWETHStr } = await computeTokenPriceInUSD(contract, network);
   const USDC_TOKEN = await createUSDCToken(network);
   const wNativeToken = WRAPPED_NATIVE_TOKEN[network] as Required<Token>;
   let quotedAmountUSDC = ethers.utils.parseUnits(quotedAmountInUSDCStr, USDC_TOKEN.decimals);

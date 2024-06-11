@@ -139,5 +139,5 @@ export function getCustomOrderPriceFromUserReply(ctx: IContext) {
     throw new Error(`Invalid amount, ${customBuySellAmount} entered.`);
   }
   const [swapMode] = action.split(/_(.+)/);
-  ctx.wizard.state[EWizardProp.Action] = `${swapMode}_${ctx.message.text.toLowerCase()}`;
+  ctx.wizard.state[EWizardProp.Action] = `${swapMode}_${customBuySellAmount}`;
 }

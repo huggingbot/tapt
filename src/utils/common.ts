@@ -176,7 +176,7 @@ export const computeFinalDateFromInterval = (interval: string): Date => {
   }
   // trim any leading/trailing whitespaces
   const trimmedOrderExpiryShort = interval.trim();
-  const timeUnit = trimmedOrderExpiryShort.slice(-(trimmedOrderExpiryShort.length - 1));
+  const timeUnit = trimmedOrderExpiryShort.slice(-1);
   const timeValue = Number(trimmedOrderExpiryShort.replace(/\D/, ''));
   if (isNaN(timeValue)) {
     throw new Error(`Invalid time value, ${interval}`);
