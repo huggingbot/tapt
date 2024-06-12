@@ -112,7 +112,9 @@ export const createBuyAndSellScene = composeWizardScene(
         const orderType = state[EWizardProp.OrderType] as string;
         if (orderType === String(EOrderType.LimitOrderType)) {
           const contract = state[EWizardProp.Contract] as IWizContractProp;
-          const triggerPrice = (state[EWizardProp.TriggerPrice] as string) || (isBuyMode(action) ? '-1%' : '+1%');
+          const triggerPrice =
+            (state[EWizardProp.TriggerPrice] as string) ||
+            (isBuyMode(action) ? DEFAULT_TRADE_OPTIONS.LimitBuyTriggerPrice : DEFAULT_TRADE_OPTIONS.LimitSellTriggerPrice);
           const network = ctx.session.prop[ESessionProp.Chain].network;
           const quotedTargetPrice = await quoteTargetTokenPrice(contract, network, triggerPrice);
           ctx.wizard.state[EWizardProp.TargetPrice] = quotedTargetPrice;
@@ -121,11 +123,19 @@ export const createBuyAndSellScene = composeWizardScene(
           const contract = state[EWizardProp.Contract] as IWizContractProp;
           const network = ctx.session.prop[ESessionProp.Chain].network;
           const minPrice = (state[EWizardProp.DcaMinPrice] as string) || DEFAULT_TRADE_OPTIONS.DcaMinPrice;
-          const finalMinPrice = await quoteTargetTokenPrice(contract, network, minPrice);
-          ctx.wizard.state[EWizardProp.DcaMinPrice] = finalMinPrice;
+          let finalMinPriceInEth = minPrice;
+          const { priceInETH: minPriceInETH, priceInUSD: maxPriceInUSD } = await quoteTargetTokenPrice(contract, network, minPrice);
+          if (finalMinPriceInEth.endsWith('%')) {
+            finalMinPriceInEth = minPriceInETH;
+          }
+          ctx.wizard.state[EWizardProp.DcaMinPrice] = { priceInUSD: maxPriceInUSD, priceInETH: finalMinPriceInEth };
           const maxPrice = (state[EWizardProp.DcaMaxPrice] as string) || DEFAULT_TRADE_OPTIONS.DcaMaxPrice;
-          const finalMaxPrice = await quoteTargetTokenPrice(contract, network, maxPrice);
-          ctx.wizard.state[EWizardProp.DcaMaxPrice] = finalMaxPrice;
+          let finalMaxPriceInETH = maxPrice;
+          const { priceInETH: maxPriceInEth, priceInUSD: maxPriceInUsd } = await quoteTargetTokenPrice(contract, network, maxPrice);
+          if (finalMaxPriceInETH.trim().endsWith('%')) {
+            finalMaxPriceInETH = maxPriceInEth;
+          }
+          ctx.wizard.state[EWizardProp.DcaMaxPrice] = { priceInUSD: maxPriceInUsd, priceInETH: finalMaxPriceInETH };
         }
         done();
       } else if (ctx.has(callbackQuery('data'))) {

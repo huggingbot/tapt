@@ -82,9 +82,8 @@ export const getOrders = async (filters?: GetOrdersFilters, trx?: Transaction<DB
   }
   if (filters?.orderStatus) {
     if (filters.orderStatus === String(EOrderStatus.Active)) {
-      query = query.where((eb) =>
-        eb.or([eb('order.orderStatus', '!=', String(EOrderStatus.Completed)), eb('order.orderStatus', '!=', String(EOrderStatus.Expired))]),
-      );
+      const notActiveOrderStatus = [EOrderStatus.Completed, EOrderStatus.Expired, EOrderStatus.Filled] as string[];
+      query = query.where('order.orderStatus', 'not in', notActiveOrderStatus);
     } else {
       query = query.where('order.orderStatus', '=', filters.orderStatus);
     }

@@ -92,4 +92,6 @@ export const DEFAULT_TRADE_OPTIONS = {
   DcaMinPrice: '-1%',
   DcaMaxPrice: '+1%',
   LimitExpiry: '1d',
+  LimitBuyTriggerPrice: '-1%',
+  LimitSellTriggerPrice: '+1%',
 };

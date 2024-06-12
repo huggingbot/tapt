@@ -13,7 +13,7 @@ import { toReadableAmount } from '@/libs/conversion';
 import { getProvider } from '@/libs/providers';
 import { ITargetTokenPrice } from '@/libs/quoting';
 import { DEFAULT_TRADE_OPTIONS, ENavAction, EOrderType } from '@/modules/bot/constants/bot-action.constant';
-import { EOrderExpiryUnit, ESessionProp, EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
+import { ESessionProp, EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
 import { IContext } from '@/modules/bot/interfaces/bot-context.interface';
 import { IWizContractProp } from '@/modules/bot/interfaces/bot-prop.interface';
 import { composeWizardScene } from '@/modules/bot/utils/scene-factory';
@@ -37,8 +37,10 @@ export const createOrderPreviewScene = composeWizardScene(
 
     let previewObj;
     if (orderType === String(EOrderType.LimitOrderType)) {
-      const triggerPrice = (state[EWizardProp.TriggerPrice] as string) || (isBuyMode(action) ? '-1%' : '+1%');
-      const orderExpiry = (state[EWizardProp.Expiry] as string) || `1${EOrderExpiryUnit.Day}`;
+      const triggerPrice =
+        (state[EWizardProp.TriggerPrice] as string) ||
+        (isBuyMode(action) ? DEFAULT_TRADE_OPTIONS.LimitBuyTriggerPrice : DEFAULT_TRADE_OPTIONS.LimitSellTriggerPrice);
+      const orderExpiry = (state[EWizardProp.Expiry] as string) || DEFAULT_TRADE_OPTIONS.LimitExpiry;
 
       const { priceInUSD } = ctx.wizard.state[EWizardProp.TargetPrice] as ITargetTokenPrice;
 
@@ -196,7 +198,7 @@ export const createOrderPreviewScene = composeWizardScene(
         const orderType = state[EWizardProp.OrderType] as string;
         if (orderType === String(EOrderType.LimitOrderType)) {
           const { priceInETH } = state[EWizardProp.TargetPrice] as ITargetTokenPrice;
-          const orderExpiry = (state[EWizardProp.Expiry] as string) || `1${EOrderExpiryUnit.Day}`;
+          const orderExpiry = (state[EWizardProp.Expiry] as string) || DEFAULT_TRADE_OPTIONS.LimitExpiry;
           const orderExpiryDate = computeFinalDateFromInterval(orderExpiry);
           const expirationDate = orderExpiryDate.toISOString();
           const tradeParam = { sellAmount: amountIn, buyAmount: amountOut, targetPrice: priceInETH, orderMode, expirationDate };

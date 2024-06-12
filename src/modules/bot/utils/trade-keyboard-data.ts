@@ -51,8 +51,10 @@ export function addTradeRelatedKeyboardData(state: TWizardState, existingKeyboar
 // add Limit Order related Keyboard data
 function addLimitOrderKeyboardData(state: TWizardState) {
   const action = state[EWizardProp.Action];
-  const triggerPrice = (state[EWizardProp.TriggerPrice] as string) || (isBuyMode(action) ? '-1%' : '+1%');
-  const orderExpiry = (state[EWizardProp.Expiry] as string) || '1d';
+  const triggerPrice =
+    (state[EWizardProp.TriggerPrice] as string) ||
+    (isBuyMode(action) ? DEFAULT_TRADE_OPTIONS.LimitBuyTriggerPrice : DEFAULT_TRADE_OPTIONS.LimitSellTriggerPrice);
+  const orderExpiry = (state[EWizardProp.Expiry] as string) || DEFAULT_TRADE_OPTIONS.LimitExpiry;
   const limitOrderKeyboardAction = [
     [
       { text: `(${triggerPrice}) ${EOrderDetails.TriggerPrice}`, callback_data: EOrderDetails.TriggerPrice },
