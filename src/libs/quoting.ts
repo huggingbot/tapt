@@ -5,7 +5,6 @@ import { computePoolAddress, FeeAmount } from '@uniswap/v3-sdk';
 import { ethers } from 'ethers';
 
 import { IWizContractProp } from '@/modules/bot/interfaces/bot-prop.interface';
-import { isValidPercentageValue } from '@/utils/common';
 
 import { AppConfig, ENetwork } from './config';
 import { UNISWAP_QUOTER_ADDRESS, USDC_CONTRACT_ADDRESS, V3_UNISWAP_FACTORY_ADDRESS, WRAPPED_NATIVE_TOKEN } from './constants';
