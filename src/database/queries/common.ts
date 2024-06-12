@@ -35,7 +35,7 @@ export const placeSwapOrder = async (basicWallet: IBasicWallet, params: IPlaceSw
       buyTokenId: inputToken.id,
       sellTokenId: outputToken.id,
       orderType: EOrderType.Market,
-      orderStatus: EOrderStatus.Active,
+      orderStatus: EOrderStatus.Completed,
       orderMode: null,
     };
     const order = await createOrder(completeOrderParam, trx);
@@ -119,6 +119,55 @@ export const placeLimitOrder = async (params: {
   });
 };
 
-export const placeDcaOrder = async () => {
-  // TODO: Implement this function
+export const placeDcaOrder = async (params: {
+  tokenToSell: ICreateTokenParams; // sell token
+  tokenToBuy: ICreateTokenParams; // buy token
+  wallet: IBasicWallet;
+  tradeParam: {
+    buyAmount: number;
+    sellAmount: number;
+    maxPrice: number;
+    minPrice: number;
+    interval: number;
+    duration: number;
+    orderMode: ELimitOrderMode;
+  };
+}) => {
+  const { tokenToSell, tokenToBuy, wallet, tradeParam } = params;
+
+  return await db.transaction().execute(async (txn) => {
+    const w = await getWallet(wallet, txn);
+    if (!w) {
+      throw new Error('Wallet not found');
+    }
+
+    const tokens = await createTokens([tokenToSell, tokenToBuy], txn);
+    if (tokens.length !== 2) {
+      throw new Error('Failed to create tokens');
+    }
+    // in below, we need to re:find the correct token from the `tokens array` we got from `createTokens` func
+    // since `createTokens` func doesn't preserve the input orders, we can't do list destructuring
+    const buyToken = tokens.find((token) => token.contractAddress === tokenToBuy.contractAddress);
+    const sellToken = tokens.find((token) => token.contractAddress === tokenToSell.contractAddress);
+    if (!buyToken || !sellToken) {
+      throw new Error('Failed to get tokens');
+    }
+
+    const newOrder: ICreateOrderParams = {
+      ...tradeParam,
+      walletId: w.id,
+      buyTokenId: buyToken.id,
+      sellTokenId: sellToken.id,
+      orderType: EOrderType.Dca,
+      orderStatus: EOrderStatus.Submitted,
+      orderMode: null,
+    };
+
+    const order = await createOrder(newOrder, txn);
+    if (!order) {
+      throw new Error('failed to create order');
+    }
+
+    return { wallet: w, order };
+  });
 };

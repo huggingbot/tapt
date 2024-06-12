@@ -8,7 +8,7 @@ export enum EWizardProp {
   Msg = 'msg',
   Reentering = 'reentering',
   Contract = 'contract',
-  TokenPriceInUSD = 'tokenPriceInUSD',
+  TokenPrice = 'tokenPrice',
   ActiveAddress = 'activeAddress',
   DoNothing = 'doNothing',
   OrderType = 'orderType',
@@ -18,6 +18,10 @@ export enum EWizardProp {
   OrderDetailsAction = 'orderDetailsAction',
   ReEnterTheScene = 'reEnterTheScene',
   TradeAmount = 'tradeAmount',
+  DcaDuration = 'dcaDuration',
+  DcaInterval = 'dcaInterval',
+  DcaMinPrice = 'dcaMinPrice',
+  DcaMaxPrice = 'dcaMaxPrice',
 }
 
 export enum EOrderExpiryUnit {

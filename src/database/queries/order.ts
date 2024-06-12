@@ -1,6 +1,8 @@
 import { ExpressionBuilder, Transaction } from 'kysely';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
 
+import { EOrderStatus } from '@/types';
+
 import { db } from '../db';
 import { DB, Order as DBOrder } from '../gen-types';
 
@@ -79,7 +81,12 @@ export const getOrders = async (filters?: GetOrdersFilters, trx?: Transaction<DB
     query = query.where('order.orderType', '=', filters.orderType);
   }
   if (filters?.orderStatus) {
-    query = query.where('order.orderStatus', '=', filters.orderStatus);
+    if (filters.orderStatus === String(EOrderStatus.Active)) {
+      const notActiveOrderStatus = [EOrderStatus.Completed, EOrderStatus.Expired, EOrderStatus.Filled] as string[];
+      query = query.where('order.orderStatus', 'not in', notActiveOrderStatus);
+    } else {
+      query = query.where('order.orderStatus', '=', filters.orderStatus);
+    }
   }
 
   const orders = await query.selectAll().execute();

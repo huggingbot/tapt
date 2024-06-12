@@ -44,10 +44,9 @@ export const createGetSwapTokenScene = composeWizardScene(
             const contract: IWizContractProp = { name, symbol, decimals, address };
             ctx.reply('Computing token price...');
             const tokenPrice = await computeTokenPriceInUSD(contract, network);
-
             ctx.wizard.state[EWizardProp.Contract] = contract;
             ctx.wizard.state[EWizardProp.Msg] = ctx.message;
-            ctx.wizard.state[EWizardProp.TokenPriceInUSD] = tokenPrice.quotedAmountInUSDCStr;
+            ctx.wizard.state[EWizardProp.TokenPrice] = tokenPrice;
             done();
           }
         }

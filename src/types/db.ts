@@ -6,6 +6,7 @@ export enum EOrderType {
 
 export enum EOrderStatus {
   Active = 'ACTIVE',
+  Expired = 'EXPIRED',
   Pending = 'PENDING',
   PartiallyFilled = 'PARTIALLY_FILLED',
   Filled = 'FILLED',

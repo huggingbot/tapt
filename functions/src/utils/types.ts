@@ -5,7 +5,7 @@ export interface IToken {
   decimalPlaces: number;
 }
 
-export type LimitOrderMode = 'buy' | 'sell';
+export type TradeMode = 'buy' | 'sell';
 
 export enum TransactionState {
   Failed = 'Failed',
@@ -15,24 +15,35 @@ export enum TransactionState {
   Sent = 'Sent',
 }
 
-export interface ILimitOrder {
+export interface IBaseOrder {
   orderId: number;
   walletId: number;
+  chainId: number;
   walletAddress: string;
   encryptedPrivateKey: string;
-  buyToken: IToken;
-  sellToken: IToken;
   orderStatus: string;
-  targetPrice: number;
   buyAmount: string;
   sellAmount: string;
-  orderMode: LimitOrderMode;
-  chainId: number;
-  expirationDate?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  sellToken: IToken;
+  buyToken: IToken;
   transactionHash: null | string;
   transactionType: null | string;
+  orderType: EOrderType;
+  orderMode?: TradeMode;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ILimitOrder extends IBaseOrder {
+  targetPrice: number;
+  expirationDate?: string;
+}
+
+export interface IDcaOrder extends IBaseOrder {
+  maxPrice: number;
+  minPrice: number;
+  interval: number;
+  duration: number;
 }
 
 export interface ITransaction {
@@ -94,8 +105,15 @@ export interface IAppConfig {
   };
 }
 
+export enum EOrderType {
+  Market = 'market',
+  Limit = 'limit',
+  Dca = 'dca',
+}
+
 // order status
 export enum EOrderStatus {
+  Active = 'ACTIVE',
   // initial state of the limit order
   Submitted = 'ORDER_SUBMITTED',
   // after submitting approval txn
@@ -109,4 +127,5 @@ export enum EOrderStatus {
   // after order has been executed successfully
   Completed = 'ORDER_COMPLETED',
   Failed = 'FAILED',
+  Expired = 'EXPIRED',
 }

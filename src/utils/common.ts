@@ -134,6 +134,23 @@ export const isTargetPriceValid = (action: unknown, targetPrice: string): boolea
   return num > 0;
 };
 
+export const isDcaPriceThresholdValid = (minPrice: string, maxPrice: string) => {
+  if (!isValidPercentageValue(minPrice) && !isNumber(minPrice)) {
+    return false;
+  }
+
+  if (!isValidPercentageValue(maxPrice) && !isNumber(maxPrice)) {
+    return false;
+  }
+
+  const min = Number(minPrice.trim().replace('%', ''));
+  const max = Number(maxPrice.trim().replace('%', ''));
+  if (min > max) {
+    throw new Error(`Maximum price, ${maxPrice} cannot be lower than minimum price, ${minPrice}`);
+  }
+  return true;
+};
+
 /**
  * verify if the order expiry value from user input is valid
  * valid units
@@ -143,24 +160,26 @@ export const isTargetPriceValid = (action: unknown, targetPrice: string): boolea
  *  - w (week)
  *  - M (month)
  * @param {string} rawOrderExpiry - order expiry raw input
+ * @param {RegExp} allowedTimeUnit - regex to validate timeunit
  * @return {boolean}
  */
-export const isOrderExpiryValid = (rawOrderExpiry: string): boolean => {
+export const isValidTimeValue = (rawOrderExpiry: string, allowedTimeUnit?: RegExp): boolean => {
+  const timeUnitRgx = allowedTimeUnit ?? /(m|h|d|w|M)$/;
+  const finalRgx = new RegExp(/^[0-9]+/.source + timeUnitRgx.source);
   // regex pattern to validate the raw input
-  const rgx = /^[0-9]+(m|h|d|w|M)$/;
-  return rgx.test(rawOrderExpiry.trim());
+  return finalRgx.test(rawOrderExpiry.trim());
 };
 
-export const computeOrderExpiryDate = (orderExpiryShort: string): Date => {
-  if (!isOrderExpiryValid(orderExpiryShort)) {
-    throw new Error(`Invalid order expiry value, ${orderExpiryShort}`);
+export const computeFinalDateFromInterval = (interval: string): Date => {
+  if (!isValidTimeValue(interval)) {
+    throw new Error(`Invalid time value, ${interval}`);
   }
   // trim any leading/trailing whitespaces
-  const trimmedOrderExpiryShort = orderExpiryShort.trim();
-  const timeUnit = trimmedOrderExpiryShort.slice(-(trimmedOrderExpiryShort.length - 1));
+  const trimmedOrderExpiryShort = interval.trim();
+  const timeUnit = trimmedOrderExpiryShort.slice(-1);
   const timeValue = Number(trimmedOrderExpiryShort.replace(/\D/, ''));
   if (isNaN(timeValue)) {
-    throw new Error(`Invalid order expiry time value, ${orderExpiryShort}`);
+    throw new Error(`Invalid time value, ${interval}`);
   }
   const orderExpiryDate = new Date();
 
@@ -181,8 +200,43 @@ export const computeOrderExpiryDate = (orderExpiryShort: string): Date => {
       orderExpiryDate.setMonth(orderExpiryDate.getMonth() + timeValue);
       break;
     default:
-      throw new Error(`Invalid order expiry value, ${orderExpiryShort}`);
+      throw new Error(`Invalid time value, ${interval}`);
   }
 
   return orderExpiryDate;
+};
+
+export const computeMinutesFromIntervalString = (interval: string): number => {
+  if (!isValidTimeValue(interval)) {
+    throw new Error(`Invalid time value, ${interval}`);
+  }
+
+  // trim any leading/trailing whitespaces
+  const trimmedOrderExpiryShort = interval.trim();
+  const timeUnit = trimmedOrderExpiryShort.slice(-1);
+  const timeValue = Number(trimmedOrderExpiryShort.replace(/\D/g, ''));
+  if (isNaN(timeValue)) {
+    throw new Error(`Invalid time value, ${interval}`);
+  }
+
+  switch (timeUnit) {
+    case String(EOrderExpiryUnit.Minute):
+      return timeValue;
+    case String(EOrderExpiryUnit.Hour):
+      return timeValue * 60;
+    case String(EOrderExpiryUnit.Day):
+      return timeValue * 1440;
+    default:
+      throw new Error(`Invalid time value, ${interval}`);
+  }
+};
+
+export const compareTimeUnitValue = (val1: string, val2: string): -1 | 0 | 1 => {
+  const minuteVal1 = computeMinutesFromIntervalString(val1);
+  const minuteVal2 = computeMinutesFromIntervalString(val2);
+
+  if (minuteVal1 === minuteVal2) {
+    return 0;
+  }
+  return minuteVal1 > minuteVal2 ? 1 : -1;
 };

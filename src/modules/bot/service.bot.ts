@@ -65,7 +65,7 @@ export class BotService extends BaseService {
           [ENetwork.Polygon]: [],
           [ENetwork.ZkLink]: [],
         },
-        [ESessionProp.Chain]: { network: ENetwork.Mainnet },
+        [ESessionProp.Chain]: { network: ENetwork.Local },
       },
       user: { id: 0, username: '' },
     };

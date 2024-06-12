@@ -3,31 +3,35 @@ import log from 'loglevel';
 import { callbackQuery, message } from 'telegraf/filters';
 import { InlineKeyboardButton, Message } from 'telegraf/typings/core/types/typegram';
 
-import { quoteTargetTokenPrice } from '@/libs/quoting';
-import { ENavAction, EOrderDetails, EOrderType, ESwapAction } from '@/modules/bot/constants/bot-action.constant';
+import { ITargetTokenPrice, quoteTargetTokenPrice } from '@/libs/quoting';
+import {
+  DEFAULT_TRADE_OPTIONS,
+  EDcaOrderKeyboardData,
+  ENavAction,
+  EOrderDetails,
+  EOrderType,
+  ESwapAction,
+} from '@/modules/bot/constants/bot-action.constant';
 import { ESessionProp, EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
-import { ORDER_EXPIRY_UNITS_TEXT } from '@/modules/bot/constants/bot-reply-constant';
 import { IWizContractProp } from '@/modules/bot/interfaces/bot-prop.interface';
 import { composeWizardScene } from '@/modules/bot/utils/scene-factory';
+import { addTradeRelatedKeyboardData, getWalletKeyboardData } from '@/modules/bot/utils/trade-keyboard-data';
 import {
-  formatKeyboard,
-  isBuyMode,
-  isDCAOrder,
-  isLimitOrder,
-  isNumber,
-  isOrderExpiryValid,
-  isSwapOrder,
-  isTargetPriceValid,
-  populateBuyModeKeyboardData,
-  truncateAddress,
-} from '@/utils/common';
+  getCustomOrderPriceFromUserReply,
+  getDcaOrderOptionDataFromUserReply,
+  getLimitOrderOptionDataFromUserReply,
+  presentCustomTradeAmountQuestion,
+  presentDcaOrderDetailsQuestion,
+  presentLimitOrderDetailsQuestion,
+} from '@/modules/bot/utils/trade-scene-factory';
+import { formatKeyboard, isBuyMode, isDCAOrder, isLimitOrder, isSwapOrder, populateBuyModeKeyboardData } from '@/utils/common';
 
 export const createBuyAndSellScene = composeWizardScene(
   async (ctx) => {
     const state = ctx.wizard.state;
     const msg = state[EWizardProp.Msg] as Message.TextMessage | undefined;
     const contract = state[EWizardProp.Contract] as IWizContractProp;
-    const tokenPriceInUSD = (state[EWizardProp.TokenPriceInUSD] as string) || '_unknown_';
+    const targetTokenPrice = state[EWizardProp.TokenPrice] as ITargetTokenPrice;
 
     const shouldDoNothing = state[EWizardProp.DoNothing];
 
@@ -37,21 +41,7 @@ export const createBuyAndSellScene = composeWizardScene(
     const wallets = ctx.session.prop[ESessionProp.Wallets][network];
     const activeAddress = state[EWizardProp.ActiveAddress];
 
-    const walletKeyboardData = wallets.reduce(
-      (acc, wallet, index) => {
-        const isActiveWallet = activeAddress === wallet.address;
-        const truncatedAddress = truncateAddress(wallet.address);
-        const button = { text: isActiveWallet ? `${truncatedAddress} ❎` : truncatedAddress, callback_data: wallet.address };
-
-        if (index % 3 === 0) {
-          acc.push([button]);
-        } else {
-          acc[acc.length - 1].push(button);
-        }
-        return acc;
-      },
-      [] as { text: string; callback_data: string }[][],
-    );
+    const walletKeyboardData = getWalletKeyboardData(wallets, activeAddress);
     if (!activeAddress) {
       walletKeyboardData[0][0].text = `${walletKeyboardData[0][0].text} ❎`;
       ctx.wizard.state[EWizardProp.ActiveAddress] = walletKeyboardData[0][0].callback_data;
@@ -78,20 +68,8 @@ export const createBuyAndSellScene = composeWizardScene(
       [{ text: ENavAction.Cancel, callback_data: ENavAction.Cancel }],
     ];
 
-    if (isLimitOrder(orderType)) {
-      const triggerPrice = (ctx.wizard.state[EWizardProp.TriggerPrice] as string) || (isBuyMode(action) ? '-1%' : '+1%');
-      const orderExpiry = (ctx.wizard.state[EWizardProp.Expiry] as string) || '1d';
-      const limitOrderKeyboardAction = [
-        { text: `(${triggerPrice}) ${EOrderDetails.TriggerPrice}`, callback_data: EOrderDetails.TriggerPrice },
-        { text: `(${orderExpiry}) ${EOrderDetails.Expiry}`, callback_data: EOrderDetails.Expiry },
-      ];
-
-      // insert limit order keyboard action (target price and expiry) into keyboard actions array at index 5
-      const insertLocation = 5;
-      // number of elements to be removed in order to insert limit order keyboard action
-      const numOfElementsNeedToBeDeleted = 0;
-      keyboardData.splice(insertLocation, numOfElementsNeedToBeDeleted, limitOrderKeyboardAction);
-    }
+    // add trade related options to the keyboard data
+    addTradeRelatedKeyboardData(state, keyboardData);
 
     if (msg && (action || activeAddress)) {
       if (shouldDoNothing) {
@@ -110,7 +88,8 @@ export const createBuyAndSellScene = composeWizardScene(
       }
     } else {
       ctx.reply(
-        `${contract?.name} ($${tokenPriceInUSD})\n----------------------------------------------------------------------------------------------------`,
+        `${contract?.name} ($${targetTokenPrice.priceInUSD})\n1 ${contract.symbol} = ${targetTokenPrice.priceInETH} ETH
+        \n----------------------------------------------------------------------------------------------------`,
         formatKeyboard(keyboardData),
       );
       ctx.wizard.next();
@@ -133,10 +112,30 @@ export const createBuyAndSellScene = composeWizardScene(
         const orderType = state[EWizardProp.OrderType] as string;
         if (orderType === String(EOrderType.LimitOrderType)) {
           const contract = state[EWizardProp.Contract] as IWizContractProp;
-          const triggerPrice = (state[EWizardProp.TriggerPrice] as string) || (isBuyMode(action) ? '-1%' : '+1%');
+          const triggerPrice =
+            (state[EWizardProp.TriggerPrice] as string) ||
+            (isBuyMode(action) ? DEFAULT_TRADE_OPTIONS.LimitBuyTriggerPrice : DEFAULT_TRADE_OPTIONS.LimitSellTriggerPrice);
           const network = ctx.session.prop[ESessionProp.Chain].network;
           const quotedTargetPrice = await quoteTargetTokenPrice(contract, network, triggerPrice);
           ctx.wizard.state[EWizardProp.TargetPrice] = quotedTargetPrice;
+        }
+        if (orderType === String(EOrderType.DCAOrderType)) {
+          const contract = state[EWizardProp.Contract] as IWizContractProp;
+          const network = ctx.session.prop[ESessionProp.Chain].network;
+          const minPrice = (state[EWizardProp.DcaMinPrice] as string) || DEFAULT_TRADE_OPTIONS.DcaMinPrice;
+          let finalMinPriceInEth = minPrice;
+          const { priceInETH: minPriceInETH, priceInUSD: maxPriceInUSD } = await quoteTargetTokenPrice(contract, network, minPrice);
+          if (finalMinPriceInEth.endsWith('%')) {
+            finalMinPriceInEth = minPriceInETH;
+          }
+          ctx.wizard.state[EWizardProp.DcaMinPrice] = { priceInUSD: maxPriceInUSD, priceInETH: finalMinPriceInEth };
+          const maxPrice = (state[EWizardProp.DcaMaxPrice] as string) || DEFAULT_TRADE_OPTIONS.DcaMaxPrice;
+          let finalMaxPriceInETH = maxPrice;
+          const { priceInETH: maxPriceInEth, priceInUSD: maxPriceInUsd } = await quoteTargetTokenPrice(contract, network, maxPrice);
+          if (finalMaxPriceInETH.trim().endsWith('%')) {
+            finalMaxPriceInETH = maxPriceInEth;
+          }
+          ctx.wizard.state[EWizardProp.DcaMaxPrice] = { priceInUSD: maxPriceInUsd, priceInETH: finalMaxPriceInETH };
         }
         done();
       } else if (ctx.has(callbackQuery('data'))) {
@@ -151,7 +150,9 @@ export const createBuyAndSellScene = composeWizardScene(
         }
         if (
           cbData !== String(ENavAction.PreviewOrder) &&
-          !([ESwapAction.Buy_X, ESwapAction.Sell_X, ...Object.values(EOrderDetails)] as string[]).includes(cbData)
+          !([ESwapAction.Buy_X, ESwapAction.Sell_X, ...Object.values(EOrderDetails), ...Object.values(EDcaOrderKeyboardData)] as string[]).includes(
+            cbData,
+          )
         ) {
           const contract = state[EWizardProp.Contract] as IWizContractProp;
           const msg = ctx.callbackQuery.message as Message.TextMessage;
@@ -181,22 +182,11 @@ export const createBuyAndSellScene = composeWizardScene(
             done();
           }
         } else if (([ESwapAction.Buy_X, ESwapAction.Sell_X] as string[]).includes(cbData)) {
-          const action = cbData === String(ESwapAction.Buy_X) ? 'buy' : 'sell';
-
-          ctx.reply(`Enter ${action} amount`, { reply_markup: { force_reply: true } });
-          ctx.wizard.next();
+          presentCustomTradeAmountQuestion(ctx, cbData);
         } else if ((Object.values(EOrderDetails) as string[]).includes(cbData)) {
-          const action = cbData || ESwapAction.BuyMode;
-          const mode = action === String(ESwapAction.Buy_X) ? 'buy' : 'sell';
-          if (cbData === String(EOrderDetails.TriggerPrice)) {
-            const txt = `Enter the trigger price of your limit ${mode} order. Valid options are % change (e.g. -5% or 5%) or a specific price.`;
-            ctx.reply(txt, { reply_markup: { force_reply: true } });
-          } else if (cbData === String(EOrderDetails.Expiry)) {
-            const txt = `Enter the expiry of your limit ${mode} order. ${ORDER_EXPIRY_UNITS_TEXT}`;
-            ctx.reply(txt, { reply_markup: { force_reply: true } });
-          }
-          ctx.wizard.state[EWizardProp.OrderDetailsAction] = cbData;
-          ctx.wizard.next();
+          presentLimitOrderDetailsQuestion(ctx, cbData);
+        } else if ((Object.values(EDcaOrderKeyboardData) as string[]).includes(cbData)) {
+          presentDcaOrderDetailsQuestion(ctx, cbData);
         } else {
           done();
         }
@@ -214,51 +204,35 @@ export const createBuyAndSellScene = composeWizardScene(
     }
   },
   async (ctx, done) => {
-    if (ctx.has(message('reply_to_message', 'text'))) {
-      const orderDetailsAction = ctx.wizard.state[EWizardProp.OrderDetailsAction];
-      const action = ctx.wizard.state[EWizardProp.Action] || ESwapAction.BuyMode;
-      if (orderDetailsAction) {
-        // reenter the scene
-        if (orderDetailsAction === String(EOrderDetails.Expiry)) {
-          const orderExpiry = ctx.message.text.toString();
-          if (!isOrderExpiryValid(orderExpiry)) {
-            ctx.reply(`Invalid order expiry, ${orderExpiry}`);
-            done();
-            return;
-          } else {
-            ctx.wizard.state[EWizardProp.Expiry] = ctx.message.text.toString();
+    try {
+      if (ctx.has(message('reply_to_message', 'text'))) {
+        const orderDetailsAction = ctx.wizard.state[EWizardProp.OrderDetailsAction] as string;
+        const action = (ctx.wizard.state[EWizardProp.Action] as ESwapAction) || ESwapAction.BuyMode;
+        if (orderDetailsAction) {
+          if ((Object.values(EOrderDetails) as string[]).includes(orderDetailsAction)) {
+            getLimitOrderOptionDataFromUserReply(ctx, action, orderDetailsAction);
+          } else if ((Object.values(EDcaOrderKeyboardData) as string[]).includes(orderDetailsAction)) {
+            getDcaOrderOptionDataFromUserReply(ctx, action, orderDetailsAction);
           }
-        } else if (orderDetailsAction === String(EOrderDetails.TriggerPrice)) {
-          // validate input
-          const targetPrice = ctx.message.text.toString();
-          if (!isTargetPriceValid(action, targetPrice)) {
-            ctx.reply(`Invalid target price, ${targetPrice}, for ${action as string}`);
-            done();
-            return;
-          } else {
-            ctx.wizard.state[EWizardProp.TriggerPrice] = targetPrice;
-          }
-        }
-      } else {
-        const action = ctx.wizard.state[EWizardProp.Action] as string;
-        const customBuySellAmount = ctx.message.text.toLowerCase();
-        if (!isNumber(customBuySellAmount)) {
-          ctx.reply(`Invalid amount, ${customBuySellAmount} entered.`);
-          done();
-          return;
         } else {
-          const [swapMode] = action.split(/_(.+)/);
-          ctx.wizard.state[EWizardProp.Action] = `${swapMode}_${ctx.message.text.toLowerCase()}`;
+          getCustomOrderPriceFromUserReply(ctx);
         }
+        ctx.wizard.state[EWizardProp.ReEnterTheScene] = true;
+        ctx.wizard.state[EWizardProp.OrderDetailsAction] = undefined;
+        ctx.wizard.state[EWizardProp.DoNothing] = undefined;
+        // delete the question message and reply after getting details
+        ctx.deleteMessage(ctx.message.reply_to_message.message_id);
+        ctx.deleteMessage(ctx.message.message_id);
+        done();
+      } else {
+        done();
       }
+    } catch (e: unknown) {
       ctx.wizard.state[EWizardProp.ReEnterTheScene] = true;
+      ctx.wizard.state[EWizardProp.DoNothing] = true;
       ctx.wizard.state[EWizardProp.OrderDetailsAction] = undefined;
-      ctx.wizard.state[EWizardProp.DoNothing] = undefined;
-      // delete the question message and reply after getting details
-      ctx.deleteMessage(ctx.message.reply_to_message.message_id);
-      ctx.deleteMessage(ctx.message.message_id);
-      done();
-    } else {
+      const errMsg = (e as Error).message || 'Something went wrong!';
+      ctx.reply(errMsg);
       done();
     }
   },
