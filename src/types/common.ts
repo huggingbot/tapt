@@ -31,8 +31,8 @@ export interface IBaseOrder {
   orderStatus: string;
   buyAmount: string;
   sellAmount: string;
-  sell_token: null | IToken;
-  buy_token: null | IToken;
+  sellToken: null | IToken;
+  buyToken: null | IToken;
   transactionHash: null | string;
   transactionType: null | string;
   orderType: string;

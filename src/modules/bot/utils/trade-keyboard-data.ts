@@ -1,5 +1,6 @@
 import type { InlineKeyboardButton } from 'telegraf/types';
 
+import { IDcaOrder, ILimitOrder } from '@/types';
 import { TWizardState } from '@/types/telegram';
 import { isBuyMode, isDCAOrder, isLimitOrder, truncateAddress } from '@/utils/common';
 
@@ -82,4 +83,13 @@ function addDcaOrderKeyboardData(state: TWizardState) {
     ],
   ];
   return dcaKeyboardAction;
+}
+
+export function formatOrderOverviewHeader() {
+  return 'Id Buy Sell Amount Action Status\n-------------------------------------------\n';
+}
+
+export function formatOrderOverview(order: ILimitOrder | IDcaOrder) {
+  const { orderId, buyToken, sellToken, buyAmount, orderMode, orderStatus } = order;
+  return `${orderId}.\t|${buyToken?.symbol}|${sellToken?.symbol}|${buyAmount}|${orderMode}|${orderStatus}`;
 }

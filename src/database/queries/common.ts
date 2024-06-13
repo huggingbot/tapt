@@ -3,7 +3,16 @@ import { EOrderStatus, EOrderType, ETransactionStatus, ETransactionType, IBasicW
 import { isNumber } from '@/utils/common';
 
 import { db } from '../db';
-import { createOrder, ELimitOrderMode, getOrders, GetOrdersFilters, ICreateLimitOrderParams, ICreateOrderParams } from './order';
+import {
+  createOrder,
+  ELimitOrderMode,
+  getOrderById,
+  getOrders,
+  GetOrdersFilters,
+  ICreateLimitOrderParams,
+  ICreateOrderParams,
+  updateOrderById,
+} from './order';
 import { createTokens, ICreateTokenParams } from './token';
 import { createTransaction, ICreateTransactionParams } from './transaction';
 import { getWallet } from './wallet';
@@ -185,4 +194,33 @@ export const getActiveOrders = async (orderType?: EOrderType) => {
     return orders;
   });
   return data;
+};
+
+export const cancelOrder = async (orderId: number, orderType?: EOrderType) => {
+  await db.transaction().execute(async (trx) => {
+    const order = await getOrderById(orderId, trx);
+    if (!order) {
+      throw new Error(`Order not found with id, ${orderId}`);
+    }
+
+    if (orderType && order.orderType !== String(orderType)) {
+      throw new Error(`Order is not ${orderType} order`);
+    }
+
+    if (
+      order.orderStatus === String(EOrderStatus.Cancelled) ||
+      order.orderStatus === String(EOrderStatus.Expired) ||
+      order.orderStatus === String(EOrderStatus.Expired)
+    ) {
+      throw new Error(`Order with id, ${orderId} is not an active order!`);
+    }
+
+    await updateOrderById(
+      orderId,
+      {
+        orderStatus: EOrderStatus.Cancelled,
+      },
+      trx,
+    );
+  });
 };

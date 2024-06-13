@@ -95,11 +95,8 @@ export const navStage = [
       case ENavAction.GetTradeToken:
         ctx.scene.enter(EScene.GetTradeToken, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
         break;
-      case ENavAction.ActiveDcaOrders:
-        ctx.scene.enter(EScene.ActiveDcaOrders, state);
-        break;
-      case ENavAction.ActiveLimitOrders:
-        ctx.scene.enter(EScene.ActiveLimitOrders, state);
+      case ENavAction.ActiveOrders:
+        ctx.scene.enter(EScene.ActiveOrders, state);
         break;
       case ENavAction.Back:
         ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });

@@ -11,6 +11,7 @@ export enum ENavAction {
   Back = 'Back',
   Cancel = 'Cancel',
   Update = 'Update',
+  Delete = 'Delete',
 
   // Wallet navigation
   WalletCount = 'Count',
@@ -23,8 +24,7 @@ export enum ENavAction {
 
   // Trade navigation
   GetTradeToken = 'Get trade token',
-  ActiveLimitOrders = 'Active Limit Orders',
-  ActiveDcaOrders = 'Active Dca Orders',
+  ActiveOrders = 'Active Orders',
   PreviewOrder = 'Preview Order',
   SubmitOrder = 'Submit Order',
 

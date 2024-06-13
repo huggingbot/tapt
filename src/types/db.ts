@@ -11,6 +11,7 @@ export enum EOrderStatus {
   PartiallyFilled = 'PARTIALLY_FILLED',
   Filled = 'FILLED',
   Cancelled = 'CANCELLED',
+  Failed = 'FAILED',
 
   /**
    * Below are the order status related to limit orders

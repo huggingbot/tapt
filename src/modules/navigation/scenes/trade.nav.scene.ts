@@ -14,24 +14,12 @@ export const createTradeNavScene = composeWizardScene(
     const keyboardData = [
       [{ text: ENavAction.GetTradeToken, callback_data: ENavAction.GetTradeToken }],
       [
-        { text: ENavAction.ActiveLimitOrders, callback_data: ENavAction.ActiveLimitOrders },
-        { text: ENavAction.ActiveDcaOrders, callback_data: ENavAction.ActiveDcaOrders },
+        { text: 'Active Limit Orders', callback_data: EWizardProp.ActiveLimitOrders },
+        { text: 'Active DCA Orders', callback_data: EWizardProp.ActiveDcaOrders },
       ],
       [{ text: ENavAction.Back, callback_data: ENavAction.Back }],
     ];
 
-    // const msg = ctx.wizard.state[EWizardProp.Msg] as Message.TextMessage | undefined;
-    // const hasSameContent = _.isEqual(msg?.reply_markup?.inline_keyboard, keyboardData);
-    // const isStart = ctx.has(message('text')) && ctx.message?.text === String(ENavAction.Start);
-    // console.log("trade.nav::msg", msg);
-    // if (msg && !isStart && msg?.reply_markup) {
-    //   // Do nothing if the content is the same
-    //   if (!hasSameContent) {
-    //     ctx.telegram.editMessageReplyMarkup(msg.chat.id, msg.message_id, undefined, { inline_keyboard: keyboardData });
-    //   }
-    // } else {
-    //   ctx.reply('Manage TAPT\n=============================', formatKeyboard(keyboardData));
-    // }
     ctx.reply('Manage TAPT\n=============================', formatKeyboard(keyboardData));
     ctx.wizard.next();
   },
@@ -40,19 +28,21 @@ export const createTradeNavScene = composeWizardScene(
       const action = ctx.callbackQuery.data;
       const { network } = ctx.session.prop[ESessionProp.Chain];
       const wallets = ctx.session.prop[ESessionProp.Wallets][network];
-      console.log('trade.nav::action', action);
+
       if (action === String(ENavAction.Back) && !wallets.length) {
         ctx.reply('You need to create a wallet first');
         ctx.wizard.state[EWizardProp.Action] = ENavAction.Back;
         ctx.wizard.state[EWizardProp.Msg] = ctx.callbackQuery.message;
-      } else if (action === String(ENavAction.ActiveLimitOrders)) {
+      } else if (action === String(EWizardProp.ActiveLimitOrders)) {
         const activeLimitOrders = await getActiveOrders(EOrderType.Limit);
         ctx.wizard.state[EWizardProp.ActiveLimitOrders] = activeLimitOrders;
-        ctx.wizard.state[EWizardProp.Action] = action;
-      } else if (action === String(ENavAction.ActiveDcaOrders)) {
+        ctx.wizard.state[EWizardProp.OrderManagementMode] = EOrderType.Limit;
+        ctx.wizard.state[EWizardProp.Action] = ENavAction.ActiveOrders;
+      } else if (action === String(EWizardProp.ActiveDcaOrders)) {
         const activeDcaOrders = await getActiveOrders(EOrderType.Dca);
         ctx.wizard.state[EWizardProp.ActiveDcaOrders] = activeDcaOrders;
-        ctx.wizard.state[EWizardProp.Action] = action;
+        ctx.wizard.state[EWizardProp.OrderManagementMode] = EOrderType.Dca;
+        ctx.wizard.state[EWizardProp.Action] = ENavAction.ActiveOrders;
       } else {
         ctx.wizard.state[EWizardProp.Action] = action;
       }

@@ -63,8 +63,8 @@ export const getOrders = async (filters?: GetOrdersFilters, trx?: Transaction<DB
     .selectFrom('order')
     .select((eb) => [
       'order.id as orderId',
-      jsonObjectFrom(eb.selectFrom('token').selectAll().whereRef('buyTokenId', '=', 'token.id')).as('buy_token'),
-      jsonObjectFrom(eb.selectFrom('token').selectAll().whereRef('sellTokenId', '=', 'token.id')).as('sell_token'),
+      jsonObjectFrom(eb.selectFrom('token').selectAll().whereRef('buyTokenId', '=', 'token.id')).as('buyToken'),
+      jsonObjectFrom(eb.selectFrom('token').selectAll().whereRef('sellTokenId', '=', 'token.id')).as('sellToken'),
     ])
     .leftJoin(
       (eb) =>
@@ -82,7 +82,7 @@ export const getOrders = async (filters?: GetOrdersFilters, trx?: Transaction<DB
   }
   if (filters?.orderStatus) {
     if (filters.orderStatus === String(EOrderStatus.Active)) {
-      const notActiveOrderStatus = [EOrderStatus.Completed, EOrderStatus.Expired, EOrderStatus.Filled] as string[];
+      const notActiveOrderStatus = [EOrderStatus.Completed, EOrderStatus.Expired, EOrderStatus.Failed, EOrderStatus.Cancelled] as string[];
       query = query.where('order.orderStatus', 'not in', notActiveOrderStatus);
     } else {
       query = query.where('order.orderStatus', '=', filters.orderStatus);

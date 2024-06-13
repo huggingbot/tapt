@@ -24,8 +24,13 @@ export enum EWizardProp {
   DcaMaxPrice = 'dcaMaxPrice',
 
   // Order Management
+  OrderManagementMode = 'orderManagementMode',
   ActiveDcaOrders = 'activeDcaOrders',
   ActiveLimitOrders = 'activeLimitOrders',
+  OrderManagementAction = 'orderManagementAction',
+  OrderManagementActionItem = 'orderManagementActionItem',
+  OrderManagementActionCancel = 'orderManagementActionCancel',
+  OrderManagementActionUpdate = 'orderManagementActionUpdate',
 }
 
 export enum EOrderExpiryUnit {

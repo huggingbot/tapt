@@ -62,6 +62,17 @@ export function presentDcaOrderDetailsQuestion(ctx: IContext, callbackData: stri
   ctx.wizard.next();
 }
 
+export function presentOrderManagementActionQuestion(
+  ctx: IContext,
+  action: EWizardProp.OrderManagementActionCancel | EWizardProp.OrderManagementActionUpdate,
+) {
+  console.log('action', action);
+  ctx.wizard.state[EWizardProp.OrderManagementAction] = action;
+  const actionText = action === EWizardProp.OrderManagementActionCancel ? 'cancel' : 'update';
+  ctx.reply(`Please enter the Order Id to ${actionText}`, { reply_markup: { force_reply: true } });
+  ctx.wizard.next();
+}
+
 export function getLimitOrderOptionDataFromUserReply(ctx: IContext, action: ESwapAction, orderDetailsAction: unknown) {
   if (!ctx.has(message('reply_to_message', 'text'))) {
     return;
