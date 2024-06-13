@@ -13,7 +13,9 @@ export enum EScene {
 
   FundFromSingleWallet = 'FundFromSingleWallet',
 
-  GetSwapToken = 'GetSwapToken',
+  GetTradeToken = 'GetTradeToken',
+  ActiveLimitOrders = 'ActiveLimitOrders',
+  ActiveDcaOrders = 'ActiveDcaOrders',
   BuyAndSell = 'BuyAndSell',
   ExecuteSwap = 'ExecuteSwap',
 

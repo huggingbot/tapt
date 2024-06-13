@@ -7,13 +7,12 @@ import { createBridgeNavScene } from '../scenes/bridge.nav.scene';
 import { createChainNavScene } from '../scenes/chain.nav.scene';
 import { createFundingNavScene } from '../scenes/funding.nav.scene';
 import { createMainNavScene } from '../scenes/main-nav.scene';
-import { createSwapNavScene } from '../scenes/swap.nav.scene';
+import { createTradeNavScene } from '../scenes/trade.nav.scene';
 import { createWalletNavScene } from '../scenes/wallet.nav.scene';
 
 export const navStage = [
   createMainNavScene(EScene.MainNav, async (ctx) => {
     const state = ctx.wizard.state;
-
     const { network } = ctx.session.prop[ESessionProp.Chain];
 
     // only allow bridging from local, mainnet and sepolia
@@ -90,12 +89,17 @@ export const navStage = [
       }
     }
   }),
-  createSwapNavScene(EScene.TradeNav, async (ctx) => {
+  createTradeNavScene(EScene.TradeNav, async (ctx) => {
     const state = ctx.wizard.state;
-
     switch (state[EWizardProp.Action]) {
-      case ENavAction.GetSwapToken:
-        ctx.scene.enter(EScene.GetSwapToken, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+      case ENavAction.GetTradeToken:
+        ctx.scene.enter(EScene.GetTradeToken, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+        break;
+      case ENavAction.ActiveDcaOrders:
+        ctx.scene.enter(EScene.ActiveDcaOrders, state);
+        break;
+      case ENavAction.ActiveLimitOrders:
+        ctx.scene.enter(EScene.ActiveLimitOrders, state);
         break;
       case ENavAction.Back:
         ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });

@@ -3,7 +3,7 @@ import { EOrderStatus, EOrderType, ETransactionStatus, ETransactionType, IBasicW
 import { isNumber } from '@/utils/common';
 
 import { db } from '../db';
-import { createOrder, ELimitOrderMode, ICreateLimitOrderParams, ICreateOrderParams } from './order';
+import { createOrder, ELimitOrderMode, getOrders, GetOrdersFilters, ICreateLimitOrderParams, ICreateOrderParams } from './order';
 import { createTokens, ICreateTokenParams } from './token';
 import { createTransaction, ICreateTransactionParams } from './transaction';
 import { getWallet } from './wallet';
@@ -170,4 +170,19 @@ export const placeDcaOrder = async (params: {
 
     return { wallet: w, order };
   });
+};
+
+export const getActiveOrders = async (orderType?: EOrderType) => {
+  const getOrderFilters: GetOrdersFilters = {
+    orderStatus: EOrderStatus.Active,
+  };
+  if (orderType) {
+    getOrderFilters.orderType = orderType;
+  }
+
+  const data = await db.transaction().execute(async (trx) => {
+    const orders = await getOrders(getOrderFilters, trx);
+    return orders;
+  });
+  return data;
 };

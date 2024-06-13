@@ -22,6 +22,10 @@ export enum EWizardProp {
   DcaInterval = 'dcaInterval',
   DcaMinPrice = 'dcaMinPrice',
   DcaMaxPrice = 'dcaMaxPrice',
+
+  // Order Management
+  ActiveDcaOrders = 'activeDcaOrders',
+  ActiveLimitOrders = 'activeLimitOrders',
 }
 
 export enum EOrderExpiryUnit {

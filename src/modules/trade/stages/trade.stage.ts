@@ -5,13 +5,15 @@ import { EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
 import { EScene } from '@/modules/bot/constants/bot-scene.constant';
 import { IWizContractProp } from '@/modules/bot/interfaces/bot-prop.interface';
 
+import { createActiveDcaOrdersScene } from '../scenes/active-dca-orders.scene';
+import { createActiveLimitOrdersScene } from '../scenes/active-limit-orders.scene';
 import { createBuyAndSellScene } from '../scenes/buy-and-sell.scene';
 import { createExecuteSwapScene } from '../scenes/execute-swap.scene';
 import { createGetSwapTokenScene } from '../scenes/get-swap-token';
 import { createOrderPreviewScene } from '../scenes/order-preview.scene';
 
 export const tradeStage = [
-  createGetSwapTokenScene(EScene.GetSwapToken, async (ctx) => {
+  createGetSwapTokenScene(EScene.GetTradeToken, async (ctx) => {
     const state = ctx.wizard.state;
     const isStart = ctx.has(message('text')) && ctx.message?.text === String(ENavAction.Start);
     const contract = state[EWizardProp.Contract];
@@ -72,6 +74,28 @@ export const tradeStage = [
       ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
     } else if (contract && action && activeAddress && orderType) {
       ctx.scene.enter(EScene.BuyAndSell, state);
+    } else {
+      ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+    }
+  }),
+  createActiveLimitOrdersScene(EScene.ActiveLimitOrders, async (ctx) => {
+    const state = ctx.wizard.state;
+    const action = state[EWizardProp.Action];
+    console.log('action', action);
+    const isStart = ctx.has(message('text')) && ctx.message?.text === String(ENavAction.Start);
+    if (isStart || action === String(ENavAction.Back)) {
+      ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+    } else {
+      ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+    }
+  }),
+  createActiveDcaOrdersScene(EScene.ActiveDcaOrders, async (ctx) => {
+    const state = ctx.wizard.state;
+    const action = state[EWizardProp.Action];
+    console.log('action', action);
+    const isStart = ctx.has(message('text')) && ctx.message?.text === String(ENavAction.Start);
+    if (isStart || action === String(ENavAction.Back)) {
+      ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
     } else {
       ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
     }

@@ -1,7 +1,7 @@
 import { ExpressionBuilder, Transaction } from 'kysely';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
 
-import { EOrderStatus } from '@/types';
+import { EOrderStatus, IBaseOrder } from '@/types';
 
 import { db } from '../db';
 import { DB, Order as DBOrder } from '../gen-types';
@@ -57,7 +57,7 @@ export const createOrder = async (params: ICreateOrderParams, trx?: Transaction<
   return order;
 };
 
-export const getOrders = async (filters?: GetOrdersFilters, trx?: Transaction<DB>) => {
+export const getOrders = async (filters?: GetOrdersFilters, trx?: Transaction<DB>): Promise<IBaseOrder[]> => {
   const queryCreator = trx ? trx : db;
   let query = queryCreator
     .selectFrom('order')
