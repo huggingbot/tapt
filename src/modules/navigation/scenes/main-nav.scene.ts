@@ -12,7 +12,7 @@ export const createMainNavScene = composeWizardScene(
     const keyboardData = [
       [{ text: ENavAction.Wallet, callback_data: ENavAction.Wallet }],
       [{ text: ENavAction.Funding, callback_data: ENavAction.Funding }],
-      [{ text: ENavAction.Swap, callback_data: ENavAction.Swap }],
+      [{ text: ENavAction.Trade, callback_data: ENavAction.Trade }],
       [{ text: ENavAction.Bridge, callback_data: ENavAction.Bridge }],
       [{ text: ENavAction.Chain, callback_data: ENavAction.Chain }],
     ];

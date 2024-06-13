@@ -10,7 +10,7 @@ import { createExecuteSwapScene } from '../scenes/execute-swap.scene';
 import { createGetSwapTokenScene } from '../scenes/get-swap-token';
 import { createOrderPreviewScene } from '../scenes/order-preview.scene';
 
-export const swapStage = [
+export const tradeStage = [
   createGetSwapTokenScene(EScene.GetSwapToken, async (ctx) => {
     const state = ctx.wizard.state;
     const isStart = ctx.has(message('text')) && ctx.message?.text === String(ENavAction.Start);
@@ -21,7 +21,7 @@ export const swapStage = [
     } else if (contract) {
       ctx.scene.enter(EScene.BuyAndSell, state);
     } else {
-      ctx.scene.enter(EScene.SwapNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+      ctx.scene.enter(EScene.TradeNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
     }
   }),
   createBuyAndSellScene(EScene.BuyAndSell, async (ctx) => {
@@ -48,7 +48,7 @@ export const swapStage = [
           ctx.scene.enter(EScene.ExecuteSwap, state);
       }
     } else {
-      ctx.scene.enter(EScene.SwapNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+      ctx.scene.enter(EScene.TradeNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
     }
   }),
   createExecuteSwapScene(EScene.ExecuteSwap, async (ctx) => {
@@ -58,7 +58,7 @@ export const swapStage = [
     if (isStart) {
       ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
     } else {
-      ctx.scene.enter(EScene.SwapNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+      ctx.scene.enter(EScene.TradeNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
     }
   }),
   createOrderPreviewScene(EScene.PreviewOrder, async (ctx) => {

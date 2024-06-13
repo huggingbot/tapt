@@ -2,7 +2,7 @@ export enum EScene {
   MainNav = 'MainNav',
   WalletNav = 'WalletNav',
   FundingNav = 'FundingNav',
-  SwapNav = 'SwapNav',
+  TradeNav = 'TradeNav',
   BridgeNav = 'BridgeNav',
   ChainNav = 'ChainNav',
 

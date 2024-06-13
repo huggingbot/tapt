@@ -24,7 +24,7 @@ export const navStage = [
     }
 
     // disable swap module for zk link
-    if (state[EWizardProp.Action] === ENavAction.Swap && [ENetwork.ZkLink].includes(network)) {
+    if (state[EWizardProp.Action] === ENavAction.Trade && [ENetwork.ZkLink].includes(network)) {
       ctx.reply(`This feature is unavailable on ${network}.`);
       ctx.scene.reenter();
       return;
@@ -37,8 +37,8 @@ export const navStage = [
       case ENavAction.Funding:
         ctx.scene.enter(EScene.FundingNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
         break;
-      case ENavAction.Swap:
-        ctx.scene.enter(EScene.SwapNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+      case ENavAction.Trade:
+        ctx.scene.enter(EScene.TradeNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
         break;
       case ENavAction.Bridge:
         ctx.scene.enter(EScene.BridgeNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
@@ -90,7 +90,7 @@ export const navStage = [
       }
     }
   }),
-  createSwapNavScene(EScene.SwapNav, async (ctx) => {
+  createSwapNavScene(EScene.TradeNav, async (ctx) => {
     const state = ctx.wizard.state;
 
     switch (state[EWizardProp.Action]) {

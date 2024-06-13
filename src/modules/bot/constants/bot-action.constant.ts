@@ -2,7 +2,7 @@ export enum ENavAction {
   // Main navigation
   Wallet = 'Wallet',
   Funding = 'Funding',
-  Swap = 'Swap',
+  Trade = 'Trade',
   Bridge = 'Bridge',
   Chain = 'Chain',
 
