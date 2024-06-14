@@ -30,7 +30,6 @@ export enum EWizardProp {
   OrderManagementAction = 'orderManagementAction',
   OrderManagementActionItem = 'orderManagementActionItem',
   OrderManagementActionCancel = 'orderManagementActionCancel',
-  OrderManagementActionUpdate = 'orderManagementActionUpdate',
 }
 
 export enum EOrderExpiryUnit {

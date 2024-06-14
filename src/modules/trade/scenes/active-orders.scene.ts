@@ -1,11 +1,10 @@
 import { callbackQuery, message } from 'telegraf/filters';
 
-import { cancelOrder } from '@/database/queries/common';
+import { cancelOrder, getActiveOrders } from '@/database/queries/common';
 import { ENavAction } from '@/modules/bot/constants/bot-action.constant';
 import { EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
 import { composeWizardScene } from '@/modules/bot/utils/scene-factory';
 import { formatOrderOverview, formatOrderOverviewHeader } from '@/modules/bot/utils/trade-keyboard-data';
-import { presentOrderManagementActionQuestion } from '@/modules/bot/utils/trade-scene-factory';
 import { EOrderType, ILimitOrder } from '@/types';
 import { formatKeyboard, isNumber } from '@/utils/common';
 
@@ -19,13 +18,7 @@ export const createActiveOrdersScene = composeWizardScene(
     if (orderType === String(EOrderType.Limit)) {
       const activeLimitOrders = ctx.wizard.state[EWizardProp.ActiveLimitOrders] as ILimitOrder[];
       if (activeLimitOrders.length > 0) {
-        keyboardData = [
-          [
-            { text: ENavAction.Update, callback_data: ENavAction.Update },
-            { text: ENavAction.Delete, callback_data: ENavAction.Delete },
-          ],
-          ...keyboardData,
-        ];
+        keyboardData = [[{ text: ENavAction.Delete, callback_data: ENavAction.Delete }], ...keyboardData];
         const header = formatOrderOverviewHeader();
         const formattedOrderData = activeLimitOrders.map(formatOrderOverview);
         ordersData = `${header}${formattedOrderData.join('\n')}`;
@@ -33,13 +26,7 @@ export const createActiveOrdersScene = composeWizardScene(
     } else if (orderType === String(EOrderType.Dca)) {
       const activeDcaOrders = ctx.wizard.state[EWizardProp.ActiveDcaOrders] as ILimitOrder[];
       if (activeDcaOrders.length > 0) {
-        keyboardData = [
-          [
-            { text: ENavAction.Update, callback_data: ENavAction.Update },
-            { text: ENavAction.Delete, callback_data: ENavAction.Delete },
-          ],
-          ...keyboardData,
-        ];
+        keyboardData = [[{ text: ENavAction.Delete, callback_data: ENavAction.Delete }], ...keyboardData];
         const header = formatOrderOverviewHeader();
         const formattedOrderData = activeDcaOrders.map(formatOrderOverview);
         ordersData = `${header}${formattedOrderData.join('\n')}`;
@@ -54,10 +41,9 @@ export const createActiveOrdersScene = composeWizardScene(
       const action = ctx.callbackQuery.data;
       if (action === String(ENavAction.Delete)) {
         // cancel the order
-        presentOrderManagementActionQuestion(ctx, EWizardProp.OrderManagementActionCancel);
-      } else if (action === String(ENavAction.Update)) {
-        // update order, redirect to buy&sell scene
-        presentOrderManagementActionQuestion(ctx, EWizardProp.OrderManagementActionUpdate);
+        ctx.wizard.state[EWizardProp.OrderManagementAction] = EWizardProp.OrderManagementActionCancel;
+        ctx.reply('Please enter the Order Id to cancel', { reply_markup: { force_reply: true } });
+        ctx.wizard.next();
       } else {
         ctx.wizard.state[EWizardProp.Action] = ENavAction.Back;
         ctx.wizard.state[EWizardProp.Msg] = undefined;
@@ -79,14 +65,21 @@ export const createActiveOrdersScene = composeWizardScene(
           await ctx.reply(`Cancelling order id, ${actionItem}`);
           await cancelOrder(Number(actionItem), orderType);
           ctx.reply(`Order id, ${actionItem} has been successfully cancelled`);
-        } else if (action === String(EWizardProp.OrderManagementActionUpdate)) {
-          // go to update (buy & sell) scene
+          ctx.reply('Refreshing Order Management Scene...');
+          if (orderType === EOrderType.Limit) {
+            const activeLimitOrders = await getActiveOrders(EOrderType.Limit);
+            ctx.wizard.state[EWizardProp.ActiveLimitOrders] = activeLimitOrders;
+          } else if (orderType === EOrderType.Dca) {
+            const activeDcaOrders = await getActiveOrders(EOrderType.Dca);
+            ctx.wizard.state[EWizardProp.ActiveDcaOrders] = activeDcaOrders;
+          }
         }
       }
     } catch (e: unknown) {
       ctx.wizard.state[EWizardProp.ReEnterTheScene] = true;
       ctx.wizard.state[EWizardProp.DoNothing] = true;
       ctx.wizard.state[EWizardProp.OrderManagementAction] = undefined;
+      ctx.wizard.state[EWizardProp.OrderManagementActionItem] = undefined;
       const errMsg = (e as Error).message || 'Something went wrong!';
       ctx.reply(errMsg);
     } finally {

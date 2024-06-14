@@ -10,7 +10,6 @@ export enum ENavAction {
   Start = '/start',
   Back = 'Back',
   Cancel = 'Cancel',
-  Update = 'Update',
   Delete = 'Delete',
 
   // Wallet navigation

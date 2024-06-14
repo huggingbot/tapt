@@ -1,6 +1,5 @@
 import _ from 'lodash';
-import { callbackQuery, message } from 'telegraf/filters';
-import { Message } from 'telegraf/typings/core/types/typegram';
+import { callbackQuery } from 'telegraf/filters';
 
 import { getActiveOrders } from '@/database/queries/common';
 import { ENavAction } from '@/modules/bot/constants/bot-action.constant';

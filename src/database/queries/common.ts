@@ -209,8 +209,9 @@ export const cancelOrder = async (orderId: number, orderType?: EOrderType) => {
 
     if (
       order.orderStatus === String(EOrderStatus.Cancelled) ||
+      order.orderStatus === String(EOrderStatus.Completed) ||
       order.orderStatus === String(EOrderStatus.Expired) ||
-      order.orderStatus === String(EOrderStatus.Expired)
+      order.orderStatus === String(EOrderStatus.Failed)
     ) {
       throw new Error(`Order with id, ${orderId} is not an active order!`);
     }

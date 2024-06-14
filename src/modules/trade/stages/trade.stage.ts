@@ -83,6 +83,8 @@ export const tradeStage = [
     const isStart = ctx.has(message('text')) && ctx.message?.text === String(ENavAction.Start);
     if (isStart || action === String(ENavAction.Back)) {
       ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+    } else if (action === String(ENavAction.ActiveOrders)) {
+      ctx.scene.reenter();
     } else {
       ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
     }
