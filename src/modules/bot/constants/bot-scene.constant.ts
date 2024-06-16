@@ -15,7 +15,6 @@ export enum EScene {
 
   GetTradeToken = 'GetTradeToken',
   ActiveOrders = 'ActiveOrders',
-  ActiveDcaOrders = 'ActiveDcaOrders',
   BuyAndSell = 'BuyAndSell',
   ExecuteSwap = 'ExecuteSwap',
 

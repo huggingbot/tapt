@@ -28,7 +28,6 @@ export enum EWizardProp {
   ActiveDcaOrders = 'activeDcaOrders',
   ActiveLimitOrders = 'activeLimitOrders',
   OrderManagementAction = 'orderManagementAction',
-  OrderManagementActionItem = 'orderManagementActionItem',
   OrderManagementActionCancel = 'orderManagementActionCancel',
 }
 

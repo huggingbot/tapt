@@ -1,4 +1,3 @@
-import _ from 'lodash';
 import { callbackQuery } from 'telegraf/filters';
 
 import { getActiveOrders } from '@/database/queries/common';

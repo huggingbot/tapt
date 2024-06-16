@@ -49,6 +49,8 @@ export const createActiveOrdersScene = composeWizardScene(
         ctx.wizard.state[EWizardProp.Msg] = undefined;
         done();
       }
+    } else {
+      done();
     }
   },
   async (ctx, done) => {
@@ -79,7 +81,6 @@ export const createActiveOrdersScene = composeWizardScene(
       ctx.wizard.state[EWizardProp.ReEnterTheScene] = true;
       ctx.wizard.state[EWizardProp.DoNothing] = true;
       ctx.wizard.state[EWizardProp.OrderManagementAction] = undefined;
-      ctx.wizard.state[EWizardProp.OrderManagementActionItem] = undefined;
       const errMsg = (e as Error).message || 'Something went wrong!';
       ctx.reply(errMsg);
     } finally {
