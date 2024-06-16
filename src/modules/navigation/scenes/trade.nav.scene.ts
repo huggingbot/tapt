@@ -36,15 +36,18 @@ export const createTradeNavScene = composeWizardScene(
         ctx.wizard.state[EWizardProp.Msg] = ctx.callbackQuery.message;
       } else {
         if (action === String(EWizardProp.ActiveLimitOrders)) {
+          ctx.wizard.state[EWizardProp.Action] = ENavAction.ActiveOrders;
           const activeLimitOrders = await getActiveOrders(EOrderType.Limit);
           ctx.wizard.state[EWizardProp.ActiveLimitOrders] = activeLimitOrders;
           ctx.wizard.state[EWizardProp.OrderManagementMode] = EOrderType.Limit;
         } else if (action === String(EWizardProp.ActiveDcaOrders)) {
+          ctx.wizard.state[EWizardProp.Action] = ENavAction.ActiveOrders;
           const activeDcaOrders = await getActiveOrders(EOrderType.Dca);
           ctx.wizard.state[EWizardProp.ActiveDcaOrders] = activeDcaOrders;
           ctx.wizard.state[EWizardProp.OrderManagementMode] = EOrderType.Dca;
+        } else {
+          ctx.wizard.state[EWizardProp.Action] = action;
         }
-        ctx.wizard.state[EWizardProp.Action] = action;
       }
       ctx.wizard.state[EWizardProp.Msg] = ctx.callbackQuery.message;
     }
