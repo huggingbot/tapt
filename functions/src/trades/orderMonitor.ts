@@ -24,7 +24,7 @@ export async function orderStatusChecker() {
         if (orderType === String(EOrderType.Limit)) {
           const { expirationDate } = order as ILimitOrder;
           if (!expirationDate) {
-            return undefined;
+            return true;
           }
           expiryDate = new Date(expirationDate);
         } else {
@@ -36,7 +36,7 @@ export async function orderStatusChecker() {
         const currentTS = Date.now();
         return expiryDate.getTime() < currentTS;
       }
-      return false;
+      return true;
     })
     .map((order) => order.orderId);
 
@@ -47,7 +47,6 @@ export async function orderStatusChecker() {
       setdata: { orderStatus: EOrderStatus.Expired },
       idsToUpdate: expiredOrders,
     };
-    logger.debug('body', body);
     const resp = await makeNetworkRequest(`${TAPT_API_ENDPOINT}/orders/bulk_update_status`, 'PATCH', body);
     return resp;
   }

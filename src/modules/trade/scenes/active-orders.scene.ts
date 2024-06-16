@@ -1,3 +1,4 @@
+import log from 'loglevel';
 import { callbackQuery, message } from 'telegraf/filters';
 
 import { cancelOrder, getActiveOrders } from '@/database/queries/common';
@@ -82,6 +83,7 @@ export const createActiveOrdersScene = composeWizardScene(
       ctx.wizard.state[EWizardProp.DoNothing] = true;
       ctx.wizard.state[EWizardProp.OrderManagementAction] = undefined;
       const errMsg = (e as Error).message || 'Something went wrong!';
+      log.error(`Error processing active ordres, ${errMsg}`);
       ctx.reply(errMsg);
     } finally {
       done();

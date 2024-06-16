@@ -27,21 +27,22 @@ export const createTradeNavScene = composeWizardScene(
       const { network } = ctx.session.prop[ESessionProp.Chain];
       const wallets = ctx.session.prop[ESessionProp.Wallets][network];
 
-      if (action === String(ENavAction.Back) && !wallets.length) {
-        ctx.reply('You need to create a wallet first');
+      if (action === String(ENavAction.Back) || !wallets.length) {
+        if (!wallets.length) {
+          ctx.reply('You need to create a wallet first');
+        }
         ctx.wizard.state[EWizardProp.Action] = ENavAction.Back;
         ctx.wizard.state[EWizardProp.Msg] = ctx.callbackQuery.message;
-      } else if (action === String(EWizardProp.ActiveLimitOrders)) {
-        const activeLimitOrders = await getActiveOrders(EOrderType.Limit);
-        ctx.wizard.state[EWizardProp.ActiveLimitOrders] = activeLimitOrders;
-        ctx.wizard.state[EWizardProp.OrderManagementMode] = EOrderType.Limit;
-        ctx.wizard.state[EWizardProp.Action] = ENavAction.ActiveOrders;
-      } else if (action === String(EWizardProp.ActiveDcaOrders)) {
-        const activeDcaOrders = await getActiveOrders(EOrderType.Dca);
-        ctx.wizard.state[EWizardProp.ActiveDcaOrders] = activeDcaOrders;
-        ctx.wizard.state[EWizardProp.OrderManagementMode] = EOrderType.Dca;
-        ctx.wizard.state[EWizardProp.Action] = ENavAction.ActiveOrders;
       } else {
+        if (action === String(EWizardProp.ActiveLimitOrders)) {
+          const activeLimitOrders = await getActiveOrders(EOrderType.Limit);
+          ctx.wizard.state[EWizardProp.ActiveLimitOrders] = activeLimitOrders;
+          ctx.wizard.state[EWizardProp.OrderManagementMode] = EOrderType.Limit;
+        } else if (action === String(EWizardProp.ActiveDcaOrders)) {
+          const activeDcaOrders = await getActiveOrders(EOrderType.Dca);
+          ctx.wizard.state[EWizardProp.ActiveDcaOrders] = activeDcaOrders;
+          ctx.wizard.state[EWizardProp.OrderManagementMode] = EOrderType.Dca;
+        }
         ctx.wizard.state[EWizardProp.Action] = action;
       }
       ctx.wizard.state[EWizardProp.Msg] = ctx.callbackQuery.message;

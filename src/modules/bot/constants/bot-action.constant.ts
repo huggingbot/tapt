@@ -33,6 +33,7 @@ export enum ENavAction {
   // Chain navigation
   GetCurrentChain = 'Get current chain',
   SwitchChain = 'Switch chain',
+  GetSwapToken = 'GetSwapToken',
 }
 
 export enum EWalletAction {
