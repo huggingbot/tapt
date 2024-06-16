@@ -5,7 +5,7 @@ export enum EOrderType {
 }
 
 export enum EOrderStatus {
-  Active = 'ACTIVE',
+  Active = 'ACTIVE', // aggregate status for all active orders, i.e. not completed, expired, failed or cancelled
   Expired = 'EXPIRED',
   Cancelled = 'CANCELLED',
   Failed = 'FAILED',
