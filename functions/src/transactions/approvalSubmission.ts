@@ -3,7 +3,7 @@ import { BigNumber, ethers } from 'ethers';
 import { logger } from 'firebase-functions';
 import ERC20_ABI from '../contracts/ERC_20_abi.json';
 import { TAPT_API_ENDPOINT, V3_UNISWAP_ROUTER_ADDRESS } from '../utils/constants';
-import { fromReadableAmount } from '../utils/helpers';
+import { fromReadableAmount, toReadableAmount } from '../utils/helpers';
 import { fromChainIdToNetwork, getProvider } from '../utils/providers';
 import { ILimitOrder, IToken, ENetwork, IUpdateOrderRequestBody, TransactionState, ETransactionType, EOrderStatus } from '../utils/types';
 import { sendTransactionViaWallet } from '../utils/transactions';
@@ -39,8 +39,9 @@ export async function submitApprovalTransactions() {
     network: ENetwork;
   }[] = [];
   logger.info('orders', orders);
-  // getting allowance from the wallet
-  const allowancePromises: Promise<BigNumber>[] = orders.map((order) => {
+
+  // checking wallets balances
+  const walletBalances: Promise<BigNumber>[] = orders.map((order) => {
     const { orderId, sellAmount, sellToken, encryptedPrivateKey, chainId } = order;
 
     const network = fromChainIdToNetwork(chainId);
@@ -48,9 +49,38 @@ export async function submitApprovalTransactions() {
     // create wallet instance
     const privateKey = decrypt(encryptedPrivateKey);
     const wallet = new ethers.Wallet(privateKey, provider);
+    // save to additionalParams to use the values for later in approval submition
+    additionalParams.push({ orderId, wallet, sellAmount, sellToken, network });
+    return provider.getBalance(wallet.address);
+    // balance = rawBalance.toBigInt();
+    // balance = BigInt(toReadableAmount(balance.toString(), WRAPPED_NATIVE_TOKEN[network].decimals));
+
+    // const tokenInContract = new ethers.Contract(sellToken.contractAddress, ERC20_ABI, provider);
+    // const allowance: Promise<BigNumber> = tokenInContract.allowance(wallet.address, V3_UNISWAP_ROUTER_ADDRESS[network]);
+    // return allowance;
+  });
+  const walletBalanceResult = await Promise.allSettled(walletBalances);
+
+  // getting allowance from the wallet
+  const allowancePromises: (Promise<BigNumber> | undefined)[] = walletBalanceResult.map((result, idx) => {
+    if (result.status === 'rejected' || !result.value) {
+      return undefined;
+    }
+
+    const { orderId, wallet, sellAmount, sellToken, network } = additionalParams[idx];
+
+    let balance = result.value.toBigInt();
+    balance = BigInt(toReadableAmount(balance.toString(), sellToken.decimalPlaces));
+    const amountOut = ethers.utils.parseUnits(sellAmount, sellToken.decimalPlaces);
+    const readableAmountOut = BigInt(toReadableAmount(amountOut.toString(), sellToken.decimalPlaces));
+    if (balance <= readableAmountOut) {
+      logger.warn(`not enough balance! ${JSON.stringify({ address: wallet.address, orderId, network })}`);
+      return undefined;
+    }
 
     // save to additionalParams to use the values for later in approval submition
     additionalParams.push({ orderId, wallet, sellAmount, sellToken, network });
+    const provider = getProvider(network);
 
     const tokenInContract = new ethers.Contract(sellToken.contractAddress, ERC20_ABI, provider);
     const allowance: Promise<BigNumber> = tokenInContract.allowance(wallet.address, V3_UNISWAP_ROUTER_ADDRESS[network]);
@@ -119,7 +149,8 @@ export async function submitApprovalTransactions() {
     // TODO: Replace this with bulk_update instead of updating 1 by 1
     return makeNetworkRequest(`${TAPT_API_ENDPOINT}/orders/${orderId}`, 'PATCH', reqBody as unknown as Record<string, unknown>);
   });
-  return await Promise.allSettled(updateOrdersPromises);
+  const approvalSubmissionResult = await Promise.allSettled(updateOrdersPromises);
+  return approvalSubmissionResult;
 }
 
 // submit approval transaction

@@ -26,11 +26,10 @@ export const createTransaction = async (params: ICreateTransactionParams, trx?: 
 export const getTransactions = async (params: Partial<ICreateTransactionParams>, trx?: Transaction<DB>) => {
   const queryCreator = trx ? trx : db;
   const buildExpression = (eb: ExpressionBuilder<DB, 'transaction'>) => {
-    const filters = Object.entries(params)
-      .filter(([_, val]) => val != undefined)
-      .map(([key, value]) => {
-        return eb(key as ReferenceExpression<DB, 'transaction'>, '=', value);
-      });
+    const _validParams = Object.entries(params).filter(([_, val]) => val != undefined);
+    const filters = _validParams.map(([key, value]) => {
+      return eb(key as ReferenceExpression<DB, 'transaction'>, '=', value);
+    });
     return eb.and(filters);
   };
 
@@ -38,7 +37,7 @@ export const getTransactions = async (params: Partial<ICreateTransactionParams>,
     .selectFrom('transaction')
     .innerJoin(
       (eb) => eb.selectFrom('wallet').select('wallet.chainId').as('wallet'),
-      (join) => join.onRef('transaction.walletId', '=', 'wallet.chainId'),
+      (join) => join.onRef('transaction.walletId', '=', 'walletId'),
     )
     .selectAll()
     .where(buildExpression)
