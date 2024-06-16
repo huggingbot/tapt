@@ -2,7 +2,7 @@ export enum ENavAction {
   // Main navigation
   Wallet = 'Wallet',
   Funding = 'Funding',
-  Swap = 'Swap',
+  Trade = 'Trade',
   Bridge = 'Bridge',
   Chain = 'Chain',
 
@@ -10,6 +10,7 @@ export enum ENavAction {
   Start = '/start',
   Back = 'Back',
   Cancel = 'Cancel',
+  Delete = 'Delete',
 
   // Wallet navigation
   WalletCount = 'Count',
@@ -20,8 +21,11 @@ export enum ENavAction {
   // Funding navigation
   FundFromSingleWallet = 'Fund from wallet',
 
-  // Swap navigation
-  GetSwapToken = 'Get swap token',
+  // Trade navigation
+  GetTradeToken = 'Get trade token',
+  ActiveOrders = 'Active Orders',
+  PreviewOrder = 'Preview Order',
+  SubmitOrder = 'Submit Order',
 
   // Bridge navigation
   BridgeEthToZkLink = 'Bridge ETH to ZkLink',
@@ -29,10 +33,7 @@ export enum ENavAction {
   // Chain navigation
   GetCurrentChain = 'Get current chain',
   SwitchChain = 'Switch chain',
-
-  // Order
-  PreviewOrder = 'Preview Order',
-  SubmitOrder = 'Submit Order',
+  GetSwapToken = 'GetSwapToken',
 }
 
 export enum EWalletAction {

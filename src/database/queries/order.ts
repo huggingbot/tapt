@@ -1,7 +1,7 @@
 import { ExpressionBuilder, Transaction } from 'kysely';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
 
-import { EOrderStatus } from '@/types';
+import { EOrderStatus, IBaseOrder } from '@/types';
 
 import { db } from '../db';
 import { DB, Order as DBOrder } from '../gen-types';
@@ -57,14 +57,14 @@ export const createOrder = async (params: ICreateOrderParams, trx?: Transaction<
   return order;
 };
 
-export const getOrders = async (filters?: GetOrdersFilters, trx?: Transaction<DB>) => {
+export const getOrders = async (filters?: GetOrdersFilters, trx?: Transaction<DB>): Promise<IBaseOrder[]> => {
   const queryCreator = trx ? trx : db;
   let query = queryCreator
     .selectFrom('order')
     .select((eb) => [
       'order.id as orderId',
-      jsonObjectFrom(eb.selectFrom('token').selectAll().whereRef('buyTokenId', '=', 'token.id')).as('buy_token'),
-      jsonObjectFrom(eb.selectFrom('token').selectAll().whereRef('sellTokenId', '=', 'token.id')).as('sell_token'),
+      jsonObjectFrom(eb.selectFrom('token').selectAll().whereRef('buyTokenId', '=', 'token.id')).as('buyToken'),
+      jsonObjectFrom(eb.selectFrom('token').selectAll().whereRef('sellTokenId', '=', 'token.id')).as('sellToken'),
     ])
     .leftJoin(
       (eb) =>
@@ -82,7 +82,7 @@ export const getOrders = async (filters?: GetOrdersFilters, trx?: Transaction<DB
   }
   if (filters?.orderStatus) {
     if (filters.orderStatus === String(EOrderStatus.Active)) {
-      const notActiveOrderStatus = [EOrderStatus.Completed, EOrderStatus.Expired, EOrderStatus.Filled] as string[];
+      const notActiveOrderStatus = [EOrderStatus.Completed, EOrderStatus.Expired, EOrderStatus.Failed, EOrderStatus.Cancelled] as string[];
       query = query.where('order.orderStatus', 'not in', notActiveOrderStatus);
     } else {
       query = query.where('order.orderStatus', '=', filters.orderStatus);

@@ -2,7 +2,7 @@ export enum EScene {
   MainNav = 'MainNav',
   WalletNav = 'WalletNav',
   FundingNav = 'FundingNav',
-  SwapNav = 'SwapNav',
+  TradeNav = 'TradeNav',
   BridgeNav = 'BridgeNav',
   ChainNav = 'ChainNav',
 
@@ -13,7 +13,8 @@ export enum EScene {
 
   FundFromSingleWallet = 'FundFromSingleWallet',
 
-  GetSwapToken = 'GetSwapToken',
+  GetTradeToken = 'GetTradeToken',
+  ActiveOrders = 'ActiveOrders',
   BuyAndSell = 'BuyAndSell',
   ExecuteSwap = 'ExecuteSwap',
 

@@ -5,13 +5,14 @@ import { EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
 import { EScene } from '@/modules/bot/constants/bot-scene.constant';
 import { IWizContractProp } from '@/modules/bot/interfaces/bot-prop.interface';
 
+import { createActiveOrdersScene } from '../scenes/active-orders.scene';
 import { createBuyAndSellScene } from '../scenes/buy-and-sell.scene';
 import { createExecuteSwapScene } from '../scenes/execute-swap.scene';
 import { createGetSwapTokenScene } from '../scenes/get-swap-token';
 import { createOrderPreviewScene } from '../scenes/order-preview.scene';
 
-export const swapStage = [
-  createGetSwapTokenScene(EScene.GetSwapToken, async (ctx) => {
+export const tradeStage = [
+  createGetSwapTokenScene(EScene.GetTradeToken, async (ctx) => {
     const state = ctx.wizard.state;
     const isStart = ctx.has(message('text')) && ctx.message?.text === String(ENavAction.Start);
     const contract = state[EWizardProp.Contract];
@@ -21,7 +22,7 @@ export const swapStage = [
     } else if (contract) {
       ctx.scene.enter(EScene.BuyAndSell, state);
     } else {
-      ctx.scene.enter(EScene.SwapNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+      ctx.scene.enter(EScene.TradeNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
     }
   }),
   createBuyAndSellScene(EScene.BuyAndSell, async (ctx) => {
@@ -48,7 +49,7 @@ export const swapStage = [
           ctx.scene.enter(EScene.ExecuteSwap, state);
       }
     } else {
-      ctx.scene.enter(EScene.SwapNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+      ctx.scene.enter(EScene.TradeNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
     }
   }),
   createExecuteSwapScene(EScene.ExecuteSwap, async (ctx) => {
@@ -58,7 +59,7 @@ export const swapStage = [
     if (isStart) {
       ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
     } else {
-      ctx.scene.enter(EScene.SwapNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+      ctx.scene.enter(EScene.TradeNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
     }
   }),
   createOrderPreviewScene(EScene.PreviewOrder, async (ctx) => {
@@ -72,6 +73,18 @@ export const swapStage = [
       ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
     } else if (contract && action && activeAddress && orderType) {
       ctx.scene.enter(EScene.BuyAndSell, state);
+    } else {
+      ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+    }
+  }),
+  createActiveOrdersScene(EScene.ActiveOrders, async (ctx) => {
+    const state = ctx.wizard.state;
+    const action = state[EWizardProp.Action];
+    const isStart = ctx.has(message('text')) && ctx.message?.text === String(ENavAction.Start);
+    if (isStart || action === String(ENavAction.Back)) {
+      ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+    } else if (action === String(ENavAction.ActiveOrders)) {
+      ctx.scene.reenter();
     } else {
       ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
     }

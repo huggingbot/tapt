@@ -5,12 +5,10 @@ export enum EOrderType {
 }
 
 export enum EOrderStatus {
-  Active = 'ACTIVE',
+  Active = 'ACTIVE', // aggregate status for all active orders, i.e. not completed, expired, failed or cancelled
   Expired = 'EXPIRED',
-  Pending = 'PENDING',
-  PartiallyFilled = 'PARTIALLY_FILLED',
-  Filled = 'FILLED',
   Cancelled = 'CANCELLED',
+  Failed = 'FAILED',
 
   /**
    * Below are the order status related to limit orders

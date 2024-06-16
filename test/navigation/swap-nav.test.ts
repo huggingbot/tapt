@@ -55,7 +55,7 @@ describe('Swap nav scene', function () {
     expect(replySpy).toHaveBeenCalledWith('Manage swaps', {
       reply_markup: {
         inline_keyboard: [
-          [{ callback_data: ENavAction.GetSwapToken, hide: false, text: 'Swap tokens' }],
+          [{ callback_data: ENavAction.GetTradeToken, hide: false, text: 'Swap tokens' }],
           [{ callback_data: ENavAction.Back, hide: false, text: ENavAction.Back }],
         ],
       },
@@ -63,10 +63,10 @@ describe('Swap nav scene', function () {
   });
 
   test.each`
-    action                     | scenario                 | expectedScene
-    ${ENavAction.GetSwapToken} | ${'wallets not created'} | ${EScene.MainNav}
-    ${ENavAction.GetSwapToken} | ${'wallets created'}     | ${EScene.GetSwapToken}
-    ${ENavAction.Back}         | ${null}                  | ${EScene.MainNav}
+    action                      | scenario                 | expectedScene
+    ${ENavAction.GetTradeToken} | ${'wallets not created'} | ${EScene.MainNav}
+    ${ENavAction.GetTradeToken} | ${'wallets created'}     | ${EScene.GetTradeToken}
+    ${ENavAction.Back}          | ${null}                  | ${EScene.MainNav}
   `('should navigate to the $expectedScene scene when action is $action and scenario is "$scenario"', async ({ action, expectedScene, scenario }) => {
     await scene.middleware()(ctx as IContext, jest.fn());
 
@@ -104,7 +104,7 @@ describe('Swap nav scene', function () {
     expect(sceneCtx.enter).not.toHaveBeenCalled();
     expect(editMsgSpy).toHaveBeenCalledWith(chat.id, message_id, undefined, {
       inline_keyboard: [
-        [{ callback_data: ENavAction.GetSwapToken, text: 'Swap tokens' }],
+        [{ callback_data: ENavAction.GetTradeToken, text: 'Swap tokens' }],
         [{ callback_data: ENavAction.Back, text: ENavAction.Back }],
       ],
     });

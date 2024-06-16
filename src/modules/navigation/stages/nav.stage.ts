@@ -7,13 +7,12 @@ import { createBridgeNavScene } from '../scenes/bridge.nav.scene';
 import { createChainNavScene } from '../scenes/chain.nav.scene';
 import { createFundingNavScene } from '../scenes/funding.nav.scene';
 import { createMainNavScene } from '../scenes/main-nav.scene';
-import { createSwapNavScene } from '../scenes/swap.nav.scene';
+import { createTradeNavScene } from '../scenes/trade.nav.scene';
 import { createWalletNavScene } from '../scenes/wallet.nav.scene';
 
 export const navStage = [
   createMainNavScene(EScene.MainNav, async (ctx) => {
     const state = ctx.wizard.state;
-
     const { network } = ctx.session.prop[ESessionProp.Chain];
 
     // only allow bridging from local, mainnet and sepolia
@@ -24,7 +23,7 @@ export const navStage = [
     }
 
     // disable swap module for zk link
-    if (state[EWizardProp.Action] === ENavAction.Swap && [ENetwork.ZkLink].includes(network)) {
+    if (state[EWizardProp.Action] === ENavAction.Trade && [ENetwork.ZkLink].includes(network)) {
       ctx.reply(`This feature is unavailable on ${network}.`);
       ctx.scene.reenter();
       return;
@@ -37,8 +36,8 @@ export const navStage = [
       case ENavAction.Funding:
         ctx.scene.enter(EScene.FundingNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
         break;
-      case ENavAction.Swap:
-        ctx.scene.enter(EScene.SwapNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+      case ENavAction.Trade:
+        ctx.scene.enter(EScene.TradeNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
         break;
       case ENavAction.Bridge:
         ctx.scene.enter(EScene.BridgeNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
@@ -90,12 +89,14 @@ export const navStage = [
       }
     }
   }),
-  createSwapNavScene(EScene.SwapNav, async (ctx) => {
+  createTradeNavScene(EScene.TradeNav, async (ctx) => {
     const state = ctx.wizard.state;
-
     switch (state[EWizardProp.Action]) {
-      case ENavAction.GetSwapToken:
-        ctx.scene.enter(EScene.GetSwapToken, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+      case ENavAction.GetTradeToken:
+        ctx.scene.enter(EScene.GetTradeToken, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+        break;
+      case ENavAction.ActiveOrders:
+        ctx.scene.enter(EScene.ActiveOrders, state);
         break;
       case ENavAction.Back:
         ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
