@@ -40,6 +40,7 @@ export function isLimitOrderCriteriaMet(orderMode: TradeMode, amountIn: number, 
  *    (DONE)
  */
 export async function checkLimitOrderCriteria() {
+  const start = Date.now();
   const fetchApprovalCompletedOrdersUrl = `${TAPT_API_ENDPOINT}/orders/limit?orderStatus=${EOrderStatus.ApprovalCompleted}`;
   const orders = await makeNetworkRequest<ILimitOrder[]>(fetchApprovalCompletedOrdersUrl);
 
@@ -76,7 +77,6 @@ export async function checkLimitOrderCriteria() {
     return Promise.all([poolContract.token0(), poolContract.token1(), poolContract.fee(), poolContract.liquidity(), poolContract.slot0()]);
   });
   const tokenDetailsResult = await Promise.allSettled(tokensDetailsPromise);
-
   // Quote current market price for Target Token
   const quotedAmountsPromises = tokenDetailsResult.map((result, idx) => {
     if (result.status === 'rejected' || !result.value) {
@@ -87,10 +87,10 @@ export async function checkLimitOrderCriteria() {
     const provider = getProvider(network);
     const quoterContract = new ethers.Contract(UNISWAP_QUOTER_ADDRESS[network], QuoterABI.abi, provider);
 
-    const decimals = orderMode === 'buy' ? tokenInput.decimals : tokenOutput.decimals;
+    const decimals = orderMode === 'buy' ? tokenOutput.decimals : tokenInput.decimals;
     const [token0, token1, fee] = result.value;
     const amountIn = ethers.utils.parseUnits('1', decimals);
-    return quoterContract.callStatic.quoteExactOutputSingle(token0, token1, fee, amountIn, 0);
+    return quoterContract.callStatic.quoteExactInputSingle(token0, token1, fee, amountIn, 0);
   });
   const quotedAmountResults = await Promise.allSettled(quotedAmountsPromises);
 
@@ -99,7 +99,7 @@ export async function checkLimitOrderCriteria() {
     const { tokenOutput, tokenInput, orderId, targetPrice, orderMode } = additionalParams[idx];
     const baseSymbol = orderMode === 'buy' ? tokenInput.symbol : tokenOutput.symbol;
     const targetSymbol = orderMode === 'buy' ? tokenOutput.symbol : tokenInput.symbol;
-    const decimals = orderMode === 'buy' ? tokenOutput.decimals : tokenInput.decimals;
+    const decimals = orderMode === 'buy' ? tokenInput.decimals : tokenOutput.decimals;
     if (result.status === 'fulfilled' && result.value) {
       const amountOut = ethers.utils.formatUnits(result.value, decimals);
       logger.debug('=====================');
@@ -114,6 +114,7 @@ export async function checkLimitOrderCriteria() {
       }
     }
   });
+  logger.info(`Checking Limit Orders Criteria takes ${Date.now() - start} ms to complete!`);
 
   if (ordersToBePrcessed.length > 0) {
     // bulk update orders

@@ -7,8 +7,12 @@ import 'dotenv/config';
 /**
  * Testing locally
  */
-// import { trackTransaction } from './transactions';
-import { checkLimitOrderCriteria } from './trades';
+import { trackTransaction } from './transactions';
+// import { executeLimitTrades } from './trades';
+// import { submitApprovalTransactions } from './transactions';
+// import { checkLimitOrderCriteria } from './trades';
 
+trackTransaction();
 // submitApprovalTransactions();
-checkLimitOrderCriteria();
+// checkLimitOrderCriteria();
+// executeLimitTrades();

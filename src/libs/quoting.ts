@@ -51,13 +51,13 @@ export const quoteTokenPrice = async (tokenOut: Token, network: ENetwork, tokenI
   const amountToQuote = amount || '1';
   const immutables = await getPoolImmutables(poolContract);
 
-  // we will sell WETH
+  // we will sell WETH: `BUY MODE` Trade
   if (sellToken.address === wNativeToken.address) {
     const amountOut = ethers.utils.parseUnits(amountToQuote.toString(), tokenOut.decimals);
     const quotedAmountOut = await quoterContract.callStatic.quoteExactInputSingle(immutables.token0, immutables.token1, immutables.fee, amountOut, 0);
     return quotedAmountOut as ethers.BigNumber;
   }
-  // we will buy WETH
+  // we will buy WETH: `SELL MODE` Trade
   const amountOut = ethers.utils.parseUnits(amountToQuote.toString(), tokenOut.decimals);
   const quotedAmountOut = await quoterContract.callStatic.quoteExactOutputSingle(immutables.token0, immutables.token1, immutables.fee, amountOut, 0);
   return quotedAmountOut as ethers.BigNumber;

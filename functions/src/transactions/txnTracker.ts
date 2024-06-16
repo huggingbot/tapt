@@ -38,7 +38,7 @@ export async function trackTransaction() {
   const txnsToUpdate: TUpdateTransactionParams[] = [];
   // additional params which will be used during difference promises iteration
   const additionalParams: IAdditionalTxnTrackerParams[] = [];
-  console.log('txns', txns);
+
   const txnReceiptPromises = txns.map((txn) => {
     const { transactionHash, orderId, transactionType, id: transactionId, chainId } = txn;
     const network = fromChainIdToNetwork(chainId);
@@ -57,7 +57,7 @@ export async function trackTransaction() {
       txnsToUpdate.push({ orderId, transactionType, transactionStatus, transactionFee, transactionId });
     }
   });
-  console.log('txnsToUpdate', txnsToUpdate);
+
   if (txnsToUpdate.length > 0) {
     await makeNetworkRequest(`${TAPT_API_ENDPOINT}/transactions/bulk_update`, 'PATCH', { data: txnsToUpdate });
   }

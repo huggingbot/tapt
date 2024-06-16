@@ -43,7 +43,7 @@ export async function bulkUpdateOrderStatus(req: Request, res: Response) {
     }
 
     await bulkUpdateByOrderIds(setdata, idsToUpdate);
-    return res.status(201).json({ success: true, message: `Updated the orders with ids, ${idsToUpdate.join(',')}.` });
+    return res.status(201).json({ success: true, data: `Updated the orders with ids, ${idsToUpdate.join(',')}.` });
   } catch (e: unknown) {
     console.error('error bulk_update_order status', e);
     const errMsg = (e as Error)?.message || 'unknown error';
