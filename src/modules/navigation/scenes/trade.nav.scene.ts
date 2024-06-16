@@ -1,6 +1,5 @@
 import { callbackQuery } from 'telegraf/filters';
 
-import { getActiveOrders } from '@/database/queries/common';
 import { ENavAction } from '@/modules/bot/constants/bot-action.constant';
 import { ESessionProp, EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
 import { composeWizardScene } from '@/modules/bot/utils/scene-factory';
@@ -37,13 +36,9 @@ export const createTradeNavScene = composeWizardScene(
       } else {
         if (action === String(EWizardProp.ActiveLimitOrders)) {
           ctx.wizard.state[EWizardProp.Action] = ENavAction.ActiveOrders;
-          const activeLimitOrders = await getActiveOrders(EOrderType.Limit);
-          ctx.wizard.state[EWizardProp.ActiveLimitOrders] = activeLimitOrders;
           ctx.wizard.state[EWizardProp.OrderManagementMode] = EOrderType.Limit;
         } else if (action === String(EWizardProp.ActiveDcaOrders)) {
           ctx.wizard.state[EWizardProp.Action] = ENavAction.ActiveOrders;
-          const activeDcaOrders = await getActiveOrders(EOrderType.Dca);
-          ctx.wizard.state[EWizardProp.ActiveDcaOrders] = activeDcaOrders;
           ctx.wizard.state[EWizardProp.OrderManagementMode] = EOrderType.Dca;
         } else {
           ctx.wizard.state[EWizardProp.Action] = action;

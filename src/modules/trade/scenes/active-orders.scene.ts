@@ -17,7 +17,7 @@ export const createActiveOrdersScene = composeWizardScene(
     let ordersData = `No active '${String(orderType).toUpperCase()}' orders found`;
 
     if (orderType === String(EOrderType.Limit)) {
-      const activeLimitOrders = ctx.wizard.state[EWizardProp.ActiveLimitOrders] as ILimitOrder[];
+      const activeLimitOrders = (await getActiveOrders(EOrderType.Limit)) as ILimitOrder[];
       if (activeLimitOrders.length > 0) {
         keyboardData = [[{ text: ENavAction.Delete, callback_data: ENavAction.Delete }], ...keyboardData];
         const header = formatOrderOverviewHeader();
@@ -25,7 +25,7 @@ export const createActiveOrdersScene = composeWizardScene(
         ordersData = `${header}${formattedOrderData.join('\n')}`;
       }
     } else if (orderType === String(EOrderType.Dca)) {
-      const activeDcaOrders = ctx.wizard.state[EWizardProp.ActiveDcaOrders] as ILimitOrder[];
+      const activeDcaOrders = (await getActiveOrders(EOrderType.Dca)) as ILimitOrder[];
       if (activeDcaOrders.length > 0) {
         keyboardData = [[{ text: ENavAction.Delete, callback_data: ENavAction.Delete }], ...keyboardData];
         const header = formatOrderOverviewHeader();
@@ -68,14 +68,6 @@ export const createActiveOrdersScene = composeWizardScene(
           await ctx.reply(`Cancelling order id, ${actionItem}`);
           await cancelOrder(Number(actionItem), orderType);
           ctx.reply(`Order id, ${actionItem} has been successfully cancelled`);
-          ctx.reply('Refreshing Order Management Scene...');
-          if (orderType === EOrderType.Limit) {
-            const activeLimitOrders = await getActiveOrders(EOrderType.Limit);
-            ctx.wizard.state[EWizardProp.ActiveLimitOrders] = activeLimitOrders;
-          } else if (orderType === EOrderType.Dca) {
-            const activeDcaOrders = await getActiveOrders(EOrderType.Dca);
-            ctx.wizard.state[EWizardProp.ActiveDcaOrders] = activeDcaOrders;
-          }
         }
       }
     } catch (e: unknown) {
