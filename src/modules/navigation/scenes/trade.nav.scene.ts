@@ -27,10 +27,11 @@ export const createTradeNavScene = composeWizardScene(
       const { network } = ctx.session.prop[ESessionProp.Chain];
       const wallets = ctx.session.prop[ESessionProp.Wallets][network];
 
-      if (action === String(ENavAction.Back) || !wallets.length) {
-        if (!wallets.length) {
-          ctx.reply('You need to create a wallet first');
-        }
+      if (action === String(ENavAction.Back)) {
+        ctx.wizard.state[EWizardProp.Action] = ENavAction.Back;
+        ctx.wizard.state[EWizardProp.Msg] = ctx.callbackQuery.message;
+      } else if (!wallets.length) {
+        ctx.reply('You need to create a wallet first');
         ctx.wizard.state[EWizardProp.Action] = ENavAction.Back;
         ctx.wizard.state[EWizardProp.Msg] = ctx.callbackQuery.message;
       } else {
