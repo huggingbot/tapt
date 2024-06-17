@@ -6,6 +6,7 @@ import { ETransactionStatus, ITransaction } from '../utils/types';
 import { handleError } from '../utils/responseHandler';
 import { createScheduleFunction } from '../utils/firebase-functions';
 import { makeNetworkRequest } from '../utils/networking';
+import { countdown } from '../utils/helpers';
 
 interface IAdditionalTxnTrackerParams {
   orderId: number;
@@ -67,8 +68,10 @@ export async function trackTransaction() {
 // track transaction
 export const txnTracker = createScheduleFunction(async () => {
   try {
-    const updatedTxns = await trackTransaction();
-    logger.info('[txnTracker] updated transactions', updatedTxns);
+    await countdown(4, async () => {
+      const updatedTxns = await trackTransaction();
+      logger.info(`updatedTxns: ${updatedTxns}`);
+    });
   } catch (e: unknown) {
     handleError(e);
   }

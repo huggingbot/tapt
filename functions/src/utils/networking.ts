@@ -16,7 +16,7 @@ export async function makeNetworkRequest<T>(
     });
     const jsonResp: ApiResponse<T> = await res.json();
     if (!jsonResp.data || !jsonResp.success) {
-      throw new Error(`Failed: ${jsonResp.message}`);
+      throw new Error(`[${res.status}] Failed: ${jsonResp.message}`);
     }
     return jsonResp.data;
   } catch (e: unknown) {

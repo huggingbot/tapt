@@ -11,7 +11,7 @@ import { generateRoute, executeRoute } from '../utils/routing';
 import { handleError } from '../utils/responseHandler';
 import { createScheduleFunction } from '../utils/firebase-functions';
 import { makeNetworkRequest } from '../utils/networking';
-import { unwrapNativeToken, wrapNativeToken } from '../utils/helpers';
+import { countdown, unwrapNativeToken, wrapNativeToken } from '../utils/helpers';
 
 /**
  * This function is responsible for executing the trade which met the trading criteria
@@ -26,6 +26,7 @@ import { unwrapNativeToken, wrapNativeToken } from '../utils/helpers';
  *    (DONE)
  * */
 export async function executeLimitTrades() {
+  const start = Date.now();
   const fetchReadyToExecuteOrderUrl = `${TAPT_API_ENDPOINT}/orders/limit?orderStatus=${EOrderStatus.ExecutionReady}`;
   const orders = await makeNetworkRequest<ILimitOrder[]>(fetchReadyToExecuteOrderUrl);
   logger.debug('orders to be executed', orders);
@@ -132,14 +133,16 @@ export async function executeLimitTrades() {
       return makeNetworkRequest(`${TAPT_API_ENDPOINT}/orders/${orderId}`, 'PATCH', body as unknown as Record<string, unknown>);
     }),
   );
+  logger.info(`Execution of limit trades take ${Date.now() - start} ms to finish`);
   return updateOrderResult;
 }
 
 export const tradeExecution = createScheduleFunction(async () => {
   try {
-    const result = await executeLimitTrades();
-    logger.info('trade executed', result);
-    logger;
+    await countdown(3, async () => {
+      const result = await executeLimitTrades();
+      logger.info('trade executed', result);
+    });
   } catch (e: unknown) {
     handleError(e);
   }

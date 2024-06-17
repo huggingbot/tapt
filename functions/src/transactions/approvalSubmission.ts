@@ -3,7 +3,7 @@ import { BigNumber, ethers } from 'ethers';
 import { logger } from 'firebase-functions';
 import ERC20_ABI from '../contracts/ERC_20_abi.json';
 import { TAPT_API_ENDPOINT, V3_UNISWAP_ROUTER_ADDRESS } from '../utils/constants';
-import { fromReadableAmount, toReadableAmount } from '../utils/helpers';
+import { countdown, fromReadableAmount, toReadableAmount } from '../utils/helpers';
 import { fromChainIdToNetwork, getProvider } from '../utils/providers';
 import { ILimitOrder, IToken, ENetwork, IUpdateOrderRequestBody, TransactionState, ETransactionType, EOrderStatus } from '../utils/types';
 import { sendTransactionViaWallet } from '../utils/transactions';
@@ -156,8 +156,10 @@ export async function submitApprovalTransactions() {
 // submit approval transaction
 export const approvalSubmission = createScheduleFunction(async () => {
   try {
-    const approvalTxns = await submitApprovalTransactions();
-    logger.info('approvalSubmission', approvalTxns);
+    await countdown(5, async () => {
+      const approvalTxns = await submitApprovalTransactions();
+      logger.info(`approvalTxns: ${approvalTxns}`);
+    });
   } catch (e: unknown) {
     handleError(e);
   }

@@ -12,6 +12,7 @@ import { logger } from 'firebase-functions';
 import { handleError } from '../utils/responseHandler';
 import { createScheduleFunction } from '../utils/firebase-functions';
 import { makeNetworkRequest } from '../utils/networking';
+import { countdown } from '../utils/helpers';
 
 /**
  * Check if the trade criteria met with the current price and target price
@@ -131,12 +132,18 @@ export async function checkLimitOrderCriteria() {
 
 export const limitOrderCriteriaChecker = createScheduleFunction(async () => {
   try {
-    const result = await checkLimitOrderCriteria();
-    if (!result) {
-      logger.info('[limitOrderCriteriaChecker] none of the `limit` orders met the criteria');
-    } else {
-      logger.info('[limitOrderCriteriaChecker] trade criteria met:', result);
-    }
+    await countdown(
+      3,
+      async () => {
+        const result = await checkLimitOrderCriteria();
+        if (!result) {
+          logger.info('[limitOrderCriteriaChecker] none of the `limit` orders met the criteria');
+        } else {
+          logger.info('[limitOrderCriteriaChecker] trade criteria met:', result);
+        }
+      },
+      3_000,
+    );
   } catch (e: unknown) {
     handleError(e);
   }
