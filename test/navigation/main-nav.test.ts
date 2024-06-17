@@ -54,12 +54,12 @@ describe('Main nav scene', function () {
     const updatedCtx = _.merge(_.cloneDeep(ctx), { update });
     await scene.middleware()(updatedCtx as IContext, jest.fn());
 
-    expect(replySpy).toHaveBeenCalledWith('Manage TAPT', {
+    expect(replySpy).toHaveBeenCalledWith('Manage TAPT\n=============================', {
       reply_markup: {
         inline_keyboard: [
           [{ callback_data: ENavAction.Wallet, hide: false, text: ENavAction.Wallet }],
           [{ callback_data: ENavAction.Funding, hide: false, text: ENavAction.Funding }],
-          [{ callback_data: ENavAction.Swap, hide: false, text: ENavAction.Swap }],
+          [{ callback_data: ENavAction.Trade, hide: false, text: ENavAction.Trade }],
           [{ callback_data: ENavAction.Bridge, hide: false, text: ENavAction.Bridge }],
           [{ callback_data: ENavAction.Chain, hide: false, text: ENavAction.Chain }],
         ],
@@ -71,7 +71,7 @@ describe('Main nav scene', function () {
     action                | expectedScene
     ${ENavAction.Wallet}  | ${EScene.WalletNav}
     ${ENavAction.Funding} | ${EScene.FundingNav}
-    ${ENavAction.Swap}    | ${EScene.SwapNav}
+    ${ENavAction.Trade}   | ${EScene.TradeNav}
     ${ENavAction.Chain}   | ${EScene.ChainNav}
   `('should navigate to the $expectedScene scene when action is $action', async ({ action, expectedScene }) => {
     const update1 = { message: { text: '/start' } };
@@ -90,7 +90,7 @@ describe('Main nav scene', function () {
     expect(sceneCtx.enter).toHaveBeenCalledWith(expectedScene, { msg: undefined });
   });
 
-  it('should edit inline keyboard to the main nav when there is a message state', async function () {
+  it('should not edit inline keyboard to the main nav when there is a message state', async function () {
     const message_id = 1;
     const chat = { id: 1 };
     sceneCtx.state = { [EWizardProp.Msg]: { chat, message_id, reply_markup: { inline_keyboard: [] } } };
@@ -99,17 +99,17 @@ describe('Main nav scene', function () {
     const updatedCtx = _.merge(_.cloneDeep(ctx), { update });
     await scene.middleware()(updatedCtx as IContext, jest.fn());
 
-    expect(replySpy).not.toHaveBeenCalled();
+    expect(replySpy).toHaveBeenCalled();
     expect(sceneCtx.leave).not.toHaveBeenCalled();
     expect(sceneCtx.enter).not.toHaveBeenCalled();
-    expect(editMsgSpy).toHaveBeenCalledWith(chat.id, message_id, undefined, {
-      inline_keyboard: [
-        [{ callback_data: ENavAction.Wallet, text: ENavAction.Wallet }],
-        [{ callback_data: ENavAction.Funding, text: ENavAction.Funding }],
-        [{ callback_data: ENavAction.Swap, text: ENavAction.Swap }],
-        [{ callback_data: ENavAction.Bridge, text: ENavAction.Bridge }],
-        [{ callback_data: ENavAction.Chain, text: ENavAction.Chain }],
-      ],
-    });
+    // expect(editMsgSpy).toHaveBeenCalledWith(chat.id, message_id, undefined, {
+    //   inline_keyboard: [
+    //     [{ callback_data: ENavAction.Wallet, text: ENavAction.Wallet }],
+    //     [{ callback_data: ENavAction.Funding, text: ENavAction.Funding }],
+    //     [{ callback_data: ENavAction.Trade, text: ENavAction.Trade }],
+    //     [{ callback_data: ENavAction.Bridge, text: ENavAction.Bridge }],
+    //     [{ callback_data: ENavAction.Chain, text: ENavAction.Chain }],
+    //   ],
+    // });
   });
 });

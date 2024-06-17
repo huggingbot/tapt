@@ -12,6 +12,7 @@ export const createWalletNavScene = composeWizardScene(
     const keyboardData = [
       [{ text: ENavAction.WalletCount, callback_data: ENavAction.WalletCount }],
       [{ text: ENavAction.WalletList, callback_data: ENavAction.WalletList }],
+      [{ text: ENavAction.PeekBalance, callback_data: ENavAction.PeekBalance }],
       [{ text: ENavAction.WalletCreate, callback_data: ENavAction.WalletCreate }],
       [{ text: ENavAction.WalletImport, callback_data: ENavAction.WalletImport }],
       [{ text: ENavAction.Back, callback_data: ENavAction.Back }],

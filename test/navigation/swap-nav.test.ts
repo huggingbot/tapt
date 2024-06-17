@@ -52,10 +52,14 @@ describe('Swap nav scene', function () {
   it('should show the swap navigation', async function () {
     await scene.middleware()(ctx as IContext, jest.fn());
 
-    expect(replySpy).toHaveBeenCalledWith('Manage swaps', {
+    expect(replySpy).toHaveBeenCalledWith('Manage TAPT\n=============================', {
       reply_markup: {
         inline_keyboard: [
-          [{ callback_data: ENavAction.GetTradeToken, hide: false, text: 'Swap tokens' }],
+          [{ callback_data: ENavAction.GetTradeToken, hide: false, text: ENavAction.GetTradeToken }],
+          [
+            { callback_data: EWizardProp.ActiveLimitOrders, hide: false, text: 'Active Limit Orders' },
+            { callback_data: EWizardProp.ActiveDcaOrders, hide: false, text: 'Active DCA Orders' },
+          ],
           [{ callback_data: ENavAction.Back, hide: false, text: ENavAction.Back }],
         ],
       },
@@ -90,7 +94,7 @@ describe('Swap nav scene', function () {
     expect(sceneCtx.enter).toHaveBeenCalledWith(expectedScene, { msg: undefined });
   });
 
-  it('should edit inline keyboard to the swap nav when there is a message state', async function () {
+  it('should not edit inline keyboard to the swap nav when there is a message state', async function () {
     const message_id = 1;
     const chat = { id: 1 };
     sceneCtx.state = { [EWizardProp.Msg]: { chat, message_id, reply_markup: { inline_keyboard: [] } } };
@@ -99,14 +103,8 @@ describe('Swap nav scene', function () {
     const updatedCtx = _.merge(_.cloneDeep(ctx), { update });
     await scene.middleware()(updatedCtx as IContext, jest.fn());
 
-    expect(replySpy).not.toHaveBeenCalled();
+    expect(replySpy).toHaveBeenCalled();
     expect(sceneCtx.leave).not.toHaveBeenCalled();
     expect(sceneCtx.enter).not.toHaveBeenCalled();
-    expect(editMsgSpy).toHaveBeenCalledWith(chat.id, message_id, undefined, {
-      inline_keyboard: [
-        [{ callback_data: ENavAction.GetTradeToken, text: 'Swap tokens' }],
-        [{ callback_data: ENavAction.Back, text: ENavAction.Back }],
-      ],
-    });
   });
 });

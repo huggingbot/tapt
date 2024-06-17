@@ -10,6 +10,7 @@ export enum EScene {
   ListWallet = 'ListWallet',
   CreateWallet = 'CreateWallet',
   ImportWallet = 'ImportWallet',
+  PeekBalance = 'PeekBalance',
 
   FundFromSingleWallet = 'FundFromSingleWallet',
 

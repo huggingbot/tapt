@@ -57,6 +57,7 @@ describe('Wallet nav scene', function () {
         inline_keyboard: [
           [{ callback_data: ENavAction.WalletCount, hide: false, text: ENavAction.WalletCount }],
           [{ callback_data: ENavAction.WalletList, hide: false, text: ENavAction.WalletList }],
+          [{ callback_data: ENavAction.PeekBalance, hide: false, text: ENavAction.PeekBalance }],
           [{ callback_data: ENavAction.WalletCreate, hide: false, text: ENavAction.WalletCreate }],
           [{ callback_data: ENavAction.WalletImport, hide: false, text: ENavAction.WalletImport }],
           [{ callback_data: ENavAction.Back, hide: false, text: ENavAction.Back }],
@@ -69,6 +70,7 @@ describe('Wallet nav scene', function () {
     action                     | expectedScene
     ${ENavAction.WalletCount}  | ${EScene.CountWallet}
     ${ENavAction.WalletList}   | ${EScene.ListWallet}
+    ${ENavAction.PeekBalance}  | ${EScene.PeekBalance}
     ${ENavAction.WalletCreate} | ${EScene.CreateWallet}
     ${ENavAction.WalletImport} | ${EScene.ImportWallet}
     ${ENavAction.Back}         | ${EScene.MainNav}
@@ -103,6 +105,7 @@ describe('Wallet nav scene', function () {
       inline_keyboard: [
         [{ callback_data: ENavAction.WalletCount, text: ENavAction.WalletCount }],
         [{ callback_data: ENavAction.WalletList, text: ENavAction.WalletList }],
+        [{ callback_data: ENavAction.PeekBalance, text: ENavAction.PeekBalance }],
         [{ callback_data: ENavAction.WalletCreate, text: ENavAction.WalletCreate }],
         [{ callback_data: ENavAction.WalletImport, text: ENavAction.WalletImport }],
         [{ callback_data: ENavAction.Back, text: ENavAction.Back }],
