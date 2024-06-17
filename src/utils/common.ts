@@ -126,12 +126,16 @@ export const isTargetPriceValid = (action: unknown, targetPrice: string): boolea
     return false;
   }
 
-  const num = Number(targetPrice.trim().replace('%', ''));
-  if (isBuyMode(action)) {
-    // buy mode
-    return num < 0;
+  if (isValidPercentageValue(targetPrice)) {
+    const num = Number(targetPrice.trim().replace('%', ''));
+    if (isBuyMode(action)) {
+      // buy mode
+      return num < 0;
+    }
+    return num > 0;
   }
-  return num > 0;
+
+  return true;
 };
 
 export const isDcaPriceThresholdValid = (minPrice: string, maxPrice: string) => {

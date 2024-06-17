@@ -66,6 +66,9 @@ export const navStage = [
       case ENavAction.WalletImport:
         ctx.scene.enter(EScene.ImportWallet, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
         break;
+      case ENavAction.PeekBalance:
+        ctx.scene.enter(EScene.PeekBalance, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+        break;
       case ENavAction.Back:
         ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
         break;

@@ -1,2 +1,2 @@
-export { approvalSubmission } from './approvalSubmission';
-export { txnTracker } from './txnTracker';
+export { approvalSubmission, submitApprovalTransactions } from './approvalSubmission';
+export { txnTracker, trackTransaction } from './txnTracker';

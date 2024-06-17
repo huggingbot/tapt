@@ -45,8 +45,10 @@ export const tradeStage = [
           ctx.scene.enter(EScene.PreviewOrder, state);
           break;
         case EOrderType.SwapOrderType:
-        default:
           ctx.scene.enter(EScene.ExecuteSwap, state);
+          break;
+        default:
+          ctx.scene.enter(EScene.TradeNav, state);
       }
     } else {
       ctx.scene.enter(EScene.TradeNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });

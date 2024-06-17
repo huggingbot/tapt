@@ -6,6 +6,7 @@ import { EScene } from '@/modules/bot/constants/bot-scene.constant';
 
 import { createCountWalletScene } from '../scenes/count-wallet.scene';
 import { createCreateWalletScene } from '../scenes/create-wallet.scene';
+import { createGetWalletBalanceScene } from '../scenes/get-wallet-balance.scene';
 import { createImportWalletScene } from '../scenes/import-wallet.scene';
 import { createListWalletScene } from '../scenes/list-wallet.scene';
 
@@ -38,6 +39,16 @@ export const walletStage = [
       ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
     } else {
       ctx.scene.enter(EScene.WalletNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+    }
+  }),
+  createGetWalletBalanceScene(EScene.PeekBalance, async (ctx) => {
+    const state = ctx.wizard.state;
+    const isStart = ctx.has(message('text')) && ctx.message?.text === String(ENavAction.Start);
+
+    if (isStart || state[EWizardProp.Action] === String(ENavAction.Back)) {
+      ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+    } else {
+      ctx.scene.reenter();
     }
   }),
 ];

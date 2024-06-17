@@ -43,7 +43,7 @@ export async function bulkUpdateOrderStatus(req: Request, res: Response) {
     }
 
     await bulkUpdateByOrderIds(setdata, idsToUpdate);
-    return res.status(201).json({ success: true, message: `Updated the orders with ids, ${idsToUpdate.join(',')}.` });
+    return res.status(201).json({ success: true, data: `Updated the orders with ids, ${idsToUpdate.join(',')}.` });
   } catch (e: unknown) {
     console.error('error bulk_update_order status', e);
     const errMsg = (e as Error)?.message || 'unknown error';
@@ -64,8 +64,12 @@ export async function updateOrderByIdHandler(req: Request, res: Response) {
       if (!order) {
         throw new Error(`no order found with id, ${orderId}`);
       }
-      const { orderStatus, transaction } = req.body as { orderStatus: string; transaction?: { hash: string; toAddress: string; type: string } };
-      await updateOrderById(Number(orderId), { orderStatus }, trx);
+      const { orderStatus, transaction, buyAmount } = req.body as {
+        orderStatus: string;
+        buyAmount: number;
+        transaction?: { hash: string; toAddress: string; type: string };
+      };
+      await updateOrderById(Number(orderId), { orderStatus, buyAmount }, trx);
       // update transaction table
       if (transaction) {
         const txn = await createTransaction(

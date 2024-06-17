@@ -77,9 +77,13 @@ export const createBuyAndSellScene = composeWizardScene(
         ctx.wizard.next();
       } else if (msg.message_id && msg.chat.id) {
         try {
-          ctx.telegram.editMessageReplyMarkup(msg.chat.id, msg.message_id, undefined, {
-            inline_keyboard: keyboardData,
-          });
+          ctx.telegram
+            .editMessageReplyMarkup(msg.chat.id, msg.message_id, undefined, {
+              inline_keyboard: keyboardData,
+            })
+            .catch((e) => {
+              log.error('error editing message', e);
+            });
         } catch (e) {
           log.error('error editing message', e);
         } finally {
@@ -101,6 +105,8 @@ export const createBuyAndSellScene = composeWizardScene(
 
       if (ctx.has(callbackQuery('data')) && ctx.callbackQuery.data === String(ENavAction.Cancel)) {
         ctx.wizard.state[EWizardProp.Msg] = undefined;
+        ctx.wizard.state[EWizardProp.ReEnterTheScene] = false;
+        ctx.wizard.state[EWizardProp.Action] = ENavAction.Cancel;
         ctx.deleteMessage(ctx.callbackQuery.message?.message_id);
         done();
       } else if (ctx.has(callbackQuery('data')) && ctx.callbackQuery.data === String(ENavAction.PreviewOrder)) {

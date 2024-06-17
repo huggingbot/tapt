@@ -3,14 +3,15 @@ import { Token } from '@uniswap/sdk-core';
 import { logger } from 'firebase-functions';
 import { SwapRoute } from '@uniswap/smart-order-router';
 import { ethers } from 'ethers';
-import { TAPT_API_ENDPOINT } from '../utils/constants';
+import { TAPT_API_ENDPOINT, WRAPPED_NATIVE_TOKEN } from '../utils/constants';
 import { fromChainIdToNetwork, getProvider } from '../utils/providers';
-import { EOrderStatus, ILimitOrder, ENetwork, IUpdateOrderRequestBody, TransactionState, ETransactionType } from '../utils/types';
+import { EOrderStatus, ILimitOrder, ENetwork, IUpdateOrderRequestBody, TransactionState, ETransactionType, TradeMode, IToken } from '../utils/types';
 import { decrypt } from '../utils/crypto';
 import { generateRoute, executeRoute } from '../utils/routing';
 import { handleError } from '../utils/responseHandler';
 import { createScheduleFunction } from '../utils/firebase-functions';
 import { makeNetworkRequest } from '../utils/networking';
+import { countdown, unwrapNativeToken, wrapNativeToken } from '../utils/helpers';
 
 /**
  * This function is responsible for executing the trade which met the trading criteria
@@ -24,7 +25,8 @@ import { makeNetworkRequest } from '../utils/networking';
  *    [track_txn]
  *    (DONE)
  * */
-export async function executeTrade() {
+export async function executeLimitTrades() {
+  const start = Date.now();
   const fetchReadyToExecuteOrderUrl = `${TAPT_API_ENDPOINT}/orders/limit?orderStatus=${EOrderStatus.ExecutionReady}`;
   const orders = await makeNetworkRequest<ILimitOrder[]>(fetchReadyToExecuteOrderUrl);
   logger.debug('orders to be executed', orders);
@@ -35,22 +37,42 @@ export async function executeTrade() {
     wallet: ethers.Wallet;
     network: ENetwork;
     route?: SwapRoute;
+    orderMode: TradeMode;
+    sellToken: IToken;
+    buyToken: IToken;
+    sellAmount: string;
   }[] = [];
 
-  // generating routes
-  const routeGenPromises = orders.map((order) => {
-    const { orderId, sellAmount, sellToken, buyToken, encryptedPrivateKey, chainId } = order;
+  const wrapNativeTokenPromises = orders.map((order) => {
+    const { orderId, sellAmount, sellToken, buyToken, encryptedPrivateKey, chainId, orderMode } = order;
 
     const network = fromChainIdToNetwork(chainId);
     const provider = getProvider(network);
-    const tokenIn = new Token(buyToken.chainId, buyToken.contractAddress, buyToken.decimalPlaces, buyToken.symbol);
-    const tokenOut = new Token(sellToken.chainId, sellToken.contractAddress, sellToken.decimalPlaces, sellToken.symbol);
     const privateKey = decrypt(encryptedPrivateKey);
     const wallet = new ethers.Wallet(privateKey, provider);
 
-    // save to additional param for later use
-    additionalParams.push({ orderId, wallet, network });
-    return generateRoute(wallet, network, { tokenIn, tokenOut, amount: Number(sellAmount) });
+    additionalParams.push({ orderId, wallet, network, sellToken, buyToken, sellAmount, orderMode: orderMode || 'buy' });
+
+    if (orderMode === 'buy') {
+      return wrapNativeToken(wallet, network, Number(sellAmount));
+    } else {
+      return undefined;
+    }
+  });
+  const wrapNativeTokenResult = await Promise.allSettled(wrapNativeTokenPromises);
+
+  // generating routes
+  const routeGenPromises = wrapNativeTokenResult.map((result, idx) => {
+    const { sellAmount, sellToken, buyToken, orderMode, network, wallet } = additionalParams[idx];
+
+    const tokenOut = new Token(buyToken.chainId, buyToken.contractAddress, buyToken.decimalPlaces, buyToken.symbol);
+    const tokenIn = new Token(sellToken.chainId, sellToken.contractAddress, sellToken.decimalPlaces, sellToken.symbol);
+
+    if (orderMode === 'buy') {
+      return generateRoute(wallet, network, { tokenIn: WRAPPED_NATIVE_TOKEN[network], tokenOut, amount: Number(sellAmount) });
+    } else {
+      return generateRoute(wallet, network, { tokenIn, tokenOut: WRAPPED_NATIVE_TOKEN[network], amount: Number(sellAmount) });
+    }
   });
   const routeGenResult = await Promise.allSettled(routeGenPromises);
 
@@ -64,6 +86,21 @@ export async function executeTrade() {
     return executeRoute(wallet, network, result.value);
   });
   const routeExecResult = await Promise.allSettled(routeExecPromises);
+
+  // unwrapping to native token after the 'sell' trade,
+  const unwrapNativeTokenPromises = routeExecResult.map((result, idx) => {
+    const { orderMode, wallet, network, route } = additionalParams[idx];
+
+    if (result.status === 'rejected' || !result.value || !route) {
+      return undefined;
+    }
+
+    if (orderMode === 'sell') {
+      return unwrapNativeToken(wallet, network, Number(route.quote.toExact()));
+    }
+    return undefined;
+  });
+  await Promise.allSettled(unwrapNativeTokenPromises);
 
   // update database based on `routeExecResult`
   const updateOrderResult = await Promise.allSettled(
@@ -96,14 +133,20 @@ export async function executeTrade() {
       return makeNetworkRequest(`${TAPT_API_ENDPOINT}/orders/${orderId}`, 'PATCH', body as unknown as Record<string, unknown>);
     }),
   );
+  logger.info(`Execution of limit trades take ${Date.now() - start} ms to finish`);
   return updateOrderResult;
 }
 
 export const tradeExecution = createScheduleFunction(async () => {
   try {
-    const result = await executeTrade();
-    logger.info('trade executed', result);
-    logger;
+    await countdown(
+      3,
+      async () => {
+        const result = await executeLimitTrades();
+        logger.info('trade executed', result);
+      },
+      3_000,
+    );
   } catch (e: unknown) {
     handleError(e);
   }

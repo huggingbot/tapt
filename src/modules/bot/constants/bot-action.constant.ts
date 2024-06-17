@@ -17,6 +17,7 @@ export enum ENavAction {
   WalletList = 'List',
   WalletCreate = 'Create',
   WalletImport = 'Import',
+  PeekBalance = 'Peek Balance',
 
   // Funding navigation
   FundFromSingleWallet = 'Fund from wallet',

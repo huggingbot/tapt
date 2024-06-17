@@ -6,6 +6,7 @@ import { ETransactionStatus, ITransaction } from '../utils/types';
 import { handleError } from '../utils/responseHandler';
 import { createScheduleFunction } from '../utils/firebase-functions';
 import { makeNetworkRequest } from '../utils/networking';
+import { countdown } from '../utils/helpers';
 
 interface IAdditionalTxnTrackerParams {
   orderId: number;
@@ -30,7 +31,7 @@ type TUpdateTransactionParams = Pick<ITransaction, 'transactionFee' | 'transacti
  *    **[track_txn]**
  *    (DONE)
  */
-async function trackTransaction() {
+export async function trackTransaction() {
   // eslint-disable-next-line max-len
   const url = `${TAPT_API_ENDPOINT}/transactions?status=${ETransactionStatus.Pending}`;
   const txns = await makeNetworkRequest<ITransaction[]>(url);
@@ -67,8 +68,10 @@ async function trackTransaction() {
 // track transaction
 export const txnTracker = createScheduleFunction(async () => {
   try {
-    const updatedTxns = await trackTransaction();
-    logger.info('[txnTracker] updated transactions', updatedTxns);
+    await countdown(5, async () => {
+      const updatedTxns = await trackTransaction();
+      logger.info(`updatedTxns: ${updatedTxns}`);
+    });
   } catch (e: unknown) {
     handleError(e);
   }
