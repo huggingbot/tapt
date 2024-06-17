@@ -11,7 +11,7 @@ import { generateRoute, executeRoute } from '../utils/routing';
 import { handleError } from '../utils/responseHandler';
 import { createScheduleFunction } from '../utils/firebase-functions';
 import { makeNetworkRequest } from '../utils/networking';
-import { wrapNativeToken } from '../utils/helpers';
+import { unwrapNativeToken, wrapNativeToken } from '../utils/helpers';
 
 /**
  * This function is responsible for executing the trade which met the trading criteria
@@ -85,6 +85,21 @@ export async function executeLimitTrades() {
     return executeRoute(wallet, network, result.value);
   });
   const routeExecResult = await Promise.allSettled(routeExecPromises);
+
+  // unwrapping to native token after the 'sell' trade,
+  const unwrapNativeTokenPromises = routeExecResult.map((result, idx) => {
+    const { orderMode, wallet, network, route } = additionalParams[idx];
+
+    if (result.status === 'rejected' || !result.value || !route) {
+      return undefined;
+    }
+
+    if (orderMode === 'sell') {
+      return unwrapNativeToken(wallet, network, Number(route.quote.toExact()));
+    }
+    return undefined;
+  });
+  await Promise.allSettled(unwrapNativeTokenPromises);
 
   // update database based on `routeExecResult`
   const updateOrderResult = await Promise.allSettled(

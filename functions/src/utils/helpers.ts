@@ -56,3 +56,21 @@ export async function wrapNativeToken(wallet: Wallet, network: ENetwork, amount:
 
   await sendTransactionViaWallet(wallet, network, transaction);
 }
+
+// unwraps native token (rounding up to the nearest native token for decimal places)
+export async function unwrapNativeToken(wallet: Wallet, network: ENetwork, amount: number) {
+  const provider = getProvider(network);
+  const wrappedNativeTokenContract = getWrappedNativeTokenContract(network, provider);
+
+  const transaction = {
+    data: wrappedNativeTokenContract.interface.encodeFunctionData('withdraw', [
+      fromReadableAmount(amount, WRAPPED_NATIVE_TOKEN[network].decimals).toString(),
+    ]),
+    from: wallet.address,
+    to: WRAPPED_NATIVE_TOKEN_CONTRACT_ADDRESS[network],
+    maxFeePerGas: MAX_FEE_PER_GAS,
+    maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS,
+  };
+
+  await sendTransactionViaWallet(wallet, network, transaction);
+}
