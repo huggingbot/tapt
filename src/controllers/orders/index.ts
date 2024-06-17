@@ -64,8 +64,12 @@ export async function updateOrderByIdHandler(req: Request, res: Response) {
       if (!order) {
         throw new Error(`no order found with id, ${orderId}`);
       }
-      const { orderStatus, transaction } = req.body as { orderStatus: string; transaction?: { hash: string; toAddress: string; type: string } };
-      await updateOrderById(Number(orderId), { orderStatus }, trx);
+      const { orderStatus, transaction, buyAmount } = req.body as {
+        orderStatus: string;
+        buyAmount: number;
+        transaction?: { hash: string; toAddress: string; type: string };
+      };
+      await updateOrderById(Number(orderId), { orderStatus, buyAmount }, trx);
       // update transaction table
       if (transaction) {
         const txn = await createTransaction(
