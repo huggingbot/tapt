@@ -68,7 +68,7 @@ export async function trackTransaction() {
 // track transaction
 export const txnTracker = createScheduleFunction(async () => {
   try {
-    await countdown(4, async () => {
+    await countdown(5, async () => {
       const updatedTxns = await trackTransaction();
       logger.info(`updatedTxns: ${updatedTxns}`);
     });

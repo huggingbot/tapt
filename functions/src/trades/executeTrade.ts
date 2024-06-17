@@ -139,10 +139,14 @@ export async function executeLimitTrades() {
 
 export const tradeExecution = createScheduleFunction(async () => {
   try {
-    await countdown(3, async () => {
-      const result = await executeLimitTrades();
-      logger.info('trade executed', result);
-    });
+    await countdown(
+      3,
+      async () => {
+        const result = await executeLimitTrades();
+        logger.info('trade executed', result);
+      },
+      3_000,
+    );
   } catch (e: unknown) {
     handleError(e);
   }
