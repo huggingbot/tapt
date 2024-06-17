@@ -36,8 +36,8 @@ export const getTransactions = async (params: Partial<ICreateTransactionParams>,
   const transactions = await queryCreator
     .selectFrom('transaction')
     .innerJoin(
-      (eb) => eb.selectFrom('wallet').select('wallet.chainId').as('wallet'),
-      (join) => join.onRef('transaction.walletId', '=', 'walletId'),
+      (eb) => eb.selectFrom('wallet').select(['wallet.chainId', 'wallet.id']).as('wallet'),
+      (join) => join.onRef('transaction.walletId', '=', 'wallet.id'),
     )
     .selectAll()
     .where(buildExpression)

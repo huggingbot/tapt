@@ -78,14 +78,15 @@ export async function unwrapNativeToken(wallet: Wallet, network: ENetwork, amoun
 
 export async function countdown(num: number, cb: () => Promise<any>, timeout?: number) {
   // Base case: if num is 0 or negative, stop recursion
-  if (num > 0) {
-    const approvalTxns = await cb();
-    logger.info('approvalSubmission', approvalTxns);
-    // Schedule the next countdown with a delay of 1 second (1000 milliseconds)
-    setTimeout(() => {
-      countdown(num - 1, cb); // Recursive call
-    }, timeout || 5_000);
+  if (num - 1 <= 0) {
+    const result = await cb();
+    logger.info('result', num, result);
   } else {
-    return;
+    const result = await cb();
+    logger.info('result', num, result);
+
+    setTimeout(() => {
+      countdown(num - 1, cb, timeout); // Recursive call
+    }, timeout || 5_000);
   }
 }
