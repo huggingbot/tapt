@@ -22,7 +22,7 @@ import { computeFinalDateFromInterval, computeMinutesFromIntervalString, formatK
 import { decryptPrivateKey } from '@/utils/crypto';
 
 export const createOrderPreviewScene = composeWizardScene(
-  async (ctx: IContext) => {
+  async (ctx: IContext, done) => {
     const state = ctx.wizard.state;
     const keyboardData = [
       [{ text: ENavAction.SubmitOrder, callback_data: ENavAction.SubmitOrder }],
@@ -42,8 +42,12 @@ export const createOrderPreviewScene = composeWizardScene(
         (isBuyMode(action) ? DEFAULT_TRADE_OPTIONS.LimitBuyTriggerPrice : DEFAULT_TRADE_OPTIONS.LimitSellTriggerPrice);
       const orderExpiry = (state[EWizardProp.Expiry] as string) || DEFAULT_TRADE_OPTIONS.LimitExpiry;
 
-      const { priceInUSD } = ctx.wizard.state[EWizardProp.TargetPrice] as ITargetTokenPrice;
-
+      const targetTokenPrice = ctx.wizard.state[EWizardProp.TargetPrice] as ITargetTokenPrice;
+      if (!targetTokenPrice) {
+        done();
+        return;
+      }
+      const { priceInUSD } = targetTokenPrice;
       previewObj = { action, wallet, orderType, targetPrice: `$${priceInUSD} (${triggerPrice})`, orderExpiry, amount: '0' };
     } else {
       const interval = (state[EWizardProp.DcaInterval] as string) || DEFAULT_TRADE_OPTIONS.DcaInterval;

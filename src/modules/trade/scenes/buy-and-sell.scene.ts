@@ -105,6 +105,8 @@ export const createBuyAndSellScene = composeWizardScene(
 
       if (ctx.has(callbackQuery('data')) && ctx.callbackQuery.data === String(ENavAction.Cancel)) {
         ctx.wizard.state[EWizardProp.Msg] = undefined;
+        ctx.wizard.state[EWizardProp.ReEnterTheScene] = false;
+        ctx.wizard.state[EWizardProp.Action] = ENavAction.Cancel;
         ctx.deleteMessage(ctx.callbackQuery.message?.message_id);
         done();
       } else if (ctx.has(callbackQuery('data')) && ctx.callbackQuery.data === String(ENavAction.PreviewOrder)) {
