@@ -28,6 +28,7 @@ export interface IBaseOrder {
   buyToken: IToken;
   transactionHash: null | string;
   transactionType: null | string;
+  userId: number;
   orderType: EOrderType;
   orderMode?: TradeMode;
   createdAt?: string;

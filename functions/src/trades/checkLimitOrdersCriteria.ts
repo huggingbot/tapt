@@ -5,14 +5,14 @@ import IUniswapV3PoolABI from '@uniswap/v3-core/artifacts/contracts/interfaces/I
 import QuoterABI from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json';
 import { computePoolAddress, FeeAmount } from '@uniswap/v3-sdk';
 import { ethers } from 'ethers';
-import { ENetwork, EOrderStatus, ILimitOrder, TradeMode } from '../utils/types';
+import { ENetwork, EOrderStatus, ILimitOrder, IToken, TradeMode } from '../utils/types';
 import { TAPT_API_ENDPOINT, UNISWAP_QUOTER_ADDRESS, V3_UNISWAP_FACTORY_ADDRESS } from '../utils/constants';
 import { fromChainIdToNetwork, getProvider } from '../utils/providers';
 import { logger } from 'firebase-functions';
 import { handleError } from '../utils/responseHandler';
 import { createScheduleFunction } from '../utils/firebase-functions';
 import { makeNetworkRequest } from '../utils/networking';
-import { countdown } from '../utils/helpers';
+import { composeOrderNotificationText, countdown } from '../utils/helpers';
 
 /**
  * Check if the trade criteria met with the current price and target price
@@ -45,7 +45,7 @@ export async function checkLimitOrderCriteria() {
   const fetchApprovalCompletedOrdersUrl = `${TAPT_API_ENDPOINT}/orders/limit?orderStatus=${EOrderStatus.ApprovalCompleted}`;
   const orders = await makeNetworkRequest<ILimitOrder[]>(fetchApprovalCompletedOrdersUrl);
 
-  const ordersToBePrcessed: number[] = [];
+  const ordersToBePrcessed: Partial<ILimitOrder>[] = [];
   // additional params which will be shared between promises iterations
   const additionalParams: {
     orderId: number;
@@ -53,6 +53,8 @@ export async function checkLimitOrderCriteria() {
     sellAmount: string;
     tokenInput: Token;
     tokenOutput: Token;
+    buyToken: IToken;
+    sellToken: IToken;
     orderMode?: TradeMode;
     network: ENetwork;
   }[] = [];
@@ -72,7 +74,7 @@ export async function checkLimitOrderCriteria() {
       fee: FeeAmount.MEDIUM,
     });
 
-    additionalParams.push({ orderId, targetPrice, sellAmount, tokenOutput, tokenInput, orderMode, network });
+    additionalParams.push({ orderId, targetPrice, sellAmount, tokenOutput, tokenInput, orderMode, network, buyToken, sellToken });
 
     const poolContract = new ethers.Contract(currentPoolAddress, IUniswapV3PoolABI.abi, provider);
     return Promise.all([poolContract.token0(), poolContract.token1(), poolContract.fee(), poolContract.liquidity(), poolContract.slot0()]);
@@ -97,7 +99,7 @@ export async function checkLimitOrderCriteria() {
 
   // Validate and check LIMIT_ORDER crtieria
   quotedAmountResults.forEach((result, idx) => {
-    const { tokenOutput, tokenInput, orderId, targetPrice, orderMode } = additionalParams[idx];
+    const { tokenOutput, tokenInput, orderId, targetPrice, orderMode, buyToken, sellToken, sellAmount } = additionalParams[idx];
     const baseSymbol = orderMode === 'buy' ? tokenInput.symbol : tokenOutput.symbol;
     const targetSymbol = orderMode === 'buy' ? tokenOutput.symbol : tokenInput.symbol;
     const decimals = orderMode === 'buy' ? tokenInput.decimals : tokenOutput.decimals;
@@ -111,7 +113,7 @@ export async function checkLimitOrderCriteria() {
       if (isLimitOrderCriteriaMet(orderMode || 'buy', Number(amountOut), targetPrice)) {
         // send for approval
         logger.debug(`Limit order condition met for order with id, ${orderId}`);
-        ordersToBePrcessed.push(orderId);
+        ordersToBePrcessed.push({ orderId, targetPrice, orderMode, buyToken, sellToken, sellAmount });
       }
     }
   });
@@ -121,12 +123,26 @@ export async function checkLimitOrderCriteria() {
     // bulk update orders
     const body = {
       setdata: { orderStatus: EOrderStatus.ExecutionReady },
-      idsToUpdate: ordersToBePrcessed,
+      idsToUpdate: ordersToBePrcessed.map((o) => o.orderId),
     };
-    logger.debug('body', body);
     const resp = await makeNetworkRequest(`${TAPT_API_ENDPOINT}/orders/bulk_update_status`, 'PATCH', body);
-    return resp;
+    console.log(resp);
   }
+
+  // send notifications
+  Promise.all(
+    ordersToBePrcessed.map((order) => {
+      const message = composeOrderNotificationText({
+        ...order,
+        orderStatus: EOrderStatus.ExecutionReady,
+      });
+      return makeNetworkRequest(`${TAPT_API_ENDPOINT}/notifications`, 'POST', {
+        userId: order.userId,
+        message,
+      });
+    }),
+  );
+
   return undefined;
 }
 
