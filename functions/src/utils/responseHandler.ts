@@ -7,5 +7,5 @@ import { logger } from 'firebase-functions';
  */
 export function handleError(e: unknown) {
   const error = (e as Error)?.message || 'Unexpected error';
-  logger.error('error tracking transactions', error);
+  logger.error('error during function invocation:', error);
 }

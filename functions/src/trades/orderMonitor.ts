@@ -2,7 +2,7 @@ import { TAPT_API_ENDPOINT } from '../utils/constants';
 import { createScheduleFunction } from '../utils/firebase-functions';
 import { makeNetworkRequest } from '../utils/networking';
 import { handleError } from '../utils/responseHandler';
-import { EOrderStatus, EOrderType, IDcaOrder, ILimitOrder } from '../utils/types';
+import { EOrderStatus, IDcaOrder, ILimitOrder } from '../utils/types';
 import { logger } from 'firebase-functions';
 
 /**
@@ -15,28 +15,16 @@ import { logger } from 'firebase-functions';
 export async function orderStatusChecker() {
   const fetchReadyToExecuteOrderUrl = `${TAPT_API_ENDPOINT}/orders?orderStatus=${EOrderStatus.Active}`;
   const orders = await makeNetworkRequest<(ILimitOrder | IDcaOrder)[]>(fetchReadyToExecuteOrderUrl);
-
   const expiredOrders = orders
     .filter((order) => {
-      const { orderType, createdAt } = order;
-      if (createdAt) {
-        let expiryDate: Date;
-        if (orderType === String(EOrderType.Limit)) {
-          const { expirationDate } = order as ILimitOrder;
-          if (!expirationDate) {
-            return true;
-          }
-          expiryDate = new Date(expirationDate);
-        } else {
-          const { duration } = order as IDcaOrder;
-          expiryDate = new Date(createdAt);
-          expiryDate.setMinutes(expiryDate.getMinutes() + duration);
-        }
-
-        const currentTS = Date.now();
-        return expiryDate.getTime() < currentTS;
+      const { expirationDate } = order;
+      if (expirationDate) {
+        const expiryDate = new Date(expirationDate);
+        const currentTS = new Date();
+        return expiryDate.getTime() < currentTS.getTime();
+      } else {
+        return true;
       }
-      return true;
     })
     .map((order) => order.orderId);
 

@@ -58,9 +58,10 @@ export async function updateOrderByIdHandler(req: Request, res: Response) {
       return res.status(400).json({ success: false, error: `invalid order_id, ${orderId}` });
     }
 
-    let transactionId = -1;
+    let txnHash = '';
+    let order;
     await db.transaction().execute(async (trx: Transaction<DB>) => {
-      const order = await getOrderById(Number(orderId), trx);
+      order = await getOrderById(Number(orderId), trx);
       if (!order) {
         throw new Error(`no order found with id, ${orderId}`);
       }
@@ -86,10 +87,10 @@ export async function updateOrderByIdHandler(req: Request, res: Response) {
         if (!txn) {
           throw new Error('error creating new transaction');
         }
-        transactionId = txn.id;
+        txnHash = txn.transactionHash;
       }
     });
-    return res.status(201).json({ success: true, data: { orderId, transactionId } });
+    return res.status(201).json({ success: true, data: { order, txnHash } });
   } catch (e: unknown) {
     console.error('error updating orders', e);
     const errMsg = (e as Error)?.message || 'unknown error';

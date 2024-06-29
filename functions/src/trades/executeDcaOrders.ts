@@ -2,7 +2,7 @@ import { ethers, logger } from 'ethers';
 import { TAPT_API_ENDPOINT, UNISWAP_QUOTER_ADDRESS, V3_UNISWAP_FACTORY_ADDRESS } from '../utils/constants';
 import { makeNetworkRequest } from '../utils/networking';
 import { fromChainIdToNetwork, getProvider } from '../utils/providers';
-import { ENetwork, EOrderStatus, EOrderType, IDcaOrder, TradeMode } from '../utils/types';
+import { ENetwork, EOrderStatus, EOrderType, IDcaOrder } from '../utils/types';
 import IUniswapV3PoolABI from '@uniswap/v3-core/artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json';
 import QuoterABI from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json';
 import { Token } from '@uniswap/sdk-core';
@@ -12,42 +12,50 @@ import { executeRoute, generateRoute } from '../utils/routing';
 import { SwapRoute } from '@uniswap/smart-order-router';
 import { createScheduleFunction } from '../utils/firebase-functions';
 import { handleError } from '../utils/responseHandler';
+import { composeOrderNotificationText, wrapNativeToken } from '../utils/helpers';
 
-function shouldDcaOrderBeExecuted(createdAt: string, interval: number) {
+function shouldDcaOrderBeExecuted(createdAt: string, interval: { minutes?: number; hours?: number }) {
   const currentDt = Date.now();
   const createdAtDt = new Date(createdAt).getTime();
 
   const timeDiffInMs = currentDt - createdAtDt;
   const timeDiffInMinutes = Math.floor(timeDiffInMs / 60000);
+  console.log('timeDiffInMinutes', timeDiffInMinutes);
+  if (interval.hours) {
+    return timeDiffInMinutes % (interval.hours * 60) === 0;
+  } else if (interval.minutes) {
+    console.log('interval.minutes', interval.minutes);
+    return timeDiffInMinutes % interval.minutes === 0;
+  }
 
-  return timeDiffInMinutes % interval === 0;
+  return false;
 }
 
 export async function executeDcaOrders() {
   const fetchReadyToExecuteOrderUrl = `${TAPT_API_ENDPOINT}/orders?orderType=${EOrderType.Dca}&orderStatus=${EOrderStatus.Submitted}`;
   const orders = await makeNetworkRequest<IDcaOrder[]>(fetchReadyToExecuteOrderUrl);
 
+  console.log('orders', orders);
+
   // additional params which will be shared between promises iterations
   const additionalParams: {
-    orderId: number;
-    minPrice: number;
-    maxPrice: number;
-    sellAmount: string;
+    order: IDcaOrder;
     tokenInput: Token;
     tokenOutput: Token;
     network: ENetwork;
-    orderMode?: TradeMode;
     route?: SwapRoute;
     wallet: ethers.Wallet;
   }[] = [];
 
-  // gen token pool address
-  const tokenPoolsPromises = orders.map((order) => {
-    const { createdAt, interval, chainId, buyToken, sellToken, orderId, minPrice, maxPrice, sellAmount, orderMode, encryptedPrivateKey } = order;
+  const tokensDetailsPromise = orders.map((order) => {
+    const { createdAt, interval, chainId, buyToken, sellToken, encryptedPrivateKey } = order;
+    console.log('order', order);
     if (!createdAt) {
       return undefined;
     }
     const shouldExecuteDcaOrder = shouldDcaOrderBeExecuted(createdAt, interval);
+    console.log('shouldDcaOrderBeExecuted', shouldExecuteDcaOrder);
+
     if (shouldExecuteDcaOrder) {
       const network = fromChainIdToNetwork(chainId);
       const provider = getProvider(network);
@@ -63,40 +71,61 @@ export async function executeDcaOrders() {
         fee: FeeAmount.MEDIUM,
       });
 
-      additionalParams.push({ orderId, minPrice, maxPrice, tokenOutput, tokenInput, sellAmount, network, orderMode, wallet });
+      additionalParams.push({ order, tokenInput, tokenOutput, network, wallet });
 
       const poolContract = new ethers.Contract(currentPoolAddress, IUniswapV3PoolABI.abi, provider);
       return Promise.all([poolContract.token0(), poolContract.token1(), poolContract.fee(), poolContract.liquidity(), poolContract.slot0()]);
     }
     return undefined;
   });
-  const tokenPoolsResults = await Promise.allSettled(tokenPoolsPromises);
+  const tokenDetailsResult = await Promise.allSettled(tokensDetailsPromise);
+  logger.debug('tokenDetailsResult', tokenDetailsResult);
 
-  // get the quoted price
-  const quotedAmountsPromises = tokenPoolsResults.map((result, idx) => {
+  // Quote current market price for Target Token
+  const quotedAmountsPromises = tokenDetailsResult.map((result, idx) => {
     if (result.status === 'rejected' || !result.value) {
       return undefined;
     }
 
-    const { tokenInput, tokenOutput, orderMode, network } = additionalParams[idx];
-
+    const { tokenInput, tokenOutput, order, network } = additionalParams[idx];
     const provider = getProvider(network);
     const quoterContract = new ethers.Contract(UNISWAP_QUOTER_ADDRESS[network], QuoterABI.abi, provider);
-    const decimals = orderMode === 'buy' ? tokenInput.decimals : tokenOutput.decimals;
+
+    const decimals = order.orderMode === 'sell' ? tokenInput.decimals : tokenOutput.decimals;
     const [token0, token1, fee] = result.value;
     const amountIn = ethers.utils.parseUnits('1', decimals);
-    return quoterContract.callStatic.quoteExactOutputSingle(token0, token1, fee, amountIn, 0);
+    return quoterContract.callStatic.quoteExactInputSingle(token0, token1, fee, amountIn, 0);
   });
   const quotedAmountResults = await Promise.allSettled(quotedAmountsPromises);
+  logger.debug('quotedAmountResults', quotedAmountResults);
+
+  await Promise.allSettled(
+    quotedAmountResults.map((result, idx) => {
+      if (result.status === 'rejected' || !result.value) {
+        return undefined;
+      }
+
+      const { order, wallet, network } = additionalParams[idx];
+      if (order.orderMode === 'sell') {
+        return undefined;
+      }
+      return wrapNativeToken(wallet, network, Number(order.sellAmount));
+    }),
+  );
 
   // check whether the quoted price is fall into DCA Price ranges
   const genRoutesPromises = quotedAmountResults.map((result, idx) => {
     if (result.status === 'fulfilled' && result.value) {
-      const { tokenOutput, tokenInput, minPrice, maxPrice, orderMode, network, sellAmount, wallet } = additionalParams[idx];
-      const decimals = orderMode === 'buy' ? tokenOutput.decimals : tokenInput.decimals;
-      const amountOut = Number(ethers.utils.formatUnits(result.value, decimals));
-
-      if (amountOut <= maxPrice && amountOut >= minPrice) {
+      const { tokenOutput, tokenInput, order, wallet, network } = additionalParams[idx];
+      const { orderMode, minPrice, maxPrice, sellAmount } = order;
+      const baseSymbol = orderMode === 'sell' ? tokenOutput.symbol : tokenInput.symbol;
+      const targetSymbol = orderMode === 'sell' ? tokenInput.symbol : tokenOutput.symbol;
+      const decimals = orderMode === 'sell' ? tokenOutput.decimals : tokenInput.decimals;
+      console.log('decimals', decimals);
+      const amountOut = ethers.utils.formatUnits(result.value, decimals);
+      logger.debug(`1 ${baseSymbol} can be swapped for ${amountOut} ${targetSymbol}`);
+      console.log('amountOut', amountOut);
+      if (Number(amountOut) <= maxPrice && Number(amountOut) >= minPrice) {
         // ready to execute
         return generateRoute(wallet, network, { tokenIn: tokenInput, tokenOut: tokenOutput, amount: Number(sellAmount) });
       }
@@ -104,6 +133,7 @@ export async function executeDcaOrders() {
     return undefined;
   });
   const genRoutesResults = await Promise.allSettled(genRoutesPromises);
+  console.log('genRoutesResults', genRoutesResults);
 
   // Execute the trade
   const execRoutesPromises = genRoutesResults.map((result, idx) => {
@@ -115,6 +145,25 @@ export async function executeDcaOrders() {
     return undefined;
   });
   const execRoutesResults = await Promise.allSettled(execRoutesPromises);
+  console.log('execRoutesResults', execRoutesResults);
+
+  await Promise.allSettled(
+    execRoutesResults.map((result, idx) => {
+      if (result.status === 'rejected' || !result.value) {
+        return undefined;
+      }
+      const { order, route } = additionalParams[idx];
+      const message = composeOrderNotificationText({
+        ...order,
+        buyAmount: route?.quote.toExact(),
+      });
+      return makeNetworkRequest(`${TAPT_API_ENDPOINT}/notifications`, 'POST', {
+        userId: order.userId,
+        message,
+      });
+    }),
+  );
+  console.log('execRoutesResults', execRoutesResults);
 
   return execRoutesResults;
 }

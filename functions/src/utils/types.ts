@@ -43,8 +43,12 @@ export interface ILimitOrder extends IBaseOrder {
 export interface IDcaOrder extends IBaseOrder {
   maxPrice: number;
   minPrice: number;
-  interval: number;
+  interval: {
+    hours?: number;
+    minutes?: number;
+  };
   duration: number;
+  expirationDate?: string;
 }
 
 export interface ITransaction {
@@ -70,6 +74,11 @@ export interface IUpdateOrderRequestBody {
   orderStatus: string;
   buyAmount?: number;
   transaction?: { hash: string; type: string; toAddress: string };
+}
+
+export interface IUpdateOrderResponse {
+  order: ILimitOrder | IDcaOrder;
+  txnHash: string;
 }
 
 export enum ETransactionType {

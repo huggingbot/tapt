@@ -1,14 +1,18 @@
+import parse from 'postgres-interval';
+
 import { V3_UNISWAP_ROUTER_ADDRESS } from '@/libs/constants';
 import { EOrderStatus, EOrderType, ETransactionStatus, ETransactionType, IBasicWallet } from '@/types';
 import { isNumber } from '@/utils/common';
 
 import { db } from '../db';
+import { Interval } from '../gen-types';
 import {
   createOrder,
   ELimitOrderMode,
   getOrderById,
   getOrders,
   GetOrdersFilters,
+  ICreateDcaOrderParams,
   ICreateLimitOrderParams,
   ICreateOrderParams,
   updateOrderById,
@@ -162,8 +166,9 @@ export const placeDcaOrder = async (params: {
       throw new Error('Failed to get tokens');
     }
 
-    const newOrder: ICreateOrderParams = {
+    const newOrder: ICreateDcaOrderParams = {
       ...tradeParam,
+      interval: tradeParam.interval * 60,
       walletId: w.id,
       buyTokenId: buyToken.id,
       sellTokenId: sellToken.id,

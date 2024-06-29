@@ -22,7 +22,7 @@ export async function sendNotificationHandler(req: Request, res: Response) {
     if (!user) {
       return res.status(400).json({ success: false, message: `User not found with id, ${userId}` });
     }
-
+    console.log('message', message);
     const msg = await app.telegram.sendMessage(user.telegramId, message);
     return res.status(200).json({ success: true, data: msg });
   } catch (e: unknown) {

@@ -15,9 +15,9 @@ export const ERC20_ABI = [
   'event Transfer(address indexed from, address indexed to, uint amount)',
 ];
 
-export const TAPT_API_ENDPOINT = 'https://51c5-116-15-207-96.ngrok-free.app/api';
+export const TAPT_API_ENDPOINT = process.env.TAPT_API || 'https://d323cde9d1c0.ngrok.app/api';
 
-const LOCAL_FORKED_RPC_URL = 'https://fdfe-116-15-207-96.ngrok-free.app';
+const LOCAL_FORKED_RPC_URL = process.env.LOCAL_FORKED_RPC_URL || 'https://52dadc698dbc.ngrok.app';
 export const AppConfig: IAppConfig = {
   [ENetwork.Local]: {
     chainId: SupportedChainId.MAINNET,

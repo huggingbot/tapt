@@ -19,9 +19,10 @@ export async function getAllOrders(req: Request, res: Response) {
 
     const data = await db.transaction().execute(async (trx) => {
       const orders = await getOrders(getOrderFilters, trx);
+      console.log('orders', orders);
       return orders;
     });
-
+    console.log('data', data);
     return res.status(200).json({ success: true, data });
   } catch (e: unknown) {
     log.error('error getting active orders', e);

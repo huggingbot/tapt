@@ -23,6 +23,7 @@ export enum EOrderStatus {
   ApprovalCompleted = 'APPROVAL_COMPLETED',
   // when limit order criteria is met
   ExecutionReady = 'READY_TO_EXECUTE',
+  ExecutionStarted = 'EXECUTION_STARTED',
   // send transaction for the order execution
   ExecutionPending = 'EXECUTION_PENDING',
   // after order has been executed successfully

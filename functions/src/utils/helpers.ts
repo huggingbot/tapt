@@ -3,7 +3,7 @@ import JSBI from 'jsbi';
 import { WRAPPED_NATIVE_TOKEN, WRAPPED_NATIVE_TOKEN_CONTRACT_ADDRESS, MAX_FEE_PER_GAS, MAX_PRIORITY_FEE_PER_GAS } from './constants';
 import { getWrappedNativeTokenContract } from './constracts';
 import { getProvider } from './providers';
-import { ENetwork, EOrderStatus, EOrderType, IBaseOrder, IDcaOrder, ILimitOrder } from './types';
+import { ENetwork, EOrderStatus, EOrderType, IDcaOrder, ILimitOrder } from './types';
 import { sendTransactionViaWallet } from './transactions';
 import { logger } from 'firebase-functions';
 
@@ -91,39 +91,62 @@ export async function countdown(num: number, cb: () => Promise<any>, timeout?: n
   }
 }
 
-export async function composeOrderNotificationText(order: Partial<ILimitOrder | IDcaOrder>) {
-  const { orderId, orderStatus, orderType, buyAmount, buyToken, sellAmount, sellToken, orderMode } = order;
+export function composeOrderNotificationText(order: Partial<ILimitOrder | IDcaOrder>, txn?: string) {
+  const { orderId, orderStatus, orderType, buyAmount, buyToken, sellAmount, orderMode } = order;
   let message = `There's an update for your order.\n
-  Order ID:\t${orderId}
-  Order Type:\t${orderType}
-  Order Mode:\t${orderMode || 'buy'}
-  Order Status:\t${orderStatus}
+Order ID:\t${orderId}
+Order Type:\t${orderType}
+Order Mode:\t${orderMode || 'buy'}
+Order Status:\t${orderStatus}
   `;
 
   if (orderType === EOrderType.Limit) {
     const { targetPrice } = order as ILimitOrder;
-    message = `
-    Target Price: ${targetPrice} ETH
+    message = `${message}
+Target Price: ${targetPrice} ETH
     `;
   } else {
     const { duration, interval } = order as IDcaOrder;
-    message = `
-    Duration:\t${duration} mins
-    Frequency:\t${interval} mins
+    let _duration = `${duration} mins`;
+    if (duration > 1440) {
+      _duration = `${Math.floor(duration / 1440)} day(s)`;
+      if (duration % 1440 > 0) {
+        _duration = `${_duration} ${duration % 1440} hr(s)`;
+      }
+    } else if (duration > 60) {
+      _duration = `${Math.floor(duration / 60)} hr`;
+      if (duration % 60 > 0) {
+        _duration = `${_duration} ${duration % 60} mins`;
+      }
+    }
+    message = `${message}
+Duration:\t${_duration}
+Frequency:\t${interval.minutes} mins
     `;
   }
 
-  if (orderMode === 'buy') {
+  if (orderMode === 'buy' || orderType === EOrderType.Dca) {
     message = `${message}\n
-    Buy\n=====
-    Token:\t${buyToken?.symbol}(${buyToken?.contractAddress})
-    Amount:\t${buyAmount} ETH\n
+Buy\n=====
+Token:\t${buyToken?.symbol}(${buyToken?.contractAddress})
+Amount:\t${sellAmount} ETH\n
     `;
-  } else {
+  }
+  //   if (orderMode === 'sell' || orderType === EOrderType.Dca){
+  //     message = `${message}\n
+  // Sell\n=====
+  // Token:\t${sellToken?.symbol}(${sellToken?.contractAddress})
+  // Amount:\t${sellAmount} ETH\n
+  //     `;
+  //   }
+
+  if (orderStatus === EOrderStatus.ExecutionPending) {
+    message = `${message}\nBuy Amount: ${buyAmount} ETH`;
+  }
+
+  if (txn) {
     message = `${message}\n
-    Sell\n=====
-    Token:\t${sellToken?.symbol}(${sellToken?.contractAddress})
-    Amount:\t${sellAmount} ETH\n
+Transaction Hash: ${txn}
     `;
   }
   return message;
