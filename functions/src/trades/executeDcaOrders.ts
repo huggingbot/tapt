@@ -49,7 +49,6 @@ export async function executeDcaOrders() {
 
   const tokensDetailsPromise = orders.map((order) => {
     const { createdAt, interval, chainId, buyToken, sellToken, encryptedPrivateKey } = order;
-    console.log('order', order);
     if (!createdAt) {
       return undefined;
     }
@@ -121,10 +120,8 @@ export async function executeDcaOrders() {
       const baseSymbol = orderMode === 'sell' ? tokenOutput.symbol : tokenInput.symbol;
       const targetSymbol = orderMode === 'sell' ? tokenInput.symbol : tokenOutput.symbol;
       const decimals = orderMode === 'sell' ? tokenOutput.decimals : tokenInput.decimals;
-      console.log('decimals', decimals);
       const amountOut = ethers.utils.formatUnits(result.value, decimals);
       logger.debug(`1 ${baseSymbol} can be swapped for ${amountOut} ${targetSymbol}`);
-      console.log('amountOut', amountOut);
       if (Number(amountOut) <= maxPrice && Number(amountOut) >= minPrice) {
         // ready to execute
         return generateRoute(wallet, network, { tokenIn: tokenInput, tokenOut: tokenOutput, amount: Number(sellAmount) });
@@ -133,7 +130,6 @@ export async function executeDcaOrders() {
     return undefined;
   });
   const genRoutesResults = await Promise.allSettled(genRoutesPromises);
-  console.log('genRoutesResults', genRoutesResults);
 
   // Execute the trade
   const execRoutesPromises = genRoutesResults.map((result, idx) => {
@@ -145,7 +141,6 @@ export async function executeDcaOrders() {
     return undefined;
   });
   const execRoutesResults = await Promise.allSettled(execRoutesPromises);
-  console.log('execRoutesResults', execRoutesResults);
 
   await Promise.allSettled(
     execRoutesResults.map((result, idx) => {
@@ -173,7 +168,6 @@ export async function executeDcaOrders() {
       });
     }),
   );
-  console.log('execRoutesResults', execRoutesResults);
 
   return execRoutesResults;
 }

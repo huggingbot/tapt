@@ -105,47 +105,30 @@ Order Status:\t${orderStatus}
     message = `${message}
 Target Price: ${targetPrice} ETH
     `;
-  } else {
-    const { duration, interval } = order as IDcaOrder;
-    let _duration = `${duration} mins`;
-    if (duration > 1440) {
-      _duration = `${Math.floor(duration / 1440)} day(s)`;
-      if (duration % 1440 > 0) {
-        _duration = `${_duration} ${duration % 1440} hr(s)`;
-      }
-    } else if (duration > 60) {
-      _duration = `${Math.floor(duration / 60)} hr`;
-      if (duration % 60 > 0) {
-        _duration = `${_duration} ${duration % 60} mins`;
-      }
-    }
-    message = `${message}
-Duration:\t${_duration}
-Frequency:\t${interval.minutes} mins
-    `;
   }
 
-  if (order.orderType === EOrderType.Dca) {
-    message = `${message}\n${generateTradeDetailsForDCA(order as IDcaOrder)}`;
-  }
+  message = `${message}\n${generateTradeDetails(order, txn)}`;
 
-  if (txn) {
-    message = `${message}\n
-Transaction Hash: ${txn}
-    `;
-  }
   return message;
 }
 
-function generateTradeDetailsForDCA(order: IDcaOrder) {
+function generateTradeDetails(order: Partial<ILimitOrder | IDcaOrder>, hash?: string) {
   const { buyToken, sellToken, sellAmount, buyAmount } = order;
-  let tokenBought = `Token Bought: ${buyToken?.symbol}
+  const tokenBought = `Token Bought: ${buyToken?.symbol}
 Token Address: ${buyToken?.contractAddress}
-Amount bought: ${buyAmount} ${buyToken.symbol}\n\t\t-----`;
+Amount bought: ${buyAmount} ${buyToken?.symbol}\n\t\t-----`;
 
-  let tokenSold = `Token Sold: ${sellToken?.symbol}
+  const tokenSold = `Token Sold: ${sellToken?.symbol}
 Token Address: ${sellToken?.contractAddress}
-Amount Sold: ${sellAmount} ${sellToken.symbol}\n\t\t-----`;
+Amount Sold: ${sellAmount} ${sellToken?.symbol}\n\t\t-----`;
 
-  return `Trade Details\n============\n${tokenBought}\n${tokenSold}`;
+  let message = `Trade Details\n============\n${tokenBought}\n${tokenSold}`;
+
+  if (hash) {
+    message = `${message}\n
+Transaction Hash: ${hash}
+  `;
+  }
+
+  return message;
 }

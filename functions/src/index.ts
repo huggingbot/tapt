@@ -11,15 +11,15 @@ import 'dotenv/config';
 // import { executeLimitTrades } from './trades';
 // import { submitApprovalTransactions } from './transactions';
 // import { countdown } from './utils/helpers';
-// import { checkLimitOrderCriteria } from './trades';
+import { checkLimitOrderCriteria } from './trades';
 // import { orderStatusChecker } from './trades';
-import { executeDcaOrders } from './trades';
+// import { executeDcaOrders } from './trades';
 
 // orderStatusChecker();
-executeDcaOrders();
+// executeDcaOrders();
 
 // trackTransaction();
-// checkLimitOrderCriteria();
+checkLimitOrderCriteria();
 // executeLimitTrades();
 // submitApprovalTransactions();
 
