@@ -3,7 +3,7 @@ import JSBI from 'jsbi';
 import { WRAPPED_NATIVE_TOKEN, WRAPPED_NATIVE_TOKEN_CONTRACT_ADDRESS, MAX_FEE_PER_GAS, MAX_PRIORITY_FEE_PER_GAS } from './constants';
 import { getWrappedNativeTokenContract } from './constracts';
 import { getProvider } from './providers';
-import { ENetwork, EOrderStatus, EOrderType, IDcaOrder, ILimitOrder } from './types';
+import { ENetwork, EOrderType, IDcaOrder, ILimitOrder } from './types';
 import { sendTransactionViaWallet } from './transactions';
 import { logger } from 'firebase-functions';
 
@@ -92,7 +92,7 @@ export async function countdown(num: number, cb: () => Promise<any>, timeout?: n
 }
 
 export function composeOrderNotificationText(order: Partial<ILimitOrder | IDcaOrder>, txn?: string) {
-  const { orderId, orderStatus, orderType, buyAmount, buyToken, sellAmount, orderMode } = order;
+  const { orderId, orderType, orderMode, orderStatus } = order;
   let message = `There's an update for your order.\n
 Order ID:\t${orderId}
 Order Type:\t${orderType}
@@ -125,23 +125,8 @@ Frequency:\t${interval.minutes} mins
     `;
   }
 
-  if (orderMode === 'buy' || orderType === EOrderType.Dca) {
-    message = `${message}\n
-Buy\n=====
-Token:\t${buyToken?.symbol}(${buyToken?.contractAddress})
-Amount:\t${sellAmount} ETH\n
-    `;
-  }
-  //   if (orderMode === 'sell' || orderType === EOrderType.Dca){
-  //     message = `${message}\n
-  // Sell\n=====
-  // Token:\t${sellToken?.symbol}(${sellToken?.contractAddress})
-  // Amount:\t${sellAmount} ETH\n
-  //     `;
-  //   }
-
-  if (orderStatus === EOrderStatus.ExecutionPending) {
-    message = `${message}\nBuy Amount: ${buyAmount} ETH`;
+  if (order.orderType === EOrderType.Dca) {
+    message = `${message}\n${generateTradeDetailsForDCA(order as IDcaOrder)}`;
   }
 
   if (txn) {
@@ -150,4 +135,17 @@ Transaction Hash: ${txn}
     `;
   }
   return message;
+}
+
+function generateTradeDetailsForDCA(order: IDcaOrder) {
+  const { buyToken, sellToken, sellAmount, buyAmount } = order;
+  let tokenBought = `Token Bought: ${buyToken?.symbol}
+Token Address: ${buyToken?.contractAddress}
+Amount bought: ${buyAmount} ${buyToken.symbol}\n\t\t-----`;
+
+  let tokenSold = `Token Sold: ${sellToken?.symbol}
+Token Address: ${sellToken?.contractAddress}
+Amount Sold: ${sellAmount} ${sellToken.symbol}\n\t\t-----`;
+
+  return `Trade Details\n============\n${tokenBought}\n${tokenSold}`;
 }

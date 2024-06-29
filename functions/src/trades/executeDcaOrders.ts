@@ -2,7 +2,7 @@ import { ethers, logger } from 'ethers';
 import { TAPT_API_ENDPOINT, UNISWAP_QUOTER_ADDRESS, V3_UNISWAP_FACTORY_ADDRESS } from '../utils/constants';
 import { makeNetworkRequest } from '../utils/networking';
 import { fromChainIdToNetwork, getProvider } from '../utils/providers';
-import { ENetwork, EOrderStatus, EOrderType, IDcaOrder } from '../utils/types';
+import { ENetwork, EOrderStatus, EOrderType, IDcaOrder, TransactionState } from '../utils/types';
 import IUniswapV3PoolABI from '@uniswap/v3-core/artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json';
 import QuoterABI from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json';
 import { Token } from '@uniswap/sdk-core';
@@ -152,11 +152,21 @@ export async function executeDcaOrders() {
       if (result.status === 'rejected' || !result.value) {
         return undefined;
       }
+      const res = result.value;
+      let orderStatus = EOrderStatus.DcaExecuted;
+      if (res === TransactionState.Failed) {
+        // failed update db
+        orderStatus = EOrderStatus.Failed;
+      }
       const { order, route } = additionalParams[idx];
-      const message = composeOrderNotificationText({
-        ...order,
-        buyAmount: route?.quote.toExact(),
-      });
+      const message = composeOrderNotificationText(
+        {
+          ...order,
+          orderStatus,
+          buyAmount: route?.quote.toExact(),
+        },
+        (res as ethers.providers.TransactionResponse).hash,
+      );
       return makeNetworkRequest(`${TAPT_API_ENDPOINT}/notifications`, 'POST', {
         userId: order.userId,
         message,

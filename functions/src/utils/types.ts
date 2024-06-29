@@ -138,4 +138,5 @@ export enum EOrderStatus {
   Completed = 'ORDER_COMPLETED',
   Failed = 'FAILED',
   Expired = 'EXPIRED',
+  DcaExecuted = 'DCA_EXECUTED',
 }

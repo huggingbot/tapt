@@ -1,8 +1,8 @@
 import 'dotenv/config';
-import { initializeApp } from 'firebase-admin/app';
+// import { initializeApp } from 'firebase-admin/app';
 // export { txnTracker, approvalSubmission } from './transactions';
-export { dcaOrderExecutor } from './trades';
-initializeApp();
+// export { executeDcaOrders } from './trades';
+// initializeApp();
 
 /**
  * Testing locally
@@ -13,10 +13,10 @@ initializeApp();
 // import { countdown } from './utils/helpers';
 // import { checkLimitOrderCriteria } from './trades';
 // import { orderStatusChecker } from './trades';
-// import { executeDcaOrders } from './trades';
+import { executeDcaOrders } from './trades';
 
 // orderStatusChecker();
-// executeDcaOrders();
+executeDcaOrders();
 
 // trackTransaction();
 // checkLimitOrderCriteria();
