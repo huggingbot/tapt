@@ -72,8 +72,6 @@ export class BotService extends BaseService {
   }
 
   private async loadSession(ctx: IContext): Promise<ExtendedSession> {
-    console.log('ctx', ctx);
-    console.log('ctx.message?.chat', ctx.message?.chat);
     if (ctx.session && ctx.session.prop && ctx.session.user) {
       // Read from cache
       return ctx.session;

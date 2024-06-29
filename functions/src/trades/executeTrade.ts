@@ -26,7 +26,6 @@ export async function executeLimitTrades() {
 
     const resp = await Promise.allSettled(
       orders.map((order) => {
-        console.log('order to execute', order);
         const executeTradeUrl = `${TAPT_API_ENDPOINT}/trades/execute/${order.orderId}`;
         return makeNetworkRequest(executeTradeUrl, 'POST');
       }),

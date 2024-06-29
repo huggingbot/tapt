@@ -34,7 +34,7 @@ export const createActiveOrdersScene = composeWizardScene(
       }
     }
 
-    ctx.reply(`Active '${String(orderType).toUpperCase()}' Orders\n====================\n\n${ordersData}`, formatKeyboard(keyboardData));
+    ctx.reply(`Active '${String(orderType).toUpperCase()}' Orders\n\n${ordersData}`, formatKeyboard(keyboardData));
     ctx.wizard.next();
   },
   async (ctx, done) => {

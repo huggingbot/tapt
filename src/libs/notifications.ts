@@ -21,7 +21,6 @@ function generateTradeDetails(order: Partial<ILimitOrder | IDcaOrder>, hash?: st
   const { buyToken, sellToken, sellAmount, buyAmount } = order;
 
   let amountBought = `${buyAmount} ${buyToken?.symbol}`;
-  console.log('order.orderStatus !== String(EOrderStatus.ExecutionPending)', order.orderStatus !== String(EOrderStatus.ExecutionPending));
   if (order.orderType === EOrderType.Limit && order.orderStatus !== String(EOrderStatus.ExecutionPending)) {
     amountBought = 'TBD';
   }

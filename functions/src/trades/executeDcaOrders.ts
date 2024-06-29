@@ -20,11 +20,9 @@ function shouldDcaOrderBeExecuted(createdAt: string, interval: { minutes?: numbe
 
   const timeDiffInMs = currentDt - createdAtDt;
   const timeDiffInMinutes = Math.floor(timeDiffInMs / 60000);
-  console.log('timeDiffInMinutes', timeDiffInMinutes);
   if (interval.hours) {
     return timeDiffInMinutes % (interval.hours * 60) === 0;
   } else if (interval.minutes) {
-    console.log('interval.minutes', interval.minutes);
     return timeDiffInMinutes % interval.minutes === 0;
   }
 
@@ -34,8 +32,6 @@ function shouldDcaOrderBeExecuted(createdAt: string, interval: { minutes?: numbe
 export async function executeDcaOrders() {
   const fetchReadyToExecuteOrderUrl = `${TAPT_API_ENDPOINT}/orders?orderType=${EOrderType.Dca}&orderStatus=${EOrderStatus.Submitted}`;
   const orders = await makeNetworkRequest<IDcaOrder[]>(fetchReadyToExecuteOrderUrl);
-
-  console.log('orders', orders);
 
   // additional params which will be shared between promises iterations
   const additionalParams: {
@@ -53,7 +49,6 @@ export async function executeDcaOrders() {
       return undefined;
     }
     const shouldExecuteDcaOrder = shouldDcaOrderBeExecuted(createdAt, interval);
-    console.log('shouldDcaOrderBeExecuted', shouldExecuteDcaOrder);
 
     if (shouldExecuteDcaOrder) {
       const network = fromChainIdToNetwork(chainId);

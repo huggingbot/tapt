@@ -86,10 +86,12 @@ function addDcaOrderKeyboardData(state: TWizardState) {
 }
 
 export function formatOrderOverviewHeader() {
-  return 'Id Buy Sell Amount Action Status\n-------------------------------------------\n';
+  return 'Id | Buy | Sell | Amount | Action | Status \n--------------------------------------------------------------------------------------\n';
 }
 
 export function formatOrderOverview(order: ILimitOrder | IDcaOrder) {
-  const { orderId, buyToken, sellToken, buyAmount, orderMode, orderStatus } = order;
-  return `${orderId}.\t|${buyToken?.symbol}|${sellToken?.symbol}|${buyAmount}|${orderMode}|${orderStatus}`;
+  const { orderId, buyToken, sellToken, sellAmount, orderMode, orderStatus } = order;
+  const action = orderMode || 'buy';
+  const amountToSell = `${sellAmount} ${sellToken?.symbol}`;
+  return `${orderId} | ${buyToken?.symbol} | ${sellToken?.symbol} | ${amountToSell} | ${action} | ${orderStatus} `;
 }
