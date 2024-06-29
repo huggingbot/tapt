@@ -9,6 +9,7 @@ import { createActiveOrdersScene } from '../scenes/active-orders.scene';
 import { createBuyAndSellScene } from '../scenes/buy-and-sell.scene';
 import { createExecuteSwapScene } from '../scenes/execute-swap.scene';
 import { createGetSwapTokenScene } from '../scenes/get-swap-token';
+import { createManageOrdersScene } from '../scenes/manage-orders.scene';
 import { createOrderPreviewScene } from '../scenes/order-preview.scene';
 
 export const tradeStage = [
@@ -79,12 +80,23 @@ export const tradeStage = [
       ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
     }
   }),
+  createManageOrdersScene(EScene.ManageOrders, async (ctx) => {
+    const state = ctx.wizard.state;
+    const action = state[EWizardProp.Action];
+    if (action === String(ENavAction.ActiveOrders)) {
+      ctx.scene.enter(EScene.ActiveOrders, state);
+    } else {
+      ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+    }
+  }),
   createActiveOrdersScene(EScene.ActiveOrders, async (ctx) => {
     const state = ctx.wizard.state;
     const action = state[EWizardProp.Action];
     const isStart = ctx.has(message('text')) && ctx.message?.text === String(ENavAction.Start);
-    if (isStart || action === String(ENavAction.Back)) {
+    if (isStart) {
       ctx.scene.enter(EScene.MainNav, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+    } else if (action === String(ENavAction.Back)) {
+      ctx.scene.enter(EScene.ManageOrders, state);
     } else if (action === String(ENavAction.ActiveOrders)) {
       ctx.scene.reenter();
     } else {

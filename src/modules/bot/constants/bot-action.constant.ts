@@ -26,6 +26,7 @@ export enum ENavAction {
   GetTradeToken = 'Get trade token',
   ActiveOrders = 'Active Orders',
   PreviewOrder = 'Preview Order',
+  ManageOrders = 'Manage Orders',
   SubmitOrder = 'Submit Order',
 
   // Bridge navigation
