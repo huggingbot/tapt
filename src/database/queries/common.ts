@@ -1,11 +1,8 @@
-import parse from 'postgres-interval';
-
 import { V3_UNISWAP_ROUTER_ADDRESS } from '@/libs/constants';
 import { EOrderStatus, EOrderType, ETransactionStatus, ETransactionType, IBasicWallet } from '@/types';
 import { isNumber } from '@/utils/common';
 
 import { db } from '../db';
-import { Interval } from '../gen-types';
 import {
   createOrder,
   ELimitOrderMode,

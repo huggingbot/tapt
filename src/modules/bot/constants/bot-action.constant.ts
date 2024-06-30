@@ -29,6 +29,10 @@ export enum ENavAction {
   ManageOrders = 'Manage Orders',
   SubmitOrder = 'Submit Order',
 
+  // Order Management
+  ActiveLimitOrders = 'Active Limit Orders',
+  ActiveDcaOrders = 'Active DCA Orders',
+
   // Bridge navigation
   BridgeEthToZkLink = 'Bridge ETH to ZkLink',
 

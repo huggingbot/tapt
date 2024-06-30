@@ -10,8 +10,8 @@ import { formatKeyboard } from '@/utils/common';
 export const createManageOrdersScene = composeWizardScene(
   async (ctx) => {
     const keyboardData = [
-      [{ text: 'Active Limit Orders', callback_data: EWizardProp.ActiveLimitOrders }],
-      [{ text: 'Active DCA Orders', callback_data: EWizardProp.ActiveDcaOrders }],
+      [{ text: ENavAction.ActiveLimitOrders, callback_data: ENavAction.ActiveLimitOrders }],
+      [{ text: ENavAction.ActiveDcaOrders, callback_data: ENavAction.ActiveDcaOrders }],
       [{ text: ENavAction.Back, callback_data: ENavAction.Back }],
     ];
 
@@ -25,18 +25,18 @@ export const createManageOrdersScene = composeWizardScene(
         if (action === String(ENavAction.Back)) {
           ctx.wizard.state[EWizardProp.Action] = ENavAction.Back;
           ctx.wizard.state[EWizardProp.Msg] = ctx.callbackQuery.message;
-        } else if (action === String(EWizardProp.ActiveLimitOrders)) {
+        } else if (action === String(ENavAction.ActiveLimitOrders)) {
           ctx.wizard.state[EWizardProp.Action] = ENavAction.ActiveOrders;
           ctx.wizard.state[EWizardProp.OrderManagementMode] = EOrderType.Limit;
 
-          // fetch active orders
+          // fetch active LIMIT orders
           const activeLimitOrders = (await getActiveOrders(EOrderType.Limit)) as ILimitOrder[];
           ctx.wizard.state[EWizardProp.ActiveLimitOrders] = activeLimitOrders;
-        } else if (action === String(EWizardProp.ActiveDcaOrders)) {
+        } else if (action === String(ENavAction.ActiveDcaOrders)) {
           ctx.wizard.state[EWizardProp.Action] = ENavAction.ActiveOrders;
           ctx.wizard.state[EWizardProp.OrderManagementMode] = EOrderType.Dca;
 
-          // fetch active orders
+          // fetch active DCA orders
           const activeDcaOrders = (await getActiveOrders(EOrderType.Dca)) as ILimitOrder[];
           ctx.wizard.state[EWizardProp.ActiveDcaOrders] = activeDcaOrders;
         }
