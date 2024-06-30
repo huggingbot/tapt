@@ -10,7 +10,7 @@ import { db } from '@/database/db';
 import { getOrdersByIds, updateOrderById } from '@/database/queries/order';
 import { getUserByUserId } from '@/database/queries/user';
 import { ENetwork } from '@/libs/config';
-import { UNISWAP_QUOTER_ADDRESS, V3_UNISWAP_FACTORY_ADDRESS, WRAPPED_NATIVE_TOKEN } from '@/libs/constants';
+import { UNISWAP_QUOTER_ADDRESS, V3_UNISWAP_FACTORY_ADDRESS } from '@/libs/constants';
 import { fromChainIdToNetwork } from '@/libs/conversion';
 import { composeOrderNotificationText } from '@/libs/notifications';
 import { getProvider } from '@/libs/providers';

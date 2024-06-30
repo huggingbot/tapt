@@ -140,6 +140,7 @@ export const placeDcaOrder = async (params: {
     minPrice: number;
     interval: number;
     duration: number;
+    expirationDate: string;
     orderMode: ELimitOrderMode;
   };
 }) => {
