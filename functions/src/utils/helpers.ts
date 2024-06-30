@@ -101,9 +101,10 @@ Order Status:\t${orderStatus}
   `;
 
   if (orderType === EOrderType.Limit) {
-    const { targetPrice } = order as ILimitOrder;
+    const { targetPrice, buyToken, sellToken } = order as ILimitOrder;
+    const nativeCurrency = orderMode === 'sell' ? buyToken?.symbol : sellToken?.symbol || 'ETH';
     message = `${message}
-Target Price: ${targetPrice} ETH
+Target Price: ${targetPrice} ${nativeCurrency}
     `;
   }
 

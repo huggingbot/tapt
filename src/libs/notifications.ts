@@ -1,7 +1,7 @@
 import { EOrderStatus, EOrderType, IDcaOrder, ILimitOrder } from '@/types';
 
 export function composeOrderNotificationText(order: Partial<ILimitOrder>, txn?: string) {
-  const { orderId, orderType, orderMode, orderStatus } = order;
+  const { orderId, orderType, orderMode, orderStatus, buyToken, sellToken } = order;
   let message = `There's an update for your order.\n
 Order ID:\t${orderId}
 Order Type:\t${orderType}
@@ -10,7 +10,8 @@ Order Status:\t${orderStatus}
   `;
 
   const { targetPrice } = order as ILimitOrder;
-  message = `${message}\nTarget Price: ${targetPrice} ETH`;
+  const nativeCurrency = orderMode === 'sell' ? buyToken?.symbol : sellToken?.symbol || 'ETH';
+  message = `${message}\nTarget Price: ${targetPrice} ${nativeCurrency}`;
 
   message = `${message}\n${generateTradeDetails(order, txn)}`;
 

@@ -43,7 +43,7 @@ export async function executeDcaOrders() {
     wallet: ethers.Wallet;
   }[] = [];
 
-  const tokensDetailsPromise = orders.map((order) => {
+  const tokensDetailsPromises = orders.map((order) => {
     const { createdAt, interval, chainId, buyToken, sellToken, encryptedPrivateKey } = order;
     if (!createdAt) {
       return undefined;
@@ -72,12 +72,12 @@ export async function executeDcaOrders() {
     }
     return undefined;
   });
-  const tokenDetailsResult = await Promise.allSettled(tokensDetailsPromise);
-  logger.debug('tokenDetailsResult', tokenDetailsResult);
-  console.log('tokenDetailsResult', tokenDetailsResult);
+  const tokenDetailsResults = await Promise.allSettled(tokensDetailsPromises);
+  logger.debug('tokenDetailsResult', tokenDetailsResults);
+  console.log('tokenDetailsResult', tokenDetailsResults);
 
   // Quote current market price for Target Token
-  const quotedAmountsPromises = tokenDetailsResult.map((result, idx) => {
+  const quotedAmountsPromises = tokenDetailsResults.map((result, idx) => {
     if (result.status === 'rejected' || !result.value) {
       return undefined;
     }
