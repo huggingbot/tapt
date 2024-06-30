@@ -214,8 +214,7 @@ export const createOrderPreviewScene = composeWizardScene(
           const { priceInETH: maxPriceInETH } = state[EWizardProp.DcaMaxPrice] as ITargetTokenPrice;
           const interval = computeMinutesFromIntervalString((state[EWizardProp.DcaInterval] as string) || DEFAULT_TRADE_OPTIONS.DcaInterval);
           const duration = computeMinutesFromIntervalString((state[EWizardProp.DcaDuration] as string) || DEFAULT_TRADE_OPTIONS.DcaDuration);
-          const expirationDate = new Date();
-          expirationDate.setMinutes(expirationDate.getMinutes() + duration);
+
           const tradeParam = {
             sellAmount: amountIn,
             buyAmount: amountOut,

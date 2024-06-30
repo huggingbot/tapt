@@ -174,7 +174,6 @@ export const placeDcaOrder = async (params: {
       sellTokenId: sellToken.id,
       orderType: EOrderType.Dca,
       orderStatus: EOrderStatus.Submitted,
-      orderMode: null,
     };
 
     const order = await createOrder(newOrder, txn);

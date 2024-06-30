@@ -74,6 +74,7 @@ export async function executeDcaOrders() {
   });
   const tokenDetailsResult = await Promise.allSettled(tokensDetailsPromise);
   logger.debug('tokenDetailsResult', tokenDetailsResult);
+  console.log('tokenDetailsResult', tokenDetailsResult);
 
   // Quote current market price for Target Token
   const quotedAmountsPromises = tokenDetailsResult.map((result, idx) => {
@@ -85,9 +86,18 @@ export async function executeDcaOrders() {
     const provider = getProvider(network);
     const quoterContract = new ethers.Contract(UNISWAP_QUOTER_ADDRESS[network], QuoterABI.abi, provider);
 
-    const decimals = order.orderMode === 'sell' ? tokenInput.decimals : tokenOutput.decimals;
     const [token0, token1, fee] = result.value;
-    const amountIn = ethers.utils.parseUnits('1', decimals);
+
+    // getting the quoted price of traded token
+    // in here we want to get the X token price in native currency (e.g. ETH)
+    // why native currency? cuz we store the all the prices in native currency (ETH or Matic) in Database
+    // in sell mode, X token is `tokenInput`
+    if (order.orderMode === 'sell') {
+      const amountIn = ethers.utils.parseUnits('1', tokenInput.decimals);
+      return quoterContract.callStatic.quoteExactOutputSingle(token1, token0, fee, amountIn, 0);
+    }
+    // in buy mode, X token is `tokenOutput`
+    const amountIn = ethers.utils.parseUnits('1', tokenOutput.decimals);
     return quoterContract.callStatic.quoteExactInputSingle(token0, token1, fee, amountIn, 0);
   });
   const quotedAmountResults = await Promise.allSettled(quotedAmountsPromises);
@@ -103,6 +113,9 @@ export async function executeDcaOrders() {
       if (order.orderMode === 'sell') {
         return undefined;
       }
+      // In the 'buy' mode, we are buying 'X' token with Native ETH
+      // In order to do the trade (swap), we need to convert ETH to WETH
+      // so here, we're wrapping the ETH to convert to WETH
       return wrapNativeToken(wallet, network, Number(order.sellAmount));
     }),
   );
@@ -112,11 +125,18 @@ export async function executeDcaOrders() {
     if (result.status === 'fulfilled' && result.value) {
       const { tokenOutput, tokenInput, order, wallet, network } = additionalParams[idx];
       const { orderMode, minPrice, maxPrice, sellAmount } = order;
-      const baseSymbol = orderMode === 'sell' ? tokenOutput.symbol : tokenInput.symbol;
-      const targetSymbol = orderMode === 'sell' ? tokenInput.symbol : tokenOutput.symbol;
-      const decimals = orderMode === 'sell' ? tokenOutput.decimals : tokenInput.decimals;
-      const amountOut = ethers.utils.formatUnits(result.value, decimals);
-      logger.debug(`1 ${baseSymbol} can be swapped for ${amountOut} ${targetSymbol}`);
+
+      // here, we format the `quotedPrice` with the native token decimal
+      // In 'buy' mode, 'X' token is tokenOutput in DB
+      // In 'sell' mode, 'X' token is stored as tokenInput in DB
+      const nativeTokenDecimals = orderMode === 'sell' ? tokenOutput.decimals : tokenInput.decimals;
+      const amountOut = ethers.utils.formatUnits(result.value, nativeTokenDecimals);
+
+      // this is for debugging and logging purpose
+      const targetTokenSymbol = orderMode === 'sell' ? tokenInput.symbol : tokenOutput.symbol;
+      logger.debug(`1 ${targetTokenSymbol} can be swapped for ${amountOut} WETH`);
+
+      // check whether the current market price falls inside the DCA price ranges
       if (Number(amountOut) <= maxPrice && Number(amountOut) >= minPrice) {
         // ready to execute
         return generateRoute(wallet, network, { tokenIn: tokenInput, tokenOut: tokenOutput, amount: Number(sellAmount) });
