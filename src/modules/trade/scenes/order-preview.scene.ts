@@ -224,7 +224,6 @@ export const createOrderPreviewScene = composeWizardScene(
             interval,
             duration,
             orderMode,
-            expirationDate,
           };
           // save limit order details in db
           await placeDcaOrder({ tokenToBuy, tokenToSell, tradeParam, wallet: walletParam });
