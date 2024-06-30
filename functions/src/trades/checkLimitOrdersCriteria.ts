@@ -38,12 +38,12 @@ export async function checkLimitOrderCriteria() {
   const fetchApprovalCompletedOrdersUrl = `${TAPT_API_ENDPOINT}/orders/limit?orderStatus=${EOrderStatus.ApprovalCompleted}`;
   const orders = await makeNetworkRequest<ILimitOrder[]>(fetchApprovalCompletedOrdersUrl);
 
-  const resp = await Promise.allSettled(
-    orders.map((order) => {
-      const executeTradeUrl = `${TAPT_API_ENDPOINT}/trades/check-limit-criteria/${order.orderId}`;
-      return makeNetworkRequest(executeTradeUrl, 'POST');
-    }),
-  );
+  const orderIds = orders.map((order) => order.orderId);
+
+  const checkLimitCriteriaUrl = `${TAPT_API_ENDPOINT}/trades/check-limit-criteria`;
+  const resp = makeNetworkRequest(checkLimitCriteriaUrl, 'POST', {
+    orderIds,
+  });
 
   logger.info(`Checking limit criteria take ${Date.now() - start} ms to finish`);
   return resp;

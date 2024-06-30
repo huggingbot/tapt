@@ -129,12 +129,18 @@ export async function executeDcaOrders() {
       // here, we format the `quotedPrice` with the native token decimal
       // In 'buy' mode, 'X' token is tokenOutput in DB
       // In 'sell' mode, 'X' token is stored as tokenInput in DB
-      const nativeTokenDecimals = orderMode === 'sell' ? tokenOutput.decimals : tokenInput.decimals;
-      const amountOut = ethers.utils.formatUnits(result.value, nativeTokenDecimals);
-
+      let nativeTokenDecimals = tokenInput.decimals;
       // this is for debugging and logging purpose
-      const targetTokenSymbol = orderMode === 'sell' ? tokenInput.symbol : tokenOutput.symbol;
-      logger.debug(`1 ${targetTokenSymbol} can be swapped for ${amountOut} WETH`);
+      let nativeTokenSymbol = tokenInput.symbol;
+      let targetTokenSymbol = tokenOutput.symbol;
+      if (orderMode === 'sell') {
+        nativeTokenDecimals = tokenOutput.decimals;
+        nativeTokenSymbol = tokenOutput.symbol;
+        targetTokenSymbol = tokenInput.symbol;
+      }
+
+      const amountOut = ethers.utils.formatUnits(result.value, nativeTokenDecimals);
+      console.log(`1 ${targetTokenSymbol} can be swapped for ${amountOut} ${nativeTokenSymbol}`);
 
       // check whether the current market price falls inside the DCA price ranges
       if (Number(amountOut) <= maxPrice && Number(amountOut) >= minPrice) {
