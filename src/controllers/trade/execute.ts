@@ -115,7 +115,9 @@ export async function executeLimitTrades(req: Request, res: Response) {
         telegramId = user.telegramId;
       });
     } else {
-      // failed
+      // failed to execute the trade
+      // we're not gonna do anything here
+      // instead, we will retry and let the next cron execution to do again
     }
 
     const message = composeOrderNotificationText(
