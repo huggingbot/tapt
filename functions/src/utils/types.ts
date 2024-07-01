@@ -76,11 +76,6 @@ export interface IUpdateOrderRequestBody {
   transaction?: { hash: string; type: string; toAddress: string };
 }
 
-export interface IUpdateOrderResponse {
-  order: ILimitOrder | IDcaOrder;
-  txnHash: string;
-}
-
 export enum ETransactionType {
   Swap = 'swap',
   Deposit = 'deposit',

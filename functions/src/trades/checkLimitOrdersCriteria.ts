@@ -41,7 +41,7 @@ export async function checkLimitOrderCriteria() {
   const orderIds = orders.map((order) => order.orderId);
 
   const checkLimitCriteriaUrl = `${TAPT_API_ENDPOINT}/trades/check-limit-criteria`;
-  const resp = makeNetworkRequest(checkLimitCriteriaUrl, 'POST', {
+  const resp = await makeNetworkRequest(checkLimitCriteriaUrl, 'POST', {
     orderIds,
   });
 
