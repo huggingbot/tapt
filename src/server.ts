@@ -13,6 +13,7 @@ dotenv.config({
   path: envPath,
 });
 
+import { listenForBlocks } from './libs/providers';
 import apiMiddlewareRouter from './middlewares/api.middleware';
 import { BotService } from './modules/bot';
 import routes from './routes';
@@ -60,4 +61,6 @@ export const startServer = async (): Promise<void> => {
     log.info(`Node env: ${nodeEnv}`);
     log.info(`Server running on port: ${port}`);
   });
+
+  listenForBlocks();
 };

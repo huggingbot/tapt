@@ -55,3 +55,19 @@ async function sendTransactionViaWallet(
   const txRes = await walletWithProvider.sendTransaction(transaction);
   return txRes;
 }
+
+export const listenForBlock = (provider: ethers.providers.BaseProvider): void => {
+  provider.on('block', (blockNumber) => {
+    console.log('Block number:', blockNumber);
+  });
+};
+
+export const listenForBlocks = (): void => {
+  // Listen for blocks on all networks except local
+  const networks = Object.keys(AppConfig).filter((v) => v !== String(ENetwork.Local));
+
+  networks.forEach((network) => {
+    const provider = getProvider(network as ENetwork);
+    listenForBlock(provider);
+  });
+};
