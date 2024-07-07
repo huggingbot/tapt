@@ -9,6 +9,7 @@ import {
   getOrderById,
   getOrders,
   GetOrdersFilters,
+  ICreateDcaOrderParams,
   ICreateLimitOrderParams,
   ICreateOrderParams,
   updateOrderById,
@@ -139,6 +140,7 @@ export const placeDcaOrder = async (params: {
     minPrice: number;
     interval: number;
     duration: number;
+    expirationDate: string;
     orderMode: ELimitOrderMode;
   };
 }) => {
@@ -162,14 +164,14 @@ export const placeDcaOrder = async (params: {
       throw new Error('Failed to get tokens');
     }
 
-    const newOrder: ICreateOrderParams = {
+    const newOrder: ICreateDcaOrderParams = {
       ...tradeParam,
+      interval: tradeParam.interval * 60,
       walletId: w.id,
       buyTokenId: buyToken.id,
       sellTokenId: sellToken.id,
       orderType: EOrderType.Dca,
       orderStatus: EOrderStatus.Submitted,
-      orderMode: null,
     };
 
     const order = await createOrder(newOrder, txn);

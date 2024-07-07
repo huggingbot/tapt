@@ -98,6 +98,9 @@ export const navStage = [
       case ENavAction.GetTradeToken:
         ctx.scene.enter(EScene.GetTradeToken, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
         break;
+      case ENavAction.ManageOrders:
+        ctx.scene.enter(EScene.ManageOrders, { [EWizardProp.Msg]: state[EWizardProp.Msg] });
+        break;
       case ENavAction.ActiveOrders:
         ctx.scene.enter(EScene.ActiveOrders, state);
         break;

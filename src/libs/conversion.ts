@@ -1,5 +1,7 @@
 import JSBI from 'jsbi';
 
+import { ENetwork } from './config';
+
 export function fromReadableAmount(amount: number, decimals: number): JSBI {
   const extraDigits = Math.pow(10, countDecimals(amount));
   const adjustedAmount = amount * extraDigits;
@@ -15,4 +17,13 @@ function countDecimals(x: number) {
     return 0;
   }
   return x.toString().split('.')[1].length || 0;
+}
+
+export function fromChainIdToNetwork(chainId: number): ENetwork {
+  if (chainId === 1) {
+    return ENetwork.Local;
+  } else if (chainId === 137) {
+    return ENetwork.Polygon;
+  }
+  return ENetwork.Local;
 }

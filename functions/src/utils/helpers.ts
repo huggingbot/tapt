@@ -3,7 +3,7 @@ import JSBI from 'jsbi';
 import { WRAPPED_NATIVE_TOKEN, WRAPPED_NATIVE_TOKEN_CONTRACT_ADDRESS, MAX_FEE_PER_GAS, MAX_PRIORITY_FEE_PER_GAS } from './constants';
 import { getWrappedNativeTokenContract } from './constracts';
 import { getProvider } from './providers';
-import { ENetwork } from './types';
+import { ENetwork, EOrderType, IDcaOrder, ILimitOrder } from './types';
 import { sendTransactionViaWallet } from './transactions';
 import { logger } from 'firebase-functions';
 
@@ -89,4 +89,47 @@ export async function countdown(num: number, cb: () => Promise<any>, timeout?: n
       countdown(num - 1, cb, timeout); // Recursive call
     }, timeout || 5_000);
   }
+}
+
+export function composeOrderNotificationText(order: Partial<ILimitOrder | IDcaOrder>, txn?: string) {
+  const { orderId, orderType, orderMode, orderStatus } = order;
+  let message = `There's an update for your order.\n
+Order ID:\t${orderId}
+Order Type:\t${orderType}
+Order Mode:\t${orderMode || 'buy'}
+Order Status:\t${orderStatus}
+  `;
+
+  if (orderType === EOrderType.Limit) {
+    const { targetPrice, buyToken, sellToken } = order as ILimitOrder;
+    const nativeCurrency = orderMode === 'sell' ? buyToken?.symbol : sellToken?.symbol || 'ETH';
+    message = `${message}
+Target Price: ${targetPrice} ${nativeCurrency}
+    `;
+  }
+
+  message = `${message}\n${generateTradeDetails(order, txn)}`;
+
+  return message;
+}
+
+function generateTradeDetails(order: Partial<ILimitOrder | IDcaOrder>, hash?: string) {
+  const { buyToken, sellToken, sellAmount, buyAmount } = order;
+  const tokenBought = `Token Bought: ${buyToken?.symbol}
+Token Address: ${buyToken?.contractAddress}
+Amount bought: ${buyAmount} ${buyToken?.symbol}\n\t\t-----`;
+
+  const tokenSold = `Token Sold: ${sellToken?.symbol}
+Token Address: ${sellToken?.contractAddress}
+Amount Sold: ${sellAmount} ${sellToken?.symbol}\n\t\t-----`;
+
+  let message = `Trade Details\n============\n${tokenBought}\n${tokenSold}`;
+
+  if (hash) {
+    message = `${message}\n
+Transaction Hash: ${hash}
+  `;
+  }
+
+  return message;
 }

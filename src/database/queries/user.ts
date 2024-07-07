@@ -1,6 +1,8 @@
+import { Transaction } from 'kysely';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 
 import { db } from '../db';
+import { DB } from '../gen-types';
 
 export const getUserWithWallets = async (telegramId: string, chainId: number) => {
   const user = await db
@@ -39,4 +41,10 @@ export const createUser = async (telegramId: string, username: string) => {
     .onConflict((oc) => oc.column('telegramId').doNothing())
     .returning(['id', 'telegramId', 'username'])
     .executeTakeFirstOrThrow();
+};
+
+export const getUserByUserId = async (userId: number, trx?: Transaction<DB>) => {
+  const queryCreator = trx || db;
+
+  return queryCreator.selectFrom('user').where('user.id', '=', userId).selectAll().executeTakeFirst();
 };

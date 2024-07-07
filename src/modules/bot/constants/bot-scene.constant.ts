@@ -27,4 +27,7 @@ export enum EScene {
   // Limit scene
   SubmitLimitOrder = 'SubmitLimitOrder',
   PreviewOrder = 'PreviewOrder',
+
+  // Order Management
+  ManageOrders = 'ManageOrders',
 }

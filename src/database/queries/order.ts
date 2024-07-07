@@ -4,7 +4,7 @@ import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import { EOrderStatus, IBaseOrder } from '@/types';
 
 import { db } from '../db';
-import { DB, Order as DBOrder } from '../gen-types';
+import { DB, Interval, Order as DBOrder } from '../gen-types';
 
 export interface ICreateOrderParams
   extends Omit<
@@ -30,6 +30,8 @@ export interface ICreateOrderParams
   interval?: number | null;
   frequency?: number | null;
 }
+
+export type ICreateDcaOrderParams = ICreateOrderParams & { interval: number };
 
 export enum ELimitOrderMode {
   BUY = 'buy',
@@ -57,6 +59,58 @@ export const createOrder = async (params: ICreateOrderParams, trx?: Transaction<
   return order;
 };
 
+export const getOrderDetailsById = async (orderId: number, trx?: Transaction<DB>): Promise<IBaseOrder & { userId: number }> => {
+  const queryCreator = trx ? trx : db;
+  const order = await queryCreator
+    .selectFrom('order')
+    .select((eb) => [
+      'order.id as orderId',
+      jsonObjectFrom(eb.selectFrom('token').selectAll().whereRef('buyTokenId', '=', 'token.id')).as('buyToken'),
+      jsonObjectFrom(eb.selectFrom('token').selectAll().whereRef('sellTokenId', '=', 'token.id')).as('sellToken'),
+    ])
+    .leftJoin(
+      (eb) =>
+        eb
+          .selectFrom('transaction')
+          .select(['transactionHash', 'transactionType', 'transaction.orderId as txnOrderId'])
+          .where('transaction.transactionType', '=', 'approval')
+          .as('transaction'),
+      (join) => join.onRef('txnOrderId', '=', 'order.id'),
+    )
+    .innerJoin('wallet', 'wallet.id', 'order.walletId')
+    .where('order.id', '=', orderId)
+    .selectAll()
+    .executeTakeFirstOrThrow();
+
+  return order;
+};
+
+export const getOrdersByIds = async (ids: number[], trx?: Transaction<DB>): Promise<IBaseOrder[]> => {
+  const queryCreator = trx ? trx : db;
+  const orders = await queryCreator
+    .selectFrom('order')
+    .select((eb) => [
+      'order.id as orderId',
+      jsonObjectFrom(eb.selectFrom('token').selectAll().whereRef('buyTokenId', '=', 'token.id')).as('buyToken'),
+      jsonObjectFrom(eb.selectFrom('token').selectAll().whereRef('sellTokenId', '=', 'token.id')).as('sellToken'),
+    ])
+    .leftJoin(
+      (eb) =>
+        eb
+          .selectFrom('transaction')
+          .select(['transactionHash', 'transactionType', 'transaction.orderId as txnOrderId'])
+          .where('transaction.transactionType', '=', 'approval')
+          .as('transaction'),
+      (join) => join.onRef('txnOrderId', '=', 'order.id'),
+    )
+    .innerJoin('wallet', 'wallet.id', 'order.walletId')
+    .where('order.id', 'in', ids)
+    .selectAll()
+    .execute();
+
+  return orders;
+};
+
 export const getOrders = async (filters?: GetOrdersFilters, trx?: Transaction<DB>): Promise<IBaseOrder[]> => {
   const queryCreator = trx ? trx : db;
   let query = queryCreator
@@ -80,6 +134,7 @@ export const getOrders = async (filters?: GetOrdersFilters, trx?: Transaction<DB
   if (filters?.orderType) {
     query = query.where('order.orderType', '=', filters.orderType);
   }
+
   if (filters?.orderStatus) {
     if (filters.orderStatus === String(EOrderStatus.Active)) {
       const notActiveOrderStatus = [EOrderStatus.Completed, EOrderStatus.Expired, EOrderStatus.Failed, EOrderStatus.Cancelled] as string[];

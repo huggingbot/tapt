@@ -1,12 +1,12 @@
 import log from 'loglevel';
 import { callbackQuery, message } from 'telegraf/filters';
 
-import { cancelOrder, getActiveOrders } from '@/database/queries/common';
+import { cancelOrder } from '@/database/queries/common';
 import { ENavAction } from '@/modules/bot/constants/bot-action.constant';
 import { EWizardProp } from '@/modules/bot/constants/bot-prop.constant';
 import { composeWizardScene } from '@/modules/bot/utils/scene-factory';
 import { formatOrderOverview, formatOrderOverviewHeader } from '@/modules/bot/utils/trade-keyboard-data';
-import { EOrderType, ILimitOrder } from '@/types';
+import { EOrderType, IDcaOrder, ILimitOrder } from '@/types';
 import { formatKeyboard, isNumber } from '@/utils/common';
 
 export const createActiveOrdersScene = composeWizardScene(
@@ -17,7 +17,7 @@ export const createActiveOrdersScene = composeWizardScene(
     let ordersData = `No active '${String(orderType).toUpperCase()}' orders found`;
 
     if (orderType === String(EOrderType.Limit)) {
-      const activeLimitOrders = (await getActiveOrders(EOrderType.Limit)) as ILimitOrder[];
+      const activeLimitOrders = ctx.wizard.state[EWizardProp.ActiveLimitOrders] as ILimitOrder[];
       if (activeLimitOrders.length > 0) {
         keyboardData = [[{ text: ENavAction.Delete, callback_data: ENavAction.Delete }], ...keyboardData];
         const header = formatOrderOverviewHeader();
@@ -25,7 +25,7 @@ export const createActiveOrdersScene = composeWizardScene(
         ordersData = `${header}${formattedOrderData.join('\n')}`;
       }
     } else if (orderType === String(EOrderType.Dca)) {
-      const activeDcaOrders = (await getActiveOrders(EOrderType.Dca)) as ILimitOrder[];
+      const activeDcaOrders = ctx.wizard.state[EWizardProp.ActiveDcaOrders] as IDcaOrder[];
       if (activeDcaOrders.length > 0) {
         keyboardData = [[{ text: ENavAction.Delete, callback_data: ENavAction.Delete }], ...keyboardData];
         const header = formatOrderOverviewHeader();
@@ -34,7 +34,7 @@ export const createActiveOrdersScene = composeWizardScene(
       }
     }
 
-    ctx.reply(`Active '${String(orderType).toUpperCase()}' Orders\n====================\n\n${ordersData}`, formatKeyboard(keyboardData));
+    ctx.reply(`Active '${String(orderType).toUpperCase()}' Orders\n\n${ordersData}`, formatKeyboard(keyboardData));
     ctx.wizard.next();
   },
   async (ctx, done) => {

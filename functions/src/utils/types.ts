@@ -28,6 +28,7 @@ export interface IBaseOrder {
   buyToken: IToken;
   transactionHash: null | string;
   transactionType: null | string;
+  userId: number;
   orderType: EOrderType;
   orderMode?: TradeMode;
   createdAt?: string;
@@ -42,8 +43,12 @@ export interface ILimitOrder extends IBaseOrder {
 export interface IDcaOrder extends IBaseOrder {
   maxPrice: number;
   minPrice: number;
-  interval: number;
+  interval: {
+    hours?: number;
+    minutes?: number;
+  };
   duration: number;
+  expirationDate?: string;
 }
 
 export interface ITransaction {
@@ -128,4 +133,5 @@ export enum EOrderStatus {
   Completed = 'ORDER_COMPLETED',
   Failed = 'FAILED',
   Expired = 'EXPIRED',
+  DcaExecuted = 'DCA_EXECUTED',
 }

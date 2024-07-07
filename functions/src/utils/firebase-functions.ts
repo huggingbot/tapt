@@ -6,6 +6,7 @@ export type TScheduleHandler = (event: ScheduledEvent) => Promise<void>;
 // each asterik represents one time unit, i.e. minute hour
 const SCHEDULE = 'every 1 mins'; // runs every minute
 
-export function createScheduleFunction(handler: TScheduleHandler): ScheduleFunction {
-  return onSchedule(SCHEDULE, handler);
+export function createScheduleFunction(handler: TScheduleHandler, schedule?: string): ScheduleFunction {
+  const _schedule = schedule || SCHEDULE;
+  return onSchedule(_schedule, handler);
 }

@@ -52,12 +52,6 @@ export async function submitApprovalTransactions() {
     // save to additionalParams to use the values for later in approval submition
     additionalParams.push({ orderId, wallet, sellAmount, sellToken, network });
     return provider.getBalance(wallet.address);
-    // balance = rawBalance.toBigInt();
-    // balance = BigInt(toReadableAmount(balance.toString(), WRAPPED_NATIVE_TOKEN[network].decimals));
-
-    // const tokenInContract = new ethers.Contract(sellToken.contractAddress, ERC20_ABI, provider);
-    // const allowance: Promise<BigNumber> = tokenInContract.allowance(wallet.address, V3_UNISWAP_ROUTER_ADDRESS[network]);
-    // return allowance;
   });
   const walletBalanceResult = await Promise.allSettled(walletBalances);
 
@@ -122,7 +116,6 @@ export async function submitApprovalTransactions() {
     return sendTransactionViaWallet(wallet, network, tokenApproval);
   });
   const approvalTxnResponsesResult = await Promise.allSettled(approvalTxnRespPromises);
-
   // Check `Approval` TXN responses and update the database
   const updateOrdersPromises = approvalTxnResponsesResult.map((result, idx) => {
     if (result.status === 'rejected' || !result.value) {

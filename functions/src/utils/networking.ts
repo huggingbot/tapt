@@ -6,6 +6,7 @@ export async function makeNetworkRequest<T>(
   method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE' = 'GET',
   body?: Record<string, unknown>,
 ): Promise<T> {
+  let status = 500;
   try {
     const res = await fetch(url, {
       method,
@@ -14,6 +15,7 @@ export async function makeNetworkRequest<T>(
       },
       body: JSON.stringify(body),
     });
+    status = res.status;
     const jsonResp: ApiResponse<T> = await res.json();
     if (!jsonResp.data || !jsonResp.success) {
       throw new Error(`[${res.status}] Failed: ${jsonResp.message}`);
@@ -24,8 +26,10 @@ export async function makeNetworkRequest<T>(
       `Error making network request: ${JSON.stringify({
         url,
         method,
+        status,
         body,
         err: (e as Error).message || 'unknown error',
+        stack: (e as Error).stack,
       })}`,
     );
     throw e;

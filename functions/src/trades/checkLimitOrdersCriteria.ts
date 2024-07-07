@@ -1,18 +1,11 @@
 /* eslint-disable max-len */
 
-import { Token } from '@uniswap/sdk-core';
-import IUniswapV3PoolABI from '@uniswap/v3-core/artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json';
-import QuoterABI from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json';
-import { computePoolAddress, FeeAmount } from '@uniswap/v3-sdk';
-import { ethers } from 'ethers';
-import { ENetwork, EOrderStatus, ILimitOrder, TradeMode } from '../utils/types';
-import { TAPT_API_ENDPOINT, UNISWAP_QUOTER_ADDRESS, V3_UNISWAP_FACTORY_ADDRESS } from '../utils/constants';
-import { fromChainIdToNetwork, getProvider } from '../utils/providers';
+import { EOrderStatus, ILimitOrder, TradeMode } from '../utils/types';
+import { TAPT_API_ENDPOINT } from '../utils/constants';
 import { logger } from 'firebase-functions';
 import { handleError } from '../utils/responseHandler';
 import { createScheduleFunction } from '../utils/firebase-functions';
 import { makeNetworkRequest } from '../utils/networking';
-import { countdown } from '../utils/helpers';
 
 /**
  * Check if the trade criteria met with the current price and target price
@@ -45,105 +38,25 @@ export async function checkLimitOrderCriteria() {
   const fetchApprovalCompletedOrdersUrl = `${TAPT_API_ENDPOINT}/orders/limit?orderStatus=${EOrderStatus.ApprovalCompleted}`;
   const orders = await makeNetworkRequest<ILimitOrder[]>(fetchApprovalCompletedOrdersUrl);
 
-  const ordersToBePrcessed: number[] = [];
-  // additional params which will be shared between promises iterations
-  const additionalParams: {
-    orderId: number;
-    targetPrice: number;
-    sellAmount: string;
-    tokenInput: Token;
-    tokenOutput: Token;
-    orderMode?: TradeMode;
-    network: ENetwork;
-  }[] = [];
-  // compute TokenPool Addr and get Tokens Details
-  const tokensDetailsPromise = orders.map((order) => {
-    const { orderId, buyToken, sellToken, targetPrice, sellAmount, orderMode, chainId } = order;
+  const orderIds = orders.map((order) => order.orderId);
 
-    const network = fromChainIdToNetwork(chainId);
-    const provider = getProvider(network);
-    const tokenOutput = new Token(buyToken.chainId, buyToken.contractAddress, buyToken.decimalPlaces, buyToken.symbol);
-    const tokenInput = new Token(sellToken.chainId, sellToken.contractAddress, sellToken.decimalPlaces, sellToken.symbol);
-
-    const currentPoolAddress = computePoolAddress({
-      factoryAddress: V3_UNISWAP_FACTORY_ADDRESS[network],
-      tokenA: tokenOutput,
-      tokenB: tokenInput,
-      fee: FeeAmount.MEDIUM,
-    });
-
-    additionalParams.push({ orderId, targetPrice, sellAmount, tokenOutput, tokenInput, orderMode, network });
-
-    const poolContract = new ethers.Contract(currentPoolAddress, IUniswapV3PoolABI.abi, provider);
-    return Promise.all([poolContract.token0(), poolContract.token1(), poolContract.fee(), poolContract.liquidity(), poolContract.slot0()]);
+  const checkLimitCriteriaUrl = `${TAPT_API_ENDPOINT}/trades/check-limit-criteria`;
+  const resp = await makeNetworkRequest(checkLimitCriteriaUrl, 'POST', {
+    orderIds,
   });
-  const tokenDetailsResult = await Promise.allSettled(tokensDetailsPromise);
-  // Quote current market price for Target Token
-  const quotedAmountsPromises = tokenDetailsResult.map((result, idx) => {
-    if (result.status === 'rejected' || !result.value) {
-      return undefined;
-    }
 
-    const { tokenInput, tokenOutput, orderMode, network } = additionalParams[idx];
-    const provider = getProvider(network);
-    const quoterContract = new ethers.Contract(UNISWAP_QUOTER_ADDRESS[network], QuoterABI.abi, provider);
-
-    const decimals = orderMode === 'buy' ? tokenOutput.decimals : tokenInput.decimals;
-    const [token0, token1, fee] = result.value;
-    const amountIn = ethers.utils.parseUnits('1', decimals);
-    return quoterContract.callStatic.quoteExactInputSingle(token0, token1, fee, amountIn, 0);
-  });
-  const quotedAmountResults = await Promise.allSettled(quotedAmountsPromises);
-
-  // Validate and check LIMIT_ORDER crtieria
-  quotedAmountResults.forEach((result, idx) => {
-    const { tokenOutput, tokenInput, orderId, targetPrice, orderMode } = additionalParams[idx];
-    const baseSymbol = orderMode === 'buy' ? tokenInput.symbol : tokenOutput.symbol;
-    const targetSymbol = orderMode === 'buy' ? tokenOutput.symbol : tokenInput.symbol;
-    const decimals = orderMode === 'buy' ? tokenInput.decimals : tokenOutput.decimals;
-    if (result.status === 'fulfilled' && result.value) {
-      const amountOut = ethers.utils.formatUnits(result.value, decimals);
-      logger.debug('=====================');
-      logger.debug(`Target Price: ${targetPrice}`);
-      logger.debug(`1 ${baseSymbol} can be swapped for ${amountOut} ${targetSymbol}`);
-      logger.debug('=====================');
-
-      if (isLimitOrderCriteriaMet(orderMode || 'buy', Number(amountOut), targetPrice)) {
-        // send for approval
-        logger.debug(`Limit order condition met for order with id, ${orderId}`);
-        ordersToBePrcessed.push(orderId);
-      }
-    }
-  });
-  logger.info(`Checking Limit Orders Criteria takes ${Date.now() - start} ms to complete!`);
-
-  if (ordersToBePrcessed.length > 0) {
-    // bulk update orders
-    const body = {
-      setdata: { orderStatus: EOrderStatus.ExecutionReady },
-      idsToUpdate: ordersToBePrcessed,
-    };
-    logger.debug('body', body);
-    const resp = await makeNetworkRequest(`${TAPT_API_ENDPOINT}/orders/bulk_update_status`, 'PATCH', body);
-    return resp;
-  }
-  return undefined;
+  logger.info(`Checking limit criteria take ${Date.now() - start} ms to finish`);
+  return resp;
 }
 
 export const limitOrderCriteriaChecker = createScheduleFunction(async () => {
   try {
-    await countdown(
-      3,
-      async () => {
-        const result = await checkLimitOrderCriteria();
-        if (!result) {
-          logger.info('[limitOrderCriteriaChecker] none of the `limit` orders met the criteria');
-        } else {
-          logger.info('[limitOrderCriteriaChecker] trade criteria met:', result);
-        }
-      },
-      3_000,
-    );
+    const result = await checkLimitOrderCriteria();
+    if (!result) {
+      logger.info('[limitOrderCriteriaChecker] none of the `limit` orders met the criteria');
+    } else {
+      logger.info('[limitOrderCriteriaChecker] trade criteria met:', result);
+    }
   } catch (e: unknown) {
     handleError(e);
   }

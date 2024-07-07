@@ -56,10 +56,7 @@ describe('Swap nav scene', function () {
       reply_markup: {
         inline_keyboard: [
           [{ callback_data: ENavAction.GetTradeToken, hide: false, text: ENavAction.GetTradeToken }],
-          [
-            { callback_data: EWizardProp.ActiveLimitOrders, hide: false, text: 'Active Limit Orders' },
-            { callback_data: EWizardProp.ActiveDcaOrders, hide: false, text: 'Active DCA Orders' },
-          ],
+          [{ callback_data: ENavAction.ManageOrders, hide: false, text: ENavAction.ManageOrders }],
           [{ callback_data: ENavAction.Back, hide: false, text: ENavAction.Back }],
         ],
       },
@@ -67,17 +64,19 @@ describe('Swap nav scene', function () {
   });
 
   test.each`
-    action                      | scenario                 | expectedScene
-    ${ENavAction.GetTradeToken} | ${'wallets not created'} | ${EScene.MainNav}
-    ${ENavAction.GetTradeToken} | ${'wallets created'}     | ${EScene.GetTradeToken}
-    ${ENavAction.Back}          | ${null}                  | ${EScene.MainNav}
+    action                      | scenario                                              | expectedScene
+    ${ENavAction.GetTradeToken} | ${`${ENavAction.GetTradeToken}: wallets not created`} | ${EScene.MainNav}
+    ${ENavAction.GetTradeToken} | ${`${ENavAction.GetTradeToken}: wallets created`}     | ${EScene.GetTradeToken}
+    ${ENavAction.ManageOrders}  | ${`${ENavAction.ManageOrders}: wallets not created`}  | ${EScene.MainNav}
+    ${ENavAction.ManageOrders}  | ${`${ENavAction.ManageOrders}: wallets created`}      | ${EScene.ManageOrders}
+    ${ENavAction.Back}          | ${null}                                               | ${EScene.MainNav}
   `('should navigate to the $expectedScene scene when action is $action and scenario is "$scenario"', async ({ action, expectedScene, scenario }) => {
     await scene.middleware()(ctx as IContext, jest.fn());
 
     expect(replySpy).toHaveBeenCalledTimes(1);
     replySpy.mockClear();
 
-    if (scenario === 'wallets created') {
+    if (scenario?.includes('wallets created')) {
       sessionCtx.prop.wallets[ENetwork.Mainnet].push({ encryptedPrivateKey: 'encryptedPrivateKey', address: 'address', chainId: 1 });
     }
 
@@ -85,7 +84,7 @@ describe('Swap nav scene', function () {
     const updatedCtx = _.merge(_.cloneDeep(ctx), { update });
     await scene.middleware()(updatedCtx as IContext, jest.fn());
 
-    if (scenario === 'wallets not created') {
+    if (scenario?.includes('wallets not created')) {
       expect(replySpy).toHaveBeenCalledWith('You need to create a wallet first');
     } else {
       expect(replySpy).not.toHaveBeenCalled();
