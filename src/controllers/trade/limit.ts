@@ -101,23 +101,16 @@ export async function checkLimitOrderCriteria(req: Request, res: Response) {
         return undefined;
       }
 
-      const { tokenInput, tokenOutput, order, network } = additionalParams[idx];
+      const { tokenInput, tokenOutput, network } = additionalParams[idx];
       const provider = getProvider(network);
       const quoterContract = new ethers.Contract(UNISWAP_QUOTER_ADDRESS[network], QuoterABI.abi, provider);
 
-      const [token0, token1, fee] = result.value;
+      const [fee] = result.value;
 
-      // getting the quoted price of traded token
-      // in here we want to get the X token price in native currency (e.g. ETH)
-      // why native currency? cuz we store the all the prices in native currency (ETH or Matic) in Database
-      // in sell mode, X token is `tokenInput`
-      if (order.orderMode === 'sell') {
-        const amountIn = ethers.utils.parseUnits('1', tokenInput.decimals);
-        return quoterContract.callStatic.quoteExactOutputSingle(token1, token0, fee, amountIn, 0);
-      }
-      // in buy mode, X token is `tokenOutput`
-      const amountIn = ethers.utils.parseUnits('1', tokenOutput.decimals);
-      return quoterContract.callStatic.quoteExactInputSingle(token0, token1, fee, amountIn, 0);
+      // in buy mode, tokenInput will be the wrapped native token; tokenOutput will be the erc20 token
+      // in sell mode, tokenInput will be the erc20 token; tokenOutput will be the wrapped native token
+      const amountIn = ethers.utils.parseUnits('1', tokenInput.decimals);
+      return quoterContract.callStatic.quoteExactInputSingle(tokenInput.address, tokenOutput.address, fee, amountIn, 0);
     }),
   );
 
