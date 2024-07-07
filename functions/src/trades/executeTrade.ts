@@ -24,12 +24,13 @@ export async function executeLimitTrades() {
     const fetchReadyToExecuteOrderUrl = `${TAPT_API_ENDPOINT}/orders/limit?orderStatus=${EOrderStatus.ExecutionReady}`;
     const orders = await makeNetworkRequest<ILimitOrder[]>(fetchReadyToExecuteOrderUrl);
 
-    const resp = await Promise.allSettled(
-      orders.map((order) => {
-        const executeTradeUrl = `${TAPT_API_ENDPOINT}/trades/execute/${order.orderId}`;
-        return makeNetworkRequest(executeTradeUrl, 'POST');
-      }),
-    );
+    const orderIds = orders.map((order) => order.orderId);
+
+    const executeTradeUrl = `${TAPT_API_ENDPOINT}/trades/execute`;
+    const resp = makeNetworkRequest(executeTradeUrl, 'POST', {
+      orderIds,
+    });
+
     logger.info(`Execution of limit trades take ${Date.now() - start} ms to finish`);
     return resp;
   } catch (e: unknown) {
